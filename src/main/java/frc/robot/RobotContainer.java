@@ -9,7 +9,7 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-
+import frc.robot.commands.Intake;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -20,9 +20,9 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -35,6 +35,7 @@ public class RobotContainer {
   public final SwerveBase Swerve;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
+  private final Intake intake = new Intake();
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
@@ -50,6 +51,8 @@ public class RobotContainer {
   private final String[] camNames = {"limelight-left", "limelight-right"};
   private static final EnhancedCommandController driver =
       new EnhancedCommandController(0);
+
+  private static Joystick joystick = new Joystick(0);
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
@@ -87,10 +90,17 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
+    
 
   }
 
   public void configureDefaultCommands(){
+
+    intake.setDefaultCommand (
+      intake.runIntake(
+        ()-> joystick.getRawAxis(3)
+      )
+    );
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
     Swerve.setDefaultCommand
       (
