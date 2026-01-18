@@ -1,8 +1,6 @@
 package frc.BisonLib.BaseProject.Swerve;
 
 import static edu.wpi.first.units.Units.Volts;
-import static edu.wpi.first.wpilibj2.command.Commands.deadline;
-import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.DoubleSupplier;
@@ -13,15 +11,7 @@ import com.ctre.phoenix6.Orchestra;
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.controls.VoltageOut;
-import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.config.ModuleConfig;
-import com.pathplanner.lib.config.PIDConstants;
-import com.pathplanner.lib.config.RobotConfig;
-import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-import com.pathplanner.lib.util.DriveFeedforwards;
-import com.pathplanner.lib.util.swerve.SwerveSetpoint;
-import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
-import com.studica.frc.AHRS;
+import com.ctre.phoenix6.hardware.Pigeon2;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
@@ -36,8 +26,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -59,7 +47,10 @@ public class SwerveBase extends SubsystemBase {
     private final SwerveDrivePoseEstimator odometry;
 
     // NEVER DIRECTLY CALL ANY GYRO METHODS, ALWAYS USE THE SYNCHRONIZED GYRO LOCK!!
-    private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
+    //private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
+    private final Pigeon2 pigeon;
+    private final BaseStatusSignal yawSignal;
+    private double gyroAccumYawOffset = 0;
 
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
@@ -87,10 +78,6 @@ public class SwerveBase extends SubsystemBase {
 
     public final Trigger atRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 1);
     public final Trigger almostAtRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 20);
-    public PPHolonomicDriveController pathplannerController =  new PPHolonomicDriveController( // HolonomicPathFollowerConfig, this should likely live in your Constants class
-                                                                new PIDConstants(6, 0.0, 0.1), // Translation PID constants (JPK was 6,0,0)
-                                                                new PIDConstants(5, 0.0, 0.0) // Rotation PID constants (JPK was 2)
-                                                                );
 
 
 
@@ -105,8 +92,6 @@ public class SwerveBase extends SubsystemBase {
     private SwerveModuleState[] currentModuleStates = new SwerveModuleState[4];
 
     protected String[] camNames;
-    private final SwerveSetpointGenerator setpointGenerator;
-    private SwerveSetpoint previousSetpoint;
  
     public SlewRateLimiter omegaFilter = new SlewRateLimiter(Math.toRadians(1074.5588535));
     public SlewRateLimiter xFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
@@ -162,15 +147,19 @@ public class SwerveBase extends SubsystemBase {
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
+        pigeon = new Pigeon2(8, "drivetrain");
+        yawSignal = pigeon.getAccumGyroZ();
+        gyroAccumYawOffset = -yawSignal.getValueAsDouble();
         //pigeon.setYaw(0);
-        // 4 modules * 3 signals per module
-        allOdomSignals = new BaseStatusSignal[(4 * 3)];
+        // 4 modules * 3 signals per module + 1 for pigeon
+        allOdomSignals = new BaseStatusSignal[(4 * 3) + 1];
         for(int i = 0; i < modules.length; ++i){
             var signals = modules[i].getOdometrySignals();
             allOdomSignals[i*3 + 0] = signals[0]; // drive position
             allOdomSignals[i*3 + 1] = signals[1]; // drive velocity
             allOdomSignals[i*3 + 2] = signals[2]; // module rotation (cancoder)
         }
+        allOdomSignals[allOdomSignals.length-1] = yawSignal;
 
         this.camNames = camNames;
 
@@ -179,16 +168,6 @@ public class SwerveBase extends SubsystemBase {
 
         this.validTagIDs = validTagIDs;
 
-        RobotConfig config;
-        try{
-            config = RobotConfig.fromGUISettings();
-        } catch (Exception e) {
-        // Handle exception as needed
-            e.printStackTrace();
-            config = new RobotConfig(0, 0, new ModuleConfig(0.051, 5.3, 1.15, DCMotor.getFalcon500(1), 40, 4), Constants.Swerve.FRONT_LEFT_TRANSLATION, Constants.Swerve.FRONT_RIGHT_TRANSLATION, Constants.Swerve.BACK_LEFT_TRANSLATION, Constants.Swerve.BACK_RIGHT_TRANSLATION);
-        }
-
-        initAutoBuilder(config);
 
 
         /*
@@ -226,17 +205,6 @@ public class SwerveBase extends SubsystemBase {
         }
 
 
-        setpointGenerator = new SwerveSetpointGenerator(
-            config, // The robot configuration. This is the same config used for generating trajectories and running path following commands.
-            Units.rotationsToRadians(Constants.Swerve.MAX_WHEEL_ROTATIONAL_SPEED) // The max rotation velocity of a swerve module in radians per second. This should probably be stored in your Constants file
-        );
-
-        
-        ChassisSpeeds speeds = new ChassisSpeeds();
-        SwerveModuleState[] states = new SwerveModuleState[] {new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState()};
-        previousSetpoint = new SwerveSetpoint(speeds, states, DriveFeedforwards.zeros(config.numModules));
-
-
         SmartDashboard.putData("field", m_field);
         SmartDashboard.putData("Robot angle PID controller", thetaController);
 
@@ -269,27 +237,8 @@ public class SwerveBase extends SubsystemBase {
     }
 
 
-    /*
-     * Initializes autobuilder,
-     * this is used by pathplanner
-     */
-    public void initAutoBuilder(RobotConfig config){
-
-        // Configure the AutoBuilder last
-        AutoBuilder.configure(
-                this::getSavedPose, // Robot pose supplier
-                this::resetOdometry, // Method to reset odometry (will be called if your auto has a starting pose)
-                this::getLatestChassisSpeed, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                (speeds, feedforwards) -> pathplannerDriveRobotRelative(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds
-                pathplannerController,
-                config,
-                this::isRedAlliance,
-            this // Reference to this subsystem to set requirements
-        );
-    }
-
     public void pathplannerDriveRobotRelative(ChassisSpeeds speeds){
-        driveRobotRelative(speeds, false, false);
+        driveRobotRelative(speeds, false);
     }
 
 
@@ -330,8 +279,9 @@ public class SwerveBase extends SubsystemBase {
     public void setGyro(double degrees){
         //pigeon.setYaw(0);
         synchronized(gyroLock){
-            gyro.reset();
-            gyro.setAngleAdjustment(-degrees);
+            // gyro.reset();
+            // gyro.setAngleAdjustment(-degrees);
+            gyroAccumYawOffset = -allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION + degrees;
         }
     }
 
@@ -362,7 +312,10 @@ public class SwerveBase extends SubsystemBase {
     private Rotation2d getGyroHeading() {
         //0.99622314806
         synchronized (gyroLock){
-            return new Rotation2d(-Math.toRadians(Math.IEEEremainder(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION, 360)));
+            double unmoddedGyoHeading = gyroAccumYawOffset + (allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION);
+            SmartDashboard.putNumber("Unmodded Gyro Heading", unmoddedGyoHeading);
+            return Rotation2d.fromDegrees(Math.IEEEremainder(unmoddedGyoHeading, 360));
+            //return new Rotation2d(-Math.toRadians(Math.IEEEremainder(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION, 360)));
         }
     }
 
@@ -561,69 +514,69 @@ public class SwerveBase extends SubsystemBase {
      * 
      * COMMENT OUT DRIVEBASE AND ODOMETRY CODE BEFORE RUNNING THIS
      */
-    public Command runWheelCharacterization() {
+    // public Command runWheelCharacterization() {
 
-        /*
-         * wheel Base is the width or distance from one wheel to the next on the chassis
-         * let wheel base = w
-         * sqrt((w / 2)^2+(w/2)^2) = distance from wheel to center, or radius = sqrt2 *
-         * w/2
-         * multiply by 2 to get diameter --> d = sqrt2 * w
-         * multiply by pi to get circumference:
-         */
+    //     /*
+    //      * wheel Base is the width or distance from one wheel to the next on the chassis
+    //      * let wheel base = w
+    //      * sqrt((w / 2)^2+(w/2)^2) = distance from wheel to center, or radius = sqrt2 *
+    //      * w/2
+    //      * multiply by 2 to get diameter --> d = sqrt2 * w
+    //      * multiply by pi to get circumference:
+    //      */
 
-        double oneRotation = Constants.Swerve.WHEEL_BASE_METERS * Math.PI * Math.sqrt(2);
-        backwardsResetGyro();
-        initialGyroAngle = gyro.getAngle();
+    //     double oneRotation = Constants.Swerve.WHEEL_BASE_METERS * Math.PI * Math.sqrt(2);
+    //     backwardsResetGyro();
+    //     initialGyroAngle = gyro.getAngle();
         
-        return runOnce(() -> {
+    //     return runOnce(() -> {
             
-            // get each module in positions
-            // sets each motor to stop moving, and converts the module index (which quadrant
-            // relative to the chassis the motor is - 1) to degrees
-            // for (var mod : modules) {
-            //     mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
-            // }
+    //         // get each module in positions
+    //         // sets each motor to stop moving, and converts the module index (which quadrant
+    //         // relative to the chassis the motor is - 1) to degrees
+    //         // for (var mod : modules) {
+    //         //     mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
+    //         // }
             
-        })
-        .andThen(waitSeconds(0.5))
-        .andThen(
-            deadline(
-                new WaitCommand(6),
-                run(() -> {
-                drive( new ChassisSpeeds(0.0,0.0,0.3),false,false);
-        }))).andThen(runOnce(() -> {
-            //stop motors
-            for (var mod : modules) {
-                mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
-            }
+    //     })
+    //     .andThen(waitSeconds(0.5))
+    //     .andThen(
+    //         deadline(
+    //             new WaitCommand(6),
+    //             run(() -> {
+    //             drive( new ChassisSpeeds(0.0,0.0,0.3),false,false);
+    //     }))).andThen(runOnce(() -> {
+    //         //stop motors
+    //         for (var mod : modules) {
+    //             mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
+    //         }
 
-        })).andThen(waitSeconds(1))
-        .andThen(runOnce(() -> {
+    //     })).andThen(waitSeconds(1))
+    //     .andThen(runOnce(() -> {
 
-                double[] currentPositions = getRawDrivePositions();
-                double avg_calculated_wheel_circumference = 0;
-                //distance of one rotation * number of rotations based on gyro
-                double actual_distance_traveled =  oneRotation * Math.abs(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION) / 360;
-                for (var mod : modules) {
+    //             double[] currentPositions = getRawDrivePositions();
+    //             double avg_calculated_wheel_circumference = 0;
+    //             //distance of one rotation * number of rotations based on gyro
+    //             double actual_distance_traveled =  oneRotation * Math.abs(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION) / 360;
+    //             for (var mod : modules) {
 
-                    //actual distance / wheel rotations = wheel circumference, because wheel circumference * number of rotations = linear distance the wheel travels
-                    //actual distance / (pi * wheel rotations (current rotations - original rotations) / gear ratio to account for motor spins per wheel spin)
-                    double new_circumference = actual_distance_traveled / 
-                    (Math.PI * (currentPositions[mod.index] - initialPositions[mod.index]) /((Constants.Swerve.DRIVING_GEAR_RATIO)));
+    //                 //actual distance / wheel rotations = wheel circumference, because wheel circumference * number of rotations = linear distance the wheel travels
+    //                 //actual distance / (pi * wheel rotations (current rotations - original rotations) / gear ratio to account for motor spins per wheel spin)
+    //                 double new_circumference = actual_distance_traveled / 
+    //                 (Math.PI * (currentPositions[mod.index] - initialPositions[mod.index]) /((Constants.Swerve.DRIVING_GEAR_RATIO)));
                     
-                    avg_calculated_wheel_circumference += Math.abs(new_circumference);
+    //                 avg_calculated_wheel_circumference += Math.abs(new_circumference);
 
-                    SmartDashboard.putNumber("Actual Distance", actual_distance_traveled);
-                    SmartDashboard.putNumber("new circumference " + mod.index, new_circumference);
-                    SmartDashboard.putNumber("raw initial distance " + mod.index, initialPositions[mod.index]);
-                    SmartDashboard.putNumber("raw current distance " + mod.index, currentPositions[mod.index]);
-                    SmartDashboard.putNumber(mod.index + "calculated wheel circumference", new_circumference);
-                }
-                avg_calculated_wheel_circumference /= 4;
-                SmartDashboard.putNumber("Average Calculated Wheel Circumference", avg_calculated_wheel_circumference);
-            }));
-    }
+    //                 SmartDashboard.putNumber("Actual Distance", actual_distance_traveled);
+    //                 SmartDashboard.putNumber("new circumference " + mod.index, new_circumference);
+    //                 SmartDashboard.putNumber("raw initial distance " + mod.index, initialPositions[mod.index]);
+    //                 SmartDashboard.putNumber("raw current distance " + mod.index, currentPositions[mod.index]);
+    //                 SmartDashboard.putNumber(mod.index + "calculated wheel circumference", new_circumference);
+    //             }
+    //             avg_calculated_wheel_circumference /= 4;
+    //             SmartDashboard.putNumber("Average Calculated Wheel Circumference", avg_calculated_wheel_circumference);
+    //         }));
+    // }
 
 
     public Command requireSubsystem(){
@@ -668,36 +621,25 @@ public class SwerveBase extends SubsystemBase {
      * 
      * @param chassisSpeeds The chassis speeds the robot should travel at
      */
-    protected void driveRobotRelative(ChassisSpeeds chassisSpeeds, boolean useSetpointGenerator, boolean useMaxSpeed) {
-        if(!useSetpointGenerator){
-            var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
-            if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
-            else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
-            var speeds = Constants.Swerve.kDriveKinematics.toChassisSpeeds(tmpStates);
+    protected void driveRobotRelative(ChassisSpeeds chassisSpeeds, boolean useMaxSpeed) {
+        var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
+        if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+        else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
+        var speeds = Constants.Swerve.kDriveKinematics.toChassisSpeeds(tmpStates);
 
-            Rotation2d skewCompensationFactor = Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * Constants.Swerve.SKEW_COMPENSATION_RATE);
+        Rotation2d skewCompensationFactor = Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * Constants.Swerve.SKEW_COMPENSATION_RATE);
 
-            chassisSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
-                ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getSavedPose().getRotation()),
-                getSavedPose().getRotation().plus(skewCompensationFactor));
-    
-            //SmartDashboard.putString("Swerve/Commanded Chassis Speeds", chassisSpeeds.toString());
-            // convert chassis speeds to module states
-            SwerveModuleState[] moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
+        chassisSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
+            ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getSavedPose().getRotation()),
+            getSavedPose().getRotation().plus(skewCompensationFactor));
 
-            // set the modules to their desired speeds
-            setModules(moduleStates, useMaxSpeed);
-        }
-        else{
-            previousSetpoint = setpointGenerator.generateSetpoint(
-                previousSetpoint, // The previous setpoint
-                chassisSpeeds, // The desired target speeds
-                Constants.Swerve.DISCRETIZE_TIMESTAMP // The loop time of the robot code, in seconds
-            );
+        //SmartDashboard.putString("Swerve/Commanded Chassis Speeds", chassisSpeeds.toString());
+        // convert chassis speeds to module states
+        SwerveModuleState[] moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
 
-            //set the modules to their desired speeds
-            setModules(previousSetpoint.moduleStates(), useMaxSpeed);
-        }
+        // set the modules to their desired speeds
+        setModules(moduleStates, useMaxSpeed);
+        
     }
 
     /*
@@ -743,6 +685,16 @@ public class SwerveBase extends SubsystemBase {
         // the signum signifies if we are requesting speed up/braking
         double max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
                                (1 - Math.signum(w_along_v - v_mag) * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+        if(w_along_v - v_mag > 0){
+            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
+        }
+        else{
+            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               1.5 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP;
+        }
+
         SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
         
         double desiredForwardAccel = (w_along_v - v_mag)/dt;
@@ -814,7 +766,7 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
         SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
 
-        this.driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), false, useMaxSpeed);
+        this.driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), useMaxSpeed);
 
         //SmartDashboard.putBoolean("collision", detectCollision());
 
@@ -950,9 +902,10 @@ public class SwerveBase extends SubsystemBase {
             updateOdometryWithVision(false);
         //}
 
-       SmartDashboard.putNumber("NavX Position", gyro.getAngle());
-       SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
-       SmartDashboard.putNumber("NavX Modified Position", getGyroHeading().getDegrees());
+       SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
+    //    SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
+        SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
+       SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
 
         m_field.setRobotPose(getSavedPose());
 

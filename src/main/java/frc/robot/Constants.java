@@ -57,7 +57,7 @@ public class Constants {
                 0, 90, 
                 40, 0, 0, 
                 0, 0.25, 
-                0.11, 0, 0.2, 1);
+                0.11, 0, 0.2, 14040/14053.447266);
         public static final SwerveConfig production2025Config =
                 new SwerveConfig(
                     //must find all offsets
@@ -91,7 +91,7 @@ public class Constants {
         
 
         // CHOOSE WHICH ROBOT YOU'RE USING
-        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QC");
+        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QB");
 
         // miscellaneous constants
         public static final double MAX_SPEED_METERS_PER_SECONDS_TELEOP = CHOSEN_CONSTANTS.maxSpeedMetersPerSec;

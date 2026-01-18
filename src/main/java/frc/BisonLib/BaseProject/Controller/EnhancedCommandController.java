@@ -101,10 +101,10 @@ public class EnhancedCommandController extends CommandXboxController{
                 downJumpTime = newTime;
             }
 
-            SmartDashboard.putBoolean("upJump", upJump);
-            SmartDashboard.putBoolean("downJump", downJump);
-            SmartDashboard.putNumber("upJumpTime", upJumpTime);
-            SmartDashboard.putNumber("downJumpTime", downJumpTime);
+            // SmartDashboard.putBoolean("upJump", upJump);
+            // SmartDashboard.putBoolean("downJump", downJump);
+            // SmartDashboard.putNumber("upJumpTime", upJumpTime);
+            // SmartDashboard.putNumber("downJumpTime", downJumpTime);
 
             double jumpTimeSpanAbs = Math.abs(upJumpTime - downJumpTime);
             double newjumpTimeSpan = upJumpTime - downJumpTime;
@@ -132,8 +132,8 @@ public class EnhancedCommandController extends CommandXboxController{
                 flickCooldownDone = true;
             }
 
-            SmartDashboard.putNumber("newjumpTimeSpan", newjumpTimeSpan);
-            SmartDashboard.putNumber("jumpTimeSpanAbs", jumpTimeSpanAbs);
+            // SmartDashboard.putNumber("newjumpTimeSpan", newjumpTimeSpan);
+            // SmartDashboard.putNumber("jumpTimeSpanAbs", jumpTimeSpanAbs);
             jumpTimeSpanValid = false;
 
             if(jumpTimeSpanAbs <= 0.1 && !isFlicked && timeSinceLastJump < 0.04 && wasCenteredBeforeMove && flickCooldownDone){
@@ -154,11 +154,11 @@ public class EnhancedCommandController extends CommandXboxController{
             oldTime = newTime;
             oldLeftX = newLeftX;
 
-            SmartDashboard.putBoolean("jumpTimeSpanValid", jumpTimeSpanValid);
-            SmartDashboard.putNumber("Derivative of Flick", derivative);
-            SmartDashboard.putNumber("oldLeftX", oldLeftX);
-            SmartDashboard.putNumber("newLeftX", newLeftX);
-            SmartDashboard.putBoolean("isFlicked", isFlicked);
+            // SmartDashboard.putBoolean("jumpTimeSpanValid", jumpTimeSpanValid);
+            // SmartDashboard.putNumber("Derivative of Flick", derivative);
+            // SmartDashboard.putNumber("oldLeftX", oldLeftX);
+            // SmartDashboard.putNumber("newLeftX", newLeftX);
+            // SmartDashboard.putBoolean("isFlicked", isFlicked);
 
         // +Z is ccw
         double Zj = -getSquaredRightStick();
