@@ -50,7 +50,7 @@ public class RobotContainer {
 
   private final String[] camNames = {"limelight-left", "limelight-right"};
   private static final EnhancedCommandController driver =
-      new EnhancedCommandController(0);
+      new EnhancedCommandController(1);
 
   private static Joystick joystick = new Joystick(0);
 

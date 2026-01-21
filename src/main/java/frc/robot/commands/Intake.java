@@ -23,7 +23,7 @@ public class Intake extends SubsystemBase{
     private SparkFlex intakeMotor;
 
     public Intake() {
-        intakeMotor = new SparkFlex(56, com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless); //not correct id
+        intakeMotor = new SparkFlex(53, com.revrobotics.spark.SparkLowLevel.MotorType.kBrushless); //not correct id
     }
 
     public Command runIntake(DoubleSupplier value){
