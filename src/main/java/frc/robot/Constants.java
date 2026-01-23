@@ -92,7 +92,7 @@ public class Constants {
                  1, 
                  4 * Math.PI, 
                  // must find this kp
-                 70, 
+                 50, 
                  // must find wheelbase and track width
                  23.75, 23.75, 287/11.0, false, 
                  // must tune this
@@ -102,8 +102,8 @@ public class Constants {
                  // tune stator limit
                  90, 40, 
                  // tune velocity pid and ff
-                 0, 0, 0, 
-                 0, 0.09,0,  
+                 0, 0.145, 0, 
+                 0.05, 0.09,0,  
                  0.18, 1);
                  //0.99622314806
 
