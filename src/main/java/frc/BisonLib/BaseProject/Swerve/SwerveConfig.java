@@ -17,7 +17,7 @@ public class SwerveConfig {
         public final double turningGearRatio;
         public final double turnWheelKP;
         public final double turnWheelKS;
-        public final double turnWheelKD;
+        public final double turnWheelKV;
         public final double rotationOverrideKP;
         public final double maxSpeedMetersPerSec;
         public final double maxAccelMetersPerSec;
@@ -64,7 +64,7 @@ public class SwerveConfig {
          * @param rotationToAngleKPval The KP value for rotating the robot to an angle (rotation override)
          * @param statorCurrentLimit The stator current limit for the drive motors
          * @param supplyCurrentLimit The supply current limit for the drive motors
-         * @param turnWheelKD 
+         * @param turnWheelKV 
          * @param turnWheelKS
          * @param maxWheelRotationalSpeed
          * @param driveWheelKP
@@ -74,7 +74,7 @@ public class SwerveConfig {
         public SwerveConfig(double frontRightOffset, double frontLeftOffset, double backLeftOffset, double backRightOffset, 
                             double drivingGearRatio, double maxSpeedFeetPerSec, double wheelCircumferenceInches, double turnWheelKP, double wheelbaseInches, double trackwidthInches,
                             double turningGearRatio, boolean driveMotorInverted, double rotationToAngleKPval,
-                            double maxAccelFeetPerSec, double statorCurrentLimit, double supplyCurrentLimit, double turnWheelKD, double turnWheelKS, double maxWheelRotationalSpeed, 
+                            double maxAccelFeetPerSec, double statorCurrentLimit, double supplyCurrentLimit, double turnWheelKV, double turnWheelKS, double maxWheelRotationalSpeed, 
                             double driveWheelKP, double driveWheelKV, double driveWheelKA, double driveWheelKS, double gyroDriftCompensation){
             
             this.frontRightOffset = frontRightOffset;
@@ -105,7 +105,7 @@ public class SwerveConfig {
             //this.maxAngularAccelerationRadPerSecondSquared = maxAngularAccelerationRadPerSecondSquared;
 
             this.turnWheelKP = turnWheelKP;
-            this.turnWheelKD = turnWheelKD;
+            this.turnWheelKV = turnWheelKV;
             this.turnWheelKS = turnWheelKS;
             this.rotationOverrideKP = rotationToAngleKPval;
             this.driveMotorInverted = driveMotorInverted;

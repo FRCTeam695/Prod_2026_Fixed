@@ -48,9 +48,9 @@ public class SwerveBase extends SubsystemBase {
 
     // NEVER DIRECTLY CALL ANY GYRO METHODS, ALWAYS USE THE SYNCHRONIZED GYRO LOCK!!
     //private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
-    private final Pigeon2 pigeon;
-    private final BaseStatusSignal yawSignal;
-    private double gyroAccumYawOffset = 0;
+    //private final Pigeon2 pigeon;
+    //private final BaseStatusSignal yawSignal;
+    //private double gyroAccumYawOffset = 0;
 
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
@@ -147,19 +147,19 @@ public class SwerveBase extends SubsystemBase {
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
-        pigeon = new Pigeon2(8, "drivetrain");
-        yawSignal = pigeon.getAccumGyroZ();
-        gyroAccumYawOffset = -yawSignal.getValueAsDouble();
+        //pigeon = new Pigeon2(8, "drivetrain");
+        //yawSignal = pigeon.getAccumGyroZ();
+        //gyroAccumYawOffset = -yawSignal.getValueAsDouble();
         //pigeon.setYaw(0);
         // 4 modules * 3 signals per module + 1 for pigeon
-        allOdomSignals = new BaseStatusSignal[(4 * 3) + 1];
+        allOdomSignals = new BaseStatusSignal[(4 * 3)];
         for(int i = 0; i < modules.length; ++i){
             var signals = modules[i].getOdometrySignals();
             allOdomSignals[i*3 + 0] = signals[0]; // drive position
             allOdomSignals[i*3 + 1] = signals[1]; // drive velocity
             allOdomSignals[i*3 + 2] = signals[2]; // module rotation (cancoder)
         }
-        allOdomSignals[allOdomSignals.length-1] = yawSignal;
+        //allOdomSignals[allOdomSignals.length-1] = yawSignal;
 
         this.camNames = camNames;
 
@@ -281,7 +281,7 @@ public class SwerveBase extends SubsystemBase {
         synchronized(gyroLock){
             // gyro.reset();
             // gyro.setAngleAdjustment(-degrees);
-            gyroAccumYawOffset = -allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION + degrees;
+            //gyroAccumYawOffset = -allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION + degrees;
         }
     }
 
@@ -312,10 +312,12 @@ public class SwerveBase extends SubsystemBase {
     private Rotation2d getGyroHeading() {
         //0.99622314806
         synchronized (gyroLock){
-            double unmoddedGyoHeading = gyroAccumYawOffset + (allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION);
-            SmartDashboard.putNumber("Unmodded Gyro Heading", unmoddedGyoHeading);
-            return Rotation2d.fromDegrees(Math.IEEEremainder(unmoddedGyoHeading, 360));
+            // double unmoddedGyoHeading = gyroAccumYawOffset + (allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION);
+            // SmartDashboard.putNumber("Unmodded Gyro Heading", unmoddedGyoHeading);
+            // return Rotation2d.fromDegrees(Math.IEEEremainder(unmoddedGyoHeading, 360));
             //return new Rotation2d(-Math.toRadians(Math.IEEEremainder(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION, 360)));
+
+            return new Rotation2d(0);
         }
     }
 
@@ -902,7 +904,7 @@ public class SwerveBase extends SubsystemBase {
             updateOdometryWithVision(false);
         //}
 
-       SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
+       //SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
     //    SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
         SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
        SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
