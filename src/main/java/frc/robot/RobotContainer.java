@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
+import frc.robot.TripleTalonShooter;
 
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
@@ -33,6 +34,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class RobotContainer {
 
   public final SwerveBase Swerve;
+  public final TripleTalonShooter Shooter;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -55,6 +57,7 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     Swerve = new SwerveBase(camNames, modules, reefTags);
+    Shooter = new TripleTalonShooter();
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
