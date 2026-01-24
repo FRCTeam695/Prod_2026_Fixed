@@ -90,7 +90,11 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
-
+    driver.x().whileTrue(run(() -> Shooter.setVel(40, "r"))); 
+    driver.y().whileTrue(run(() -> Shooter.setVel(60, "r")));
+    driver.a().whileTrue(run(() -> Shooter.setVel(80, "r"))); 
+    driver.b().whileTrue(run(() -> Shooter.setVel(-60, "r")));
+    driver.rightBumper().whileTrue(run(() -> Shooter.setVel(0, "r")));
   }
 
   public void configureDefaultCommands(){
