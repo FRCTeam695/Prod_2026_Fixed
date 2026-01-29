@@ -2,6 +2,9 @@ package frc.BisonLib.BaseProject.Swerve;
 
 import static edu.wpi.first.units.Units.Volts;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -139,14 +142,28 @@ public class SwerveBase extends SubsystemBase {
         return m_sysIdRoutineToApply.dynamic(direction);
     }
 
+    Map<String, int[]> tagDictionary;
+
+    public void addTagToDictionary(String tagSetName, int[] tagSet){
+        tagDictionary.put(tagSetName, tagSet);
+    }
+
     /**
-     * Does all da constructing
+     * Does all the constructing
      * 
      * @param cameras An array of cameras used for pose estinmation
      * @param moduleTypes The type of swerve module on the swerve drive
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
+
+        //vision Tag definitions
+        this.validTagIDs = validTagIDs;
+        tagDictionary = new HashMap<String, int[]>();
+        // addTagToDictionary("tagSet1", new int[] {7});
+        // addTagToDictionary("tagSet2", new int[] {1});
+
+
         pigeon = new Pigeon2(8, "drivetrain");
         yawSignal = pigeon.getAccumGyroZ();
         gyroAccumYawOffset = -yawSignal.getValueAsDouble();
@@ -165,10 +182,6 @@ public class SwerveBase extends SubsystemBase {
 
         // Holds all the modules
         this.modules = modules;
-
-        this.validTagIDs = validTagIDs;
-
-
 
         /*
         * Sets the gyro at the beginning of the match and 
@@ -209,6 +222,26 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putData("Robot angle PID controller", thetaController);
 
         m_voltReq = new VoltageOut(0.0); 
+    }
+
+    public void setValidTagIDs(String tagSetName) {
+
+        validTagIDs = tagDictionary.get(tagSetName);
+
+        for (String cam : camNames) {
+            LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
+        }
+
+        SmartDashboard.putString("Valid Tag IDs", Arrays.toString(validTagIDs));
+        SmartDashboard.putString(" Valid Tag Set Name ", tagSetName);
+    }
+
+    public Command setTagSet1() {
+        return runOnce(() -> setValidTagIDs("tagSet1"));
+    }
+
+    public Command setTagSet2() {
+        return runOnce(() -> setValidTagIDs("tagSet2"));
     }
 
 
