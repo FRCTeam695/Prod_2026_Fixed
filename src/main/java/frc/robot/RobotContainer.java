@@ -9,7 +9,7 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-import frc.robot.commands.Intake;
+import frc.robot.subsystems.Intake;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -87,7 +87,7 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
-    
+
     
 
   }

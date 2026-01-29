@@ -168,9 +168,7 @@ public class Constants {
     }
 
     public static class intakeConstants {
-            public static final double SET_POSITION = 1; //change name and speed
-            public static final double SET_SPEED = 1; //change name and speed
-        }
+    }
 
     public static final class Alagizer{
         public static final double dislodgeAngle = 36;
