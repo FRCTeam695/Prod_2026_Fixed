@@ -20,7 +20,6 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
-import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -51,8 +50,6 @@ public class RobotContainer {
   private final String[] camNames = {"limelight-left", "limelight-right"};
   private static final EnhancedCommandController driver =
       new EnhancedCommandController(1);
-
-  private static Joystick joystick = new Joystick(0);
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
@@ -91,16 +88,12 @@ public class RobotContainer {
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
     
+    
 
   }
 
   public void configureDefaultCommands(){
 
-    intake.setDefaultCommand (
-      intake.runIntake(
-        ()-> joystick.getRawAxis(3)
-      )
-    );
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
     Swerve.setDefaultCommand
       (

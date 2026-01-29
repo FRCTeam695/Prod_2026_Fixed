@@ -88,7 +88,6 @@ public class Constants {
                 put("QC", QC_Config);
             }
         };
-        
 
         // CHOOSE WHICH ROBOT YOU'RE USING
         public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QC");
@@ -167,6 +166,11 @@ public class Constants {
         public static final Translation2d BACK_LEFT_TRANSLATION = CHOSEN_CONSTANTS.backLeftTranslation;
         public static final Translation2d BACK_RIGHT_TRANSLATION = CHOSEN_CONSTANTS.backRightTranslation;
     }
+
+    public static class intakeConstants {
+            public static final double SET_POSITION = 1; //change name and speed
+            public static final double SET_SPEED = 1; //change name and speed
+        }
 
     public static final class Alagizer{
         public static final double dislodgeAngle = 36;
