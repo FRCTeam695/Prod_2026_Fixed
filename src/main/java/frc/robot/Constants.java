@@ -168,6 +168,8 @@ public class Constants {
     }
 
     public static class intakeConstants {
+        public static final double INTAKE_PIVOT = 0;
+        public static final double INTAKE_ROLLER = 0;
     }
 
     public static final class Alagizer{

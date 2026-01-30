@@ -13,6 +13,7 @@ import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -44,17 +45,23 @@ public class Intake extends SubsystemBase {
     private NetworkTableEntry pivotValue;
     private NetworkTableEntry rollerValue;
 
+    //private VoltageOut pivotVoltageRequest;
+    //private VoltageOut rollerVoltageRequest;
+
     public Intake() {
         pivot = new TalonFX(0); //not correct id
         roller = new TalonFX(1); //not correct id
 
         mm_pivot = new MotionMagicVoltage(0).withSlot(0);
 
+        //pivotVoltageRequest = new VoltageOut(0); //output is zero
+        //rollerVoltageRequest = new VoltageOut(0);
+
+        //networktables
         inst = NetworkTableInstance.getDefault();
         table = inst.getTable("Values");
         pivotValue = table.getEntry("Pivot Position");
         rollerValue = table.getEntry("Roller Speed");
-
     }
     
     public void configurePivot() {
@@ -93,23 +100,33 @@ public class Intake extends SubsystemBase {
         roller.getConfigurator().apply(config2);
     }
 
-    public Command setAngle(DoubleSupplier value) {
+    public Command setPivot(double pivotVal) {
         return runOnce(
             () -> {
                 pivot.setControl(
-                    mm_pivot.withPosition(value.getAsDouble()) // make into VARIABLE use Degrees.of(0)
+                    mm_pivot.withPosition(pivotVal) // make into VARIABLE use Degrees.of(0)
                 );
                 SmartDashboard.putNumber("Pivot Position", pivot.get()); //make sure this works with position
             }
         );
     }
 
-    public Command intake(DoubleSupplier value) { //no motion magic
+    public Command setRoller(double rollerVal) { //no motion magic
         return runOnce(
             () -> {
-                roller.set(value.getAsDouble());
+                roller.set(rollerVal);
                 SmartDashboard.putNumber("Roller Speed", roller.get());
             }
+        );
+    }
+
+    public Command intake() {
+        return startEnd(
+            () -> {
+                setPivot(intakeConstants.INTAKE_PIVOT);
+                setRoller(intakeConstants.INTAKE_ROLLER);
+            },
+            () -> setRoller(0)
         );
     }
 
