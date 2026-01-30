@@ -5,7 +5,6 @@
 package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
-import frc.robot.TripleTalonShooter;
 
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
@@ -35,6 +34,7 @@ public class RobotContainer {
 
   public final SwerveBase Swerve;
   public final TripleTalonShooter Shooter;
+  public final Hood Hood;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -58,6 +58,7 @@ public class RobotContainer {
   public RobotContainer() {
     Swerve = new SwerveBase(camNames, modules, reefTags);
     Shooter = new TripleTalonShooter();
+    Hood = new Hood();
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
@@ -92,8 +93,10 @@ public class RobotContainer {
     // driver.b().onTrue(Swerve.runWheelCharacterization());
     driver.x().whileTrue(run(() -> Shooter.setVel(40, "r"))); 
     driver.y().whileTrue(run(() -> Shooter.setVel(60, "r")));
-    driver.a().whileTrue(run(() -> Shooter.setVel(80, "r"))); 
-    driver.b().whileTrue(run(() -> Shooter.setVel(-60, "r")));
+    //driver.a().whileTrue(run(() -> Shooter.setVel(80, "r"))); 
+    //driver.b().whileTrue(run(() -> Shooter.setVel(-60, "r")));
+    driver.b().whileTrue(run(() -> Hood.setPosition(1)));
+    driver.a().whileTrue(run(() -> Hood.setPosition(0)));
     driver.rightBumper().whileTrue(run(() -> Shooter.setVel(0, "r")));
   }
 
