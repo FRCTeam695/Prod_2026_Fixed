@@ -9,6 +9,7 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
+import frc.robot.subsystems.Swerve;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -32,7 +33,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public class RobotContainer {
 
-  public final SwerveBase Swerve;
+  public final Swerve Swerve;
+  //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -48,13 +50,13 @@ public class RobotContainer {
           };
 
   private final String[] camNames = {"limelight-left", "limelight-right"};
-  private static final EnhancedCommandController driver =
-      new EnhancedCommandController(0);
+  private static final EnhancedCommandController driver = new EnhancedCommandController(0);
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    Swerve = new SwerveBase(camNames, modules, reefTags);
+    Swerve = new Swerve(camNames, modules, reefTags);
+
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
@@ -87,6 +89,7 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
+    driver.b().onTrue(Swerve.bumpTest());
 
   }
 
@@ -94,6 +97,7 @@ public class RobotContainer {
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
     Swerve.setDefaultCommand
       (
+        
         run
           (
             ()-> 
@@ -103,8 +107,8 @@ public class RobotContainer {
               )
               ,
               Swerve
-          ).withName("Swerve Drive Command")
-      );
+          ).withName("Swerve Drive Command"))
+      ;
 
       //Gripper.setDefaultCommand(Gripper.stop());
   }

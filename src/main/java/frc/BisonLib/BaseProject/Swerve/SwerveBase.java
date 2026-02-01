@@ -15,6 +15,7 @@ import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.Pigeon2;
+import com.studica.frc.AHRS;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
@@ -34,6 +35,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -51,7 +53,7 @@ public class SwerveBase extends SubsystemBase {
 
     // NEVER DIRECTLY CALL ANY GYRO METHODS, ALWAYS USE THE SYNCHRONIZED GYRO LOCK!!
     //private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
-    private final Pigeon2 pigeon;
+    public final Pigeon2 pigeon;
     private final BaseStatusSignal yawSignal;
     private double gyroAccumYawOffset = 0;
 
@@ -97,8 +99,8 @@ public class SwerveBase extends SubsystemBase {
     protected String[] camNames;
  
     public SlewRateLimiter omegaFilter = new SlewRateLimiter(Math.toRadians(1074.5588535));
-    public SlewRateLimiter xFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
-    public SlewRateLimiter yFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
+    public SlewRateLimiter xFilter = new SlewRateLimiter(7);
+    public SlewRateLimiter yFilter = new SlewRateLimiter(7);
     //private Pigeon2 pigeon = new Pigeon2(8);
 
     private VoltageOut m_voltReq;
@@ -244,7 +246,6 @@ public class SwerveBase extends SubsystemBase {
         return runOnce(() -> setValidTagIDs("tagSet2"));
     }
 
-
     public void playSong(){
         if(modules[0].getModuleType().equals("TalonFXModule")){
             new Thread(() -> {
@@ -269,6 +270,7 @@ public class SwerveBase extends SubsystemBase {
         }
     }
 
+    
 
     public void pathplannerDriveRobotRelative(ChassisSpeeds speeds){
         driveRobotRelative(speeds, false);
@@ -788,10 +790,10 @@ public class SwerveBase extends SubsystemBase {
 
         // vx_perp = 0;
         // vx_perp = 0;
-        commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
-        commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
-        //commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
-        //commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        //commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        //commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
         commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
         //speeds = applyAccelerationLimit(speeds);
 
@@ -848,7 +850,7 @@ public class SwerveBase extends SubsystemBase {
         double avgLLy = 0;
         double avgLLomega = 0;
         for(String cam : camNames){  
-            LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+            LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, pigeon.getPitch().getValueAsDouble(), 0, pigeon.getRoll().getValueAsDouble(), 0);
             LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
             LimelightHelpers.PoseEstimate mt2_estimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cam);
         
@@ -862,8 +864,10 @@ public class SwerveBase extends SubsystemBase {
                 // Finally, we actually add the measurement to our odometry
                 odometryLock.writeLock().lock();
                 try{
+                    
                     odometry.addVisionMeasurement
                     (
+                        
                         mt2_estimate.pose, 
                         mt2_estimate.timestampSeconds,
                         

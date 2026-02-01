@@ -11,6 +11,7 @@ import frc.BisonLib.BaseProject.Swerve.SwerveConfig;
 
 public class Constants {
     public static final double g = 9.81;
+    public static final double BUMP_THRESHOLD = 1.0;
     public static final class Swerve {
         
         public static final SwerveConfig QC_Config =
