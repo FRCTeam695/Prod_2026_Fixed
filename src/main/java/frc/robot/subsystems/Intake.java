@@ -31,6 +31,11 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import static edu.wpi.first.units.Units.Degrees;
 
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.RPM;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Volts;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 
@@ -74,14 +79,19 @@ public class Intake extends SubsystemBase {
         TalonFXConfiguration config1 = new TalonFXConfiguration()
             .withMotorOutput(
                 new MotorOutputConfigs()
+                    .withInverted(InvertedValue.CounterClockwise_Positive)
                     .withNeutralMode(NeutralModeValue.Brake)
             )
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
-                .withSupplyCurrentLimit(20.0)
+                .withStatorCurrentLimit(Amps.of(120))
+                .withStatorCurrentLimitEnable(true)
+                .withSupplyCurrentLimit(Amps.of(70))
+                .withSupplyCurrentLimitEnable(true)
             )
             .withFeedback(
                 new FeedbackConfigs()
+                .withFeedbackSensorSource(FeedbackSensorSourceValue.RotorSensor)
                 .withSensorToMechanismRatio(kPivotReduction)
             )
             .withMotionMagic(
@@ -101,49 +111,37 @@ public class Intake extends SubsystemBase {
         TalonFXConfiguration config2 = new TalonFXConfiguration()
             .withMotorOutput(
                 new MotorOutputConfigs()
+                    .withInverted(InvertedValue.Clockwise_Positive)
                     .withNeutralMode(NeutralModeValue.Brake)
             )
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
-                .withSupplyCurrentLimit(20.0)
-            )
-            .withFeedback(
-                new FeedbackConfigs()
-                .withSensorToMechanismRatio(kPivotReduction)
+                .withStatorCurrentLimit(Amps.of(120))
+                .withStatorCurrentLimitEnable(true)
+                .withSupplyCurrentLimit(Amps.of(70))
+                .withSupplyCurrentLimitEnable(true)
             );
         roller.getConfigurator().apply(config2);
     }
 
-    public Command setPivot(double pivotVal) {
-        return runOnce(
-            () -> {
-                pivot.setControl(
-                    mm_pivot.withPosition(pivotVal) // make into VARIABLE use Degrees.of(0)
-                );
-                
-                pivotValue.setDouble(
-                    pivot.getPosition().getValue().in(Degrees)
-                );
-            }
-        );
+    public void setPivot(double pivotVal) {
+        pivot.setControl(mm_pivot.withPosition(pivotVal)); // make into VARIABLE use Degrees.of(0)
     }
 
-    public Command setRollerPercent(double percent) { //no motion magic
-        return runOnce(
-            () -> {
-                roller.set(percent);
-
-                double rollerOutput = roller.getVelocity().getValue().in(Units.RotationsPerSecond);
-                rollerValue.setDouble(rollerOutput);
-            }
-        );
+    public void setRollerPercent(double percent) { //no motion magic
+        roller.set(percent);
     }
 
     public Command intake() { //fix this
         return startEnd(
             () -> {
                 setPivot(intakeConstants.INTAKE_PIVOT);
+                pivotValue.setDouble(
+                    pivot.getPosition().getValue().in(Degrees)
+                );
                 setRollerPercent(intakeConstants.INTAKE_ROLLER);
+                double rollerOutput = roller.getVelocity().getValue().in(Units.RotationsPerSecond);
+                rollerValue.setDouble(rollerOutput);
             },
             () -> setRollerPercent(0)
         );
