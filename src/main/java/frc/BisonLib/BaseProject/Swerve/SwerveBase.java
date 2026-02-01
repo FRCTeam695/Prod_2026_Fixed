@@ -691,8 +691,8 @@ public class SwerveBase extends SubsystemBase {
                                (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
         }
         else{
-            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
-                               1.5 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP;
+            max_fwd_accel = Math.min(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               2 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ);
         }
 
         SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
