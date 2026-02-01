@@ -95,9 +95,9 @@ public class RobotContainer {
     driver.y().whileTrue(run(() -> Shooter.setVel(60, "r")));
     //driver.a().whileTrue(run(() -> Shooter.setVel(80, "r"))); 
     //driver.b().whileTrue(run(() -> Shooter.setVel(-60, "r")));
-    driver.b().whileTrue(run(() -> Hood.setPosition(1)));
-    driver.a().whileTrue(run(() -> Hood.setPosition(0)));
-    driver.rightBumper().whileTrue(run(() -> Shooter.setVel(0, "r")));
+    driver.b().whileTrue(Hood.positionCommand(0.25));
+    driver.a().whileTrue(Hood.positionCommand(0.75));
+    driver.rightBumper().whileTrue(run(() -> Hood.setDuty(driver.getRightY()*-1)));
   }
 
   public void configureDefaultCommands(){
@@ -117,6 +117,7 @@ public class RobotContainer {
       );
 
       //Gripper.setDefaultCommand(Gripper.stop());
+      Hood.setDefaultCommand(Hood.stop());
   }
 
   public Command logTrickshotTrue(){
