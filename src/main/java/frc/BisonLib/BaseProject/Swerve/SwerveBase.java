@@ -162,8 +162,8 @@ public class SwerveBase extends SubsystemBase {
         //vision Tag definitions
         this.validTagIDs = validTagIDs;
         tagDictionary = new HashMap<String, int[]>();
-        // addTagToDictionary("tagSet1", new int[] {7});
-        // addTagToDictionary("tagSet2", new int[] {1});
+        addTagToDictionary("tagSet1", new int[] {7});
+        addTagToDictionary("tagSet2", new int[] {1});
 
 
         pigeon = new Pigeon2(8, "drivetrain");
