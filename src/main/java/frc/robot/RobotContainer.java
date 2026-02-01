@@ -28,6 +28,9 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
  */
 public class RobotContainer {
 
+  public final Swerve Swerve;
+  //public final SwerveBase SwerveSubsystem;
+  public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
   ShooterInterpolationMap shooterInterpolationMap;
 
@@ -35,12 +38,19 @@ public class RobotContainer {
 
 
 
-  private static final EnhancedCommandController driver =
-      new EnhancedCommandController(0);
+  private final String[] camNames = {"limelight-left", "limelight-right"};
+  private static final EnhancedCommandController driver = new EnhancedCommandController(0);
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    Swerve = new Swerve(camNames, modules, reefTags);
+
+   
+    scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
+
+    // SmartDashboarding subsystems allow you to see what commands they are running
+    SmartDashboard.putData("Swerve Subsystem", Swerve);
     shooterInterpolationMap = new ShooterInterpolationMap("simulated_optimal_trajectories.csv");
 
     // Configure the trigger bindings
@@ -64,6 +74,32 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
+ 
+    // make sure you gyro reset by aligning with the reef, not eyeballing it
+    driver.back().onTrue(Swerve.resetGyro());
+    // driver.b().onTrue(Swerve.runWheelCharacterization());
+    driver.b().onTrue(Swerve.bumpTest());
+
+  }
+
+  public void configureDefaultCommands(){
+    // This is the Swerve subsystem default command, this allows the driver to drive the robot
+    Swerve.setDefaultCommand
+      (
+        
+        run
+          (
+            ()-> 
+              Swerve.teleopDefaultCommand(
+                driver::getRequestedChassisSpeeds,
+                true
+              )
+              ,
+              Swerve
+          ).withName("Swerve Drive Command"))
+      ;
+
+      //Gripper.setDefaultCommand(Gripper.stop());
     driver.a().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 1.5, ()-> 0.0918)); // 72.1278,2296.06
     driver.b().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 2.2627, ()-> 1.7449)); // 81.6115,2326.14
     driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 3.1102, ()-> 3.0306)); // 86.2431, 2362.77
