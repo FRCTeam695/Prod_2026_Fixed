@@ -27,7 +27,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.intakeConstants;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 
 import static edu.wpi.first.units.Units.Degrees;
 
@@ -47,11 +49,14 @@ public class Intake extends SubsystemBase {
     private MotionMagicVoltage mm_pivot; //maybe make better name?
 
     private static final double kPivotReduction = 0; //make into constant, amount of rotations for arm to loop once
+    private final Angle kPositionTolerance = Degrees.of(5); //tolerance for range of position
 
     private NetworkTableInstance inst;
     private NetworkTable table;
     private NetworkTableEntry pivotValue;
     private NetworkTableEntry rollerValue;
+
+    private boolean isHomed = false;
 
     //private VoltageOut pivotVoltageRequest;
     //private VoltageOut rollerVoltageRequest;
@@ -130,6 +135,43 @@ public class Intake extends SubsystemBase {
 
     public void setRollerPercent(double percent) { //no motion magic
         roller.set(percent);
+    }
+
+    private boolean isPositionWithinTolerance() {
+        final Angle currentPosition= pivot.getPosition().getValue();
+        final Angle targetPosition = mm_pivot.getPositionMeasure();
+        return currentPosition.isNear(targetPosition, kPositionTolerance);
+    }
+
+    public Command agitateCommand() { //this was mostly copied
+        return runOnce(() -> setRollerPercent(0)) //set speed (is it roller???)
+            .andThen(
+                Commands.sequence(
+                    runOnce(() -> setPivot(0)), //set positon agitate
+                    Commands.waitUntil(this::isPositionWithinTolerance),
+                    runOnce(() -> setPivot(0)), //set position intake
+                    Commands.waitUntil(this::isPositionWithinTolerance)
+                )
+                .repeatedly()
+            )
+            .handleInterrupt(() -> {
+                setPivot(0); //set position intake
+                setPivot(0); //set to 0
+            });
+    }
+
+    public Command homingCommand() {
+        return Commands.sequence(
+            runOnce(() -> setPivot(0)), //set pivot output
+            Commands.waitUntil(() -> pivot.getSupplyCurrent().getValue().in(Amps) > 6),
+            runOnce(() -> {
+                pivot.setPosition(0); //homed angle
+                isHomed = true;
+                setPivot(0); //position stowed
+            })
+        )
+        .unless(() -> isHomed)
+        .withInterruptBehavior(InterruptionBehavior.kCancelIncoming);
     }
 
     public Command intake() { //fix this
