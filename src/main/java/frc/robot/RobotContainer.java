@@ -7,7 +7,7 @@ package frc.robot;
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-import frc.BisonLib.BaseProject.Util.ShootOnTheMoveHelper;
+import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 
 import edu.wpi.first.wpilibj2.command.Command;
 
@@ -28,7 +28,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class RobotContainer {
 
   SendableChooser<Command> autoChooser = new SendableChooser<>();
-  ShootOnTheMoveHelper shooterInterpolationMap;
+  SOTMSetpointGenerator shooterInterpolationMap;
 
   private static final EnhancedCommandController driver = new EnhancedCommandController(0);
   public final SwerveBase swerve;
@@ -46,7 +46,7 @@ public class RobotContainer {
 
   public RobotContainer() {
     swerve = new SwerveBase(camNames, modules, reefTags);
-    shooterInterpolationMap = new ShootOnTheMoveHelper("simulated_optimal_trajectories.csv", ()-> swerve.getSavedPose(), ()-> swerve.getLatestChassisSpeed());
+    shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", ()-> swerve.getSavedPose(), ()-> swerve.getLatestChassisSpeed());
 
     // Configure the trigger bindings
     configureBindings();

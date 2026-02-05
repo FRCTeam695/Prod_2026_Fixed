@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
 import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 
-public class ShootOnTheMoveHelper {
+public class SOTMSetpointGenerator {
     private BicubicInterpolatingFunction rpmSpline;
     private BicubicInterpolatingFunction angleSpline;
     private BicubicInterpolatingFunction timeSpline;
@@ -31,7 +31,7 @@ public class ShootOnTheMoveHelper {
     private Supplier<Pose2d> robotPoseSupplier;
     private Supplier<ChassisSpeeds> robotChassisSpeedsSupplier;
 
-    public ShootOnTheMoveHelper(String csvFileName, Supplier<Pose2d> robotPoseSupplier, Supplier<ChassisSpeeds> robotChassisSpeedsSupplier) {
+    public SOTMSetpointGenerator(String csvFileName, Supplier<Pose2d> robotPoseSupplier, Supplier<ChassisSpeeds> robotChassisSpeedsSupplier) {
         loadCSV(csvFileName);
         this.robotPoseSupplier = robotPoseSupplier;
         this.robotChassisSpeedsSupplier = robotChassisSpeedsSupplier;
