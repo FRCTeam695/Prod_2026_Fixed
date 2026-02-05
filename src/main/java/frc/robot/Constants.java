@@ -3,6 +3,7 @@ package frc.robot;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -11,6 +12,16 @@ import frc.BisonLib.BaseProject.Swerve.SwerveConfig;
 
 public class Constants {
     public static final double g = 9.81;
+    public static final class FieldConstants{
+        public static final class Red{
+            public static final Pose2d hub = new Pose2d();
+        }
+        
+        public static final class Blue{
+            public static final Pose2d hub = new Pose2d();
+        }
+    }
+    
     public static final class Swerve {
         
         public static final SwerveConfig QC_Config =
@@ -168,13 +179,4 @@ public class Constants {
         public static final Translation2d BACK_LEFT_TRANSLATION = CHOSEN_CONSTANTS.backLeftTranslation;
         public static final Translation2d BACK_RIGHT_TRANSLATION = CHOSEN_CONSTANTS.backRightTranslation;
     }
-
-    public static final class Alagizer{
-        public static final double dislodgeAngle = 36;
-        public static final double safePos = 27;
-        public static final double dump = -35.7;
-        public static final double holdRamp = -48;
-
-    }
-
 }
