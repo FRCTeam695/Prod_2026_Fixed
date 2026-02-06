@@ -87,7 +87,7 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
-
+    driver.x().whileTrue(Swerve.xPosition());
   }
 
   public void configureDefaultCommands(){

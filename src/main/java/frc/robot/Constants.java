@@ -91,7 +91,7 @@ public class Constants {
         
 
         // CHOOSE WHICH ROBOT YOU'RE USING
-        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QB");
+        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QC");
 
         // miscellaneous constants
         public static final double MAX_SPEED_METERS_PER_SECONDS_TELEOP = CHOSEN_CONSTANTS.maxSpeedMetersPerSec;

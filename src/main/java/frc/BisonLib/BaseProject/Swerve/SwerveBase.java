@@ -359,6 +359,43 @@ public class SwerveBase extends SubsystemBase {
         return states;
     }
 
+    public void xPositionMethod(){
+            modules[0].setDesiredState( 
+                new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+            );
+            modules[1].setDesiredState(
+                new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+            );
+            modules[2].setDesiredState(
+                new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+            );
+            modules[3].setDesiredState(
+                new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+            );
+
+    }
+
+    public Command xPosition(){
+        return run(  
+            ()->{
+                modules[0].setDesiredState( 
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+                );
+                modules[1].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+                );
+                modules[2].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+                );
+                modules[3].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+                );
+            }
+
+        );
+    }
+
+    
 
     /**
      * @returns an array containing the position of each swerve module (check SwerveModule.java for further details)
@@ -534,9 +571,9 @@ public class SwerveBase extends SubsystemBase {
     //         // get each module in positions
     //         // sets each motor to stop moving, and converts the module index (which quadrant
     //         // relative to the chassis the motor is - 1) to degrees
-    //         // for (var mod : modules) {
-    //         //     mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
-    //         // }
+    //         for (var mod : modules) {
+    //             mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
+    //         }
             
     //     })
     //     .andThen(waitSeconds(0.5))
@@ -582,7 +619,26 @@ public class SwerveBase extends SubsystemBase {
     public Command requireSubsystem(){
         return new WaitCommand(0);
     }
+
     
+    public Command XCommand(){
+        return run(
+            ()-> {
+                modules[0].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+                );
+                modules[1].setDesiredState(
+                    new SwerveModuleState(0.0,Rotation2d.fromDegrees(45))
+                );
+                modules[2].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+                );
+                modules[3].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+                );
+            }
+        );
+    }
 
     /*
      * Stops all of the swerve modules
