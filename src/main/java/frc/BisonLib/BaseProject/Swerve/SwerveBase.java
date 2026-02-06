@@ -943,21 +943,6 @@ public class SwerveBase extends SubsystemBase {
 
         m_field.setRobotPose(getSavedPose());
 
-        SwerveModuleState[] modStates = getModuleStates();
-
-        SmartDashboard.putNumber("Module 1 Angle deg", modStates[0].angle.getDegrees());
-        SmartDashboard.putNumber("Module 2 Angle deg", modStates[1].angle.getDegrees());
-        SmartDashboard.putNumber("Module 3 Angle deg", modStates[2].angle.getDegrees());
-        SmartDashboard.putNumber("Module 4 Angle deg", modStates[3].angle.getDegrees());        
-        
-        SmartDashboard.putBoolean("Robot Rotation at Setpoint", atRotationSetpoint.getAsBoolean());
-
-        if (currentModuleStates[0] != null) {
-            ChassisSpeeds currentFieldRelativeSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
-            double currentvx = currentFieldRelativeSpeeds.vxMetersPerSecond;
-            double currentvy = currentFieldRelativeSpeeds.vyMetersPerSecond;
-            SmartDashboard.putNumber("Currentvx", currentvx);
-            SmartDashboard.putNumber("Currentvy", currentvy);
-        }
+         ((BooleanPublisher) atRotSetpoint).set(atRotationSetpoint.getAsBoolean());
     }
 }

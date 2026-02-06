@@ -13,13 +13,16 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Hood extends SubsystemBase {
     private static final double m_MinPosition = 0.0; 
     private static final double m_MaxPosition = 1.0;
-    private static final double m_PositionTolerance = 0.01;
 
-    private static final AnalogPotentiometer m_analog = new AnalogPotentiometer(0);
-    // 0 - 1
-    //3571, -2.746p
+    // Maybe kS will differ slightly on different actuators
+    private static final double kP = 25;
+    private static final double kS = 0.0785;
 
-    private final VictorSP actuator;
+    // 0-1
+    private static final AnalogPotentiometer r_analog = new AnalogPotentiometer(0);
+
+    private final VictorSP r_actuator;
+    private final VictorSP l_actuator;
 
     private double currentPosition;
     private double targetPosition;
@@ -27,13 +30,13 @@ public class Hood extends SubsystemBase {
     private final double A = 168; // pivot arm length (mm)
     private final double B = 168*Math.sqrt(2); // hypotenuse (mm)
     private final double actLen = 168; // actuator base length (mm)
-    private double C = actLen + m_analog.get() * 100; // actuator base length + extension length (mm)
+    private double C = actLen + r_analog.get() * 100; // actuator base length + extension length (mm)
 
     private final double radToDeg = 180/(Math.PI);
-    private double hoodDeg = Math.acos((A*A + B*B - C*C) / (2*A*B)) * radToDeg;
 
     public Hood() {
-        actuator = new VictorSP(0);
+        r_actuator = new VictorSP(0);
+        l_actuator = new VictorSP(1);
         currentPosition = 0;//absolute position encoder
         targetPosition = 0;
     }
@@ -41,28 +44,36 @@ public class Hood extends SubsystemBase {
     /** Expects a position between 0.0 and 1.0 */
     public void setPosition(double desiredPosition) {
         targetPosition = MathUtil.clamp(desiredPosition, m_MinPosition, m_MaxPosition);
-        currentPosition = m_analog.get();
-        if (targetPosition < currentPosition)
-            actuator.set(-1);
-        else if (targetPosition > currentPosition)
-            actuator.set(1.0);
-        else
-            actuator.set(0.0);
+        currentPosition = r_analog.get();
+
+        double diff = targetPosition - currentPosition;
+        double vel = MathUtil.clamp((diff * kP) + kS * Math.signum(diff), -1, 1);
+        
+        r_actuator.set(vel);
+        l_actuator.set(vel);
+
+        C = actLen + r_analog.get() * 100; //mm
+
+        double extensionLength = desiredPosition * 100;
+        targetPosDeg.set(desiredHoodDeg(extensionLength));
     }
 
     /** Expects a position between 0.0 and 1.0 */
     public Command positionCommand(double position) {
-        return run(() -> setPosition(position))
-            .until(this::isPositionWithinTolerance)
-            .andThen(runOnce(()->actuator.stopMotor()));
+        return run(() -> setPosition(position));
     }
 
-    public boolean isPositionWithinTolerance() {
-        return MathUtil.isNear(targetPosition, currentPosition, m_PositionTolerance);
+    public double currentHoodDeg() {
+        return Math.acos((A*A + B*B - C*C) / (2*A*B)) * radToDeg;
     }
 
+    public double desiredHoodDeg(double extensionLength) {
+        return Math.acos((A*A + B*B - Math.pow(extensionLength+actLen, 2)) / (2*A*B)) * radToDeg;
+    }
+
+    // Testing actuator
     public void setDuty(double duty) {
-        actuator.set(duty);
+        r_actuator.set(duty);
     }
 
     public Command stop(){
@@ -73,16 +84,13 @@ public class Hood extends SubsystemBase {
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable hoodTable = inst.getTable("Hood");
     private final DoublePublisher currentPosRot = hoodTable.getDoubleTopic("Current Position (Rot)").publish();
-    private final DoublePublisher currentPosFinalDeg = hoodTable.getDoubleTopic("Final deg on hood").publish();
-    private final DoublePublisher targetPos = hoodTable.getDoubleTopic("Target Position").publish();
+    private final DoublePublisher currentPosDeg = hoodTable.getDoubleTopic("Current deg on hood").publish();
+    private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
 
     @Override
     public void periodic() {
-        C = actLen + m_analog.get() * 100; //mm
-        hoodDeg = Math.acos((A*A + B*B - C*C) / (2*A*B)) * radToDeg; //all measurements in mm
-        currentPosRot.set(m_analog.get());
-        currentPosFinalDeg.set(hoodDeg);
-        targetPos.set(targetPosition);
-        SmartDashboard.putNumber("Actuator duty cycle", actuator.get());
+        currentPosRot.set(r_analog.get());
+        currentPosDeg.set(currentHoodDeg());
+        SmartDashboard.putNumber("Actuator duty cycle", r_actuator.get());
     }
 }

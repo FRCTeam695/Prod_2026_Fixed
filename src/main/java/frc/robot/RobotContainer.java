@@ -92,11 +92,12 @@ public class RobotContainer {
     driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
     driver.x().whileTrue(run(() -> Shooter.setVel(40, "r"))); 
-    driver.y().whileTrue(run(() -> Shooter.setVel(60, "r")));
+    //driver.y().whileTrue(run(() -> Shooter.setVel(60, "r")));
     //driver.a().whileTrue(run(() -> Shooter.setVel(80, "r"))); 
     //driver.b().whileTrue(run(() -> Shooter.setVel(-60, "r")));
     driver.b().whileTrue(Hood.positionCommand(0.25));
     driver.a().whileTrue(Hood.positionCommand(0.75));
+    driver.y().whileTrue(Hood.positionCommand(0.0));
     driver.rightBumper().whileTrue(run(() -> Hood.setDuty(driver.getRightY()*-1)));
   }
 
