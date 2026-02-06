@@ -34,10 +34,7 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
-    // Schedule `ExampleCommand` when `exampleCondition` changes to `true`
-    new Trigger(m_loggingSubsystem::exampleCondition)
-        .onTrue(new ExampleCommand(m_loggingSubsystem));
-   
+    
     //command for getting raw boolean values for each button on controller (acts as a connector from RC to subsystem)
     
     m_loggingSubsystem.setDefaultCommand(m_loggingSubsystem.buttonsPressed(() -> m_driverController.a().getAsBoolean(), 
