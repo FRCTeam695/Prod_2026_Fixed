@@ -1,9 +1,5 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.wpilibj2.command.Commands.runOnce;
-
-import java.util.function.DoubleSupplier;
-
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -13,7 +9,7 @@ import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.controls.VoltageOut;
+//import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -34,10 +30,6 @@ import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import static edu.wpi.first.units.Units.Degrees;
 
 import static edu.wpi.first.units.Units.Amps;
-import static edu.wpi.first.units.Units.RPM;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
-import static edu.wpi.first.units.Units.Second;
-import static edu.wpi.first.units.Units.Volts;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 
@@ -87,7 +79,7 @@ public class Intake extends SubsystemBase {
                     .withInverted(InvertedValue.CounterClockwise_Positive)
                     .withNeutralMode(NeutralModeValue.Brake)
             )
-            .withCurrentLimits(
+            .withCurrentLimits( //taken from WCP code
                 new CurrentLimitsConfigs()
                 .withStatorCurrentLimit(Amps.of(120))
                 .withStatorCurrentLimitEnable(true)
@@ -138,7 +130,7 @@ public class Intake extends SubsystemBase {
     }
 
     private boolean isPositionWithinTolerance() {
-        final Angle currentPosition= pivot.getPosition().getValue();
+        final Angle currentPosition = pivot.getPosition().getValue();
         final Angle targetPosition = mm_pivot.getPositionMeasure();
         return currentPosition.isNear(targetPosition, kPositionTolerance);
     }
@@ -160,12 +152,12 @@ public class Intake extends SubsystemBase {
             });
     }
 
-    public Command homingCommand() {
+    public Command homingCommand() { //this was also mostly copied
         return Commands.sequence(
             runOnce(() -> setPivot(0)), //set pivot output
             Commands.waitUntil(() -> pivot.getSupplyCurrent().getValue().in(Amps) > 6),
             runOnce(() -> {
-                pivot.setPosition(0); //homed angle
+                setPivot(0); //homed angle
                 isHomed = true;
                 setPivot(0); //position stowed
             })
