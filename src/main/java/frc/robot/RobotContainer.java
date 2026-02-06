@@ -91,6 +91,15 @@ public class RobotContainer {
     // driver.b().onTrue(Swerve.runWheelCharacterization());
     driver.b().onTrue(Swerve.bumpTest());
 
+    driver.a().onTrue(
+      Swerve.setTagSet1().andThen(() ->
+      System.out.println("CURRENT TAG SET ONE"))
+    );
+
+    driver.y().onTrue(
+      Swerve.setTagSet2().andThen(() -> System.out.println("CURRENT TAG SET TWO"))
+    );
+
   }
 
   public void configureDefaultCommands(){
