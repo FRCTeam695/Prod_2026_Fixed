@@ -1,6 +1,7 @@
 package frc.BisonLib.BaseProject.Swerve;
 
 import static edu.wpi.first.units.Units.Volts;
+import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.DoubleSupplier;
@@ -106,7 +107,7 @@ public class SwerveBase extends SubsystemBase {
     public double prevAccelX = 0;
     public double prevAccelY = 0; 
 
-
+    String gameData = DriverStation.getGameSpecificMessage();
     // SysID
     private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -256,6 +257,34 @@ public class SwerveBase extends SubsystemBase {
         return false;
     }
 
+    /*
+     * Puts whether or not it's our alliance shift on Smart Dashboard for logging purposes
+     */
+    public boolean isAllianceShift(){
+        boolean isShift = false;
+
+        if(DriverStation.getMatchTime() <= 130 && DriverStation.getMatchTime() > 105){ //Shift 1
+            isShift = true;
+        } else if(DriverStation.getMatchTime() <= 105 && DriverStation.getMatchTime() > 80){ //Shift 2
+            isShift = false;
+        } else if(DriverStation.getMatchTime() <= 80 && DriverStation.getMatchTime() > 55){ //Shift 3
+            isShift = true;
+        } else if(DriverStation.getMatchTime() <= 55 && DriverStation.getMatchTime() > 30){ //Shift 4
+            isShift = false;
+        }
+    
+        if(gameData.length() > 0){
+            if(DriverStation.getMatchTime() <=130 && DriverStation.getMatchTime() >= 30){
+                if(gameData.charAt(0) == 'R' && isRedAlliance()){ //if the gamespecific data returns "R", and we are the Red Alliance, we are going second.
+                    isShift = !isShift;
+                } else if (gameData.charAt(0) == 'B' && !isRedAlliance()){
+                    isShift = !isShift;
+                }
+            }
+        }
+        SmartDashboard.putBoolean("isAllianceShift", isShift);
+        return isShift;
+    }
 
     /*
      * Sets all the swerve modules to the states we want them to be in (velocity + angle)
@@ -925,5 +954,9 @@ public class SwerveBase extends SubsystemBase {
             SmartDashboard.putNumber("Currentvx", currentvx);
             SmartDashboard.putNumber("Currentvy", currentvy);
         }
+
+        isAllianceShift();
+        SmartDashboard.putString("gamespecificvalue", gameData); //testing
+        SmartDashboard.putNumber("matchTime", DriverStation.getMatchTime()); //testing
     }
 }
