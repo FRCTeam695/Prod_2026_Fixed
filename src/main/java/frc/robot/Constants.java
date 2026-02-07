@@ -14,6 +14,36 @@ public class Constants {
     public static final double BUMP_THRESHOLD = 1.0;
     public static final class Swerve {
         
+    public static final SwerveConfig prod_2026_Config =
+            new SwerveConfig(
+            // module offsets
+                            4.776, // front right
+                -0.5752, // front left
+                3.0347, // back left
+                2.6147, // back right
+            // drive gear ratio
+            6.03,
+            // max speed ft/sec
+            16.5,
+            // wheel diameter
+            4 * Math.PI, 
+            // turn wheel kp
+            70, 
+            // wheelbase and track width
+            23.75, 23.75,
+            // turn gear ratio
+            26.0, 
+            // inverted drive motor
+            false, 
+            0.01, 
+            0,
+            // tune stator limit; supply limit doesn't get applied
+            90, 40, 
+            // tune velocity pid and ff
+            0, 0.0, 0, 
+            0.0, 0.0,
+            0,
+            0, 1.0);
         public static final SwerveConfig QC_Config =
             new SwerveConfig(
                 //must find all offsets
@@ -87,12 +117,13 @@ public class Constants {
                 put("QB", QBConfig);
                 put("Production_2025", production2025Config);
                 put("QC", QC_Config);
+                put("Prod_2026", prod_2026_Config);
             }
         };
         
 
         // CHOOSE WHICH ROBOT YOU'RE USING
-        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QB");
+        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("Prod_2026");
 
         // miscellaneous constants
         public static final double MAX_SPEED_METERS_PER_SECONDS_TELEOP = CHOSEN_CONSTANTS.maxSpeedMetersPerSec;
@@ -169,13 +200,4 @@ public class Constants {
         public static final Translation2d BACK_LEFT_TRANSLATION = CHOSEN_CONSTANTS.backLeftTranslation;
         public static final Translation2d BACK_RIGHT_TRANSLATION = CHOSEN_CONSTANTS.backRightTranslation;
     }
-
-    public static final class Alagizer{
-        public static final double dislodgeAngle = 36;
-        public static final double safePos = 27;
-        public static final double dump = -35.7;
-        public static final double holdRamp = -48;
-
-    }
-
 }
