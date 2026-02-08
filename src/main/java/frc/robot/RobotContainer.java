@@ -66,13 +66,6 @@ public class RobotContainer {
     // Configure the trigger bindings
     configureBindings();
     configureDefaultCommands();
-
-    // Put metadata on AdvantageScope
-    StringPublisher publisher = NetworkTableInstance.getDefault().getStringTopic("/Metadata/MyKey").publish();
-    publisher.set("MyValue");
-
-    StringLogEntry entry = new StringLogEntry(DataLogManager.getLog(), "/Metadata/MyKey");
-    entry.append("MyValue");
       
     SmartDashboard.putData(autoChooser);
 

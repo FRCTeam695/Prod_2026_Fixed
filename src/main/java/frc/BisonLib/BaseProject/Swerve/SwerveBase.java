@@ -27,6 +27,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -282,7 +284,10 @@ public class SwerveBase extends SubsystemBase {
                 }
             }
         }
-        SmartDashboard.putBoolean("isAllianceShift", isShift);
+
+        BooleanPublisher publisher = NetworkTableInstance.getDefault().getBooleanTopic("AllianceShift").publish();
+        publisher.set(isShift);
+
         return isShift;
     }
 
@@ -955,8 +960,6 @@ public class SwerveBase extends SubsystemBase {
             SmartDashboard.putNumber("Currentvy", currentvy);
         }
 
-        isAllianceShift();
-        SmartDashboard.putString("gamespecificvalue", gameData); //testing
-        SmartDashboard.putNumber("matchTime", DriverStation.getMatchTime()); //testing
+        SmartDashboard.putBoolean("isAllianceShift", isAllianceShift());
     }
 }

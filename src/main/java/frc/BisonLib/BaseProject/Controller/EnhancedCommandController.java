@@ -57,7 +57,7 @@ public class EnhancedCommandController extends CommandXboxController{
                 SmartDashboard.putBoolean("Alliance", temp);
                 return temp;
               }
-        SmartDashboard.putBoolean("AllianceColor", false);
+        SmartDashboard.putBoolean("Alliance", false);
         return false;
     }
 
