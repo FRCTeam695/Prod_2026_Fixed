@@ -1,8 +1,14 @@
 package frc.robot.subsystems;
 
+import java.util.function.Supplier;
+import java.util.List;
+
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -31,5 +37,18 @@ public class Swerve extends SwerveBase{
                 System.out.println("ON BUMP");
             }
         });
+    }
+
+    public Command viewFuel(Supplier<List<Translation2d>> fuelSupplier){
+        return run( 
+            () -> {
+                List<Translation2d> fuelList = fuelSupplier.get();
+                for (int i = 0; i < fuelList.size(); i++){
+                    m_field.getObject("fuel " + i).setPose(new Pose2d(fuelList.get(i), new Rotation2d()));
+                }
+                for (int i = fuelList.size(); i < 50; i++){
+                    m_field.getObject("fuel " + i).setPose(new Pose2d(-10,-10, new Rotation2d()));
+                }
+            });
     }
 }

@@ -50,15 +50,17 @@ public class RobotContainer {
   };
 
 
+  public final VisionManager VisionManager;
+  private final String[] limelightCameraNames = {"limelight-left", "limelight-right"};
+  private final String[] photonVisionCameraNames= {"camera"};
 
-  private final String[] camNames = {"limelight-left", "limelight-right"};
+
   private static final EnhancedCommandController driver = new EnhancedCommandController(0);
-
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    Swerve = new Swerve(camNames, modules, reefTags);
-
+    Swerve = new Swerve(limelightCameraNames, modules, reefTags);
+    VisionManager = new VisionManager(photonVisionCameraNames, () -> Swerve.getSavedPose());
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
