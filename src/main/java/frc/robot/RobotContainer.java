@@ -70,13 +70,10 @@ public class RobotContainer {
     // Configure the trigger bindings
     configureBindings();
 
-      
     SmartDashboard.putData(autoChooser);
 
     DataLogManager.start();
   }
-
-
   
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
@@ -88,29 +85,16 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
- 
-    // make sure you gyro reset by aligning with the reef, not eyeballing it
-    driver.back().onTrue(Swerve.resetGyro());
-    // driver.b().onTrue(Swerve.runWheelCharacterization());
+    
+    driver.back().and(driver.start()).onTrue(Swerve.resetGyro());
 
-    driver.a().onTrue(
-      Swerve.setTagSet1().andThen(() ->
-      System.out.println("CURRENT TAG SET ONE"))
+    driver.leftTrigger().whileTrue(
+      Swerve.driveToBestFuel(
+        Swerve.getMostEfficientFuelToDriveTo(
+          VisionManager.getFuelList()
+        )
+      )
     );
-
-    driver.y().onTrue(
-      Swerve.setTagSet2().andThen(() -> System.out.println("CURRENT TAG SET TWO"))
-    );
-
-    driver.a().onTrue(
-      Swerve.setTagSet1().andThen(() ->
-      System.out.println("CURRENT TAG SET ONE"))
-    );
-
-    driver.y().onTrue(
-      Swerve.setTagSet2().andThen(() -> System.out.println("CURRENT TAG SET TWO"))
-    );
-
   }
 
   public void configureDefaultCommands(){
@@ -130,11 +114,10 @@ public class RobotContainer {
           ).withName("Swerve Drive Command"))
       ;
 
-      //Gripper.setDefaultCommand(Gripper.stop());
-    driver.a().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 1.5, ()-> 0.0918)); // 72.1278,2296.06
-    driver.b().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 2.2627, ()-> 1.7449)); // 81.6115,2326.14
-    driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 3.1102, ()-> 3.0306)); // 86.2431, 2362.77
-    driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 5.1441, ()-> -0.0918)); // 53.9323,3200.07
+    // driver.a().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 1.5, ()-> 0.0918)); // 72.1278,2296.06
+    // driver.b().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 2.2627, ()-> 1.7449)); // 81.6115,2326.14
+    // driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 3.1102, ()-> 3.0306)); // 86.2431, 2362.77
+    // driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 5.1441, ()-> -0.0918)); // 53.9323,3200.07
   }
 
   private Command putInterpolatedShooterSetpointsToNetworktables(DoubleSupplier d, DoubleSupplier v){
