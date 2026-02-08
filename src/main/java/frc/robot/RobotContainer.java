@@ -38,7 +38,6 @@ public class RobotContainer {
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
-
   private final TalonFXModule[] modules = new TalonFXModule[] 
           {
             new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),

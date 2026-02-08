@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
+import org.opencv.dnn.Net;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -13,8 +15,13 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.DoubleArraySubscriber;
+import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.networktables.StringSubscriber;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -24,7 +31,6 @@ import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.robot.Constants;
 
-
 public class Swerve extends SwerveBase{
     
     public Pose2d targetLocationPose;
@@ -32,13 +38,20 @@ public class Swerve extends SwerveBase{
     public Pose2d[] reefVerticies = new Pose2d[6];
 
     //NT
-    public NetworkTableInstance inst;
-    public NetworkTable sideCarTable;
-    public StringSubscriber scoringLocationSub; 
-    public StringSubscriber scoringModeSub;
+    private final NetworkTableInstance inst;
+    private final NetworkTable swerveTable;
+
+    public DoubleArraySubscriber fuelLocationsSub; 
+    public DoublePublisher commandedVelocityXPub;
+    public DoublePublisher commandedVelocityYPub;
+    public BooleanPublisher atDestinationPub;
+    public BooleanPublisher fullyAutonomousPub;
+    public DoublePublisher distanceToTarget;
+    public StringPublisher targetPosePub;
     
     public Trigger isFullyAutonomous;
     public Trigger isAtDestination;
+    public Translation2d commandedVelocity;
 
     public final double kp_attract = 3.5;
 
@@ -51,8 +64,20 @@ public class Swerve extends SwerveBase{
     public Swerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
 
+        inst = NetworkTableInstance.getDefault();
+        swerveTable = inst.getTable("Swerve");
+
+        fuelLocationsSub = swerveTable.getDoubleArrayTopic("Fuel Locations").subscribe(new double[0]);
+        commandedVelocityXPub = swerveTable.getDoubleTopic("X Commanded Velocity").publish(PubSubOption.periodic(0.02));
+        commandedVelocityYPub = swerveTable.getDoubleTopic("Y Commanded Velocity").publish(PubSubOption.periodic(0.02));
+        atDestinationPub = swerveTable.getBooleanTopic("At Destination").publish(PubSubOption.periodic(0.02));
+        fullyAutonomousPub = swerveTable.getBooleanTopic("Fully Autonomous").publish(PubSubOption.periodic(0.02));
+        distanceToTarget = swerveTable.getDoubleTopic("Distance to Target").publish(PubSubOption.periodic(0.02));
+        targetPosePub = swerveTable.getStringTopic("Target Pose").publish(PubSubOption.periodic(0.02));
+
         isFullyAutonomous = new Trigger(()-> currentlyFullyAutonomous);
         isAtDestination = new Trigger(()-> getDistanceToTranslation(targetLocationPose.getTranslation()) < 0.02);
+        commandedVelocity = new Translation2d();
 
     }
     
@@ -90,13 +115,14 @@ public class Swerve extends SwerveBase{
             .andThen(
                 run(()->{
 
+                    targetLocationPose = bestFuel;
                     double kP_assist = 3.5;
 
                     Pose2d robotPose = getSavedPose();
                     ChassisSpeeds robotSpeed = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), robotPose.getRotation());
 
-                    Translation2d robotToFuel = bestFuel.getTranslation().minus(robotPose.getTranslation());
-                    Translation2d commandedVelocity = new Translation2d(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+                    Translation2d robotToFuel = targetLocationPose.getTranslation().minus(robotPose.getTranslation());
+                    commandedVelocity = new Translation2d(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
                     
                     Translation2d direction_commandedVelocity = commandedVelocity.div(commandedVelocity.getNorm());
 
@@ -216,9 +242,14 @@ public class Swerve extends SwerveBase{
     @Override
     public void periodic(){
         super.periodic();
-        m_field.getObject("target location").setPose(targetLocationPose);
-        SmartDashboard.putBoolean("At Destination", isAtDestination.getAsBoolean());
-        SmartDashboard.putBoolean("Fully Autonomous", isFullyAutonomous.getAsBoolean());
-        SmartDashboard.putNumber("Distance to target", getDistanceToTranslation(targetLocationPose.getTranslation()));
+        
+        commandedVelocityXPub.set(commandedVelocity.getX());
+        commandedVelocityYPub.set(commandedVelocity.getY());
+        atDestinationPub.set(isAtDestination.getAsBoolean());
+        fullyAutonomousPub.set(isFullyAutonomous.getAsBoolean());
+        distanceToTarget.set(getDistanceToTranslation(targetLocationPose.getTranslation()));
+        targetPosePub.set(targetLocationPose.toString());
+        
+
     }
 }
