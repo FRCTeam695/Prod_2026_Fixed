@@ -51,7 +51,7 @@ public class RobotContainer {
 
   public final VisionManager VisionManager;
   private final String[] limelightCameraNames = {"limelight-left", "limelight-right"};
-  private final String[] photonVisionCameraNames= {"camera"};
+  private final String[] photonVisionCameraNames= {"intake"};
 
 
   private static final EnhancedCommandController driver = new EnhancedCommandController(0);
@@ -88,13 +88,13 @@ public class RobotContainer {
     
     driver.back().and(driver.start()).onTrue(Swerve.resetGyro());
 
-    driver.leftTrigger().whileTrue(
-      Swerve.driveToBestFuel(
-        Swerve.getMostEfficientFuelToDriveTo(
-          VisionManager.getFuelList()
-        )
-      )
-    );
+    // driver.leftTrigger().whileTrue(
+    //   Swerve.driveToBestFuel(
+    //     Swerve.getMostEfficientFuelToDriveTo(
+    //       VisionManager.getFuelList()
+    //     )
+    //   )
+    // );
   }
 
   public void configureDefaultCommands(){
@@ -118,6 +118,10 @@ public class RobotContainer {
     // driver.b().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 2.2627, ()-> 1.7449)); // 81.6115,2326.14
     // driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 3.1102, ()-> 3.0306)); // 86.2431, 2362.77
     // driver.x().onTrue(putInterpolatedShooterSetpointsToNetworktables(()-> 5.1441, ()-> -0.0918)); // 53.9323,3200.07
+  }
+
+  public Runnable getOdometryUpdater(){
+    return Swerve::updateOdometryWithKinematics;
   }
 
   private Command putInterpolatedShooterSetpointsToNetworktables(DoubleSupplier d, DoubleSupplier v){

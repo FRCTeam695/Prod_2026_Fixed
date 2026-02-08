@@ -179,11 +179,11 @@ public class Constants {
     }
 
     public static final class Vision{
-        public static final double CAMERA_HEIGHT = 0;
+        public static final double CAMERA_HEIGHT = .235;
         public static final double MOUNT_PITCH = 0; 
         //these yaws are different because we use regression to calculate the best offsets
         public static final double MOUNT_YAW_DIST = 0; //yaw used during distance to fuel calculations
         public static final double MOUNT_YAW_ANGLE = 0; //yaw used during angle to fuel calculations
-        public static final double FUEL_HEIGHT = 0;
+        public static final double FUEL_HEIGHT = .075;
     }
 }  

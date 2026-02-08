@@ -188,7 +188,7 @@ public class Swerve extends SwerveBase{
         commandedVelocityYPub.set(commandedVelocity.getY());
         atDestinationPub.set(isAtDestination.getAsBoolean());
         fullyAutonomousPub.set(isFullyAutonomous.getAsBoolean());
-        distanceToTarget.set(getDistanceToTranslation(targetLocationPose));
+        //distanceToTarget.set(getDistanceToTranslation(targetLocationPose));
         targetPosePub.set(targetLocationPose.toString());
         
 
