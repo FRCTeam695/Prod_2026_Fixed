@@ -5,9 +5,12 @@
 package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
+import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.ShooterInterpolationMap;
+import frc.robot.Constants.Vision;
 import frc.robot.subsystems.Swerve;
+import frc.robot.subsystems.VisionManager;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -30,7 +33,12 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
  */
 public class RobotContainer {
 
-  public final Swerve swerve;
+  public final Swerve Swerve;
+  public final VisionManager VisionManager;
+
+  private final String[] limelightCameraNames = {"limelight-left", "limelight-right"};
+  private final String[] photonVisionCameraNames= {"intake"};
+
   //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -53,13 +61,15 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    swerve = new Swerve(camNames, modules, reefTags);
+    Swerve = new Swerve(camNames, modules, reefTags);
+    VisionManager = new VisionManager(photonVisionCameraNames, () -> Swerve.getSavedPose());
+   
 
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
     // SmartDashboarding subsystems allow you to see what commands they are running
-    SmartDashboard.putData("Swerve Subsystem", swerve);
+    SmartDashboard.putData("Swerve Subsystem", Swerve);
     shooterInterpolationMap = new ShooterInterpolationMap("simulated_optimal_trajectories.csv");
 
     // Configure the trigger bindings
@@ -73,7 +83,7 @@ public class RobotContainer {
   }
 
     public Runnable getOdometryUpdater(){
-    return swerve::updateOdometryWithKinematics;
+    return Swerve::updateOdometryWithKinematics;
   }
 
 
@@ -90,28 +100,41 @@ public class RobotContainer {
   private void configureBindings() {
  
     // make sure you gyro reset by aligning with the reef, not eyeballing it
-    driver.back().onTrue(swerve.resetGyro());
+    driver.back().onTrue(Swerve.resetGyro());
+
+     driver.leftTrigger().whileTrue(
+      Swerve.driveToBestFuel( () -> Swerve.getMostEfficientFuelToDriveTo(
+        () -> VisionManager.getFuelList()
+        )
+      )
+    );
+
+    //  driver.leftTrigger(0.5).whileTrue(
+    //   Swerve.driveToBestFuel(
+    //     ()-> VisionManager.getClosestFuelFieldRelative()
+    //   )
+    // );
+
+    driver.a().whileTrue(Swerve.viewFuel(()->VisionManager.getFuelList()));
 
   }
 
   public void configureDefaultCommands(){
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
-    swerve.setDefaultCommand
+    Swerve.setDefaultCommand
       (
         
         run
           (
             ()-> 
-              swerve.teleopDefaultCommand(
+              Swerve.teleopDefaultCommand(
                 driver::getRequestedChassisSpeeds,
                 true
               )
               ,
-              swerve
+              Swerve
           ).withName("Swerve Drive Command"))
       ;
-
-      //Gripper.setDefaultCommand(Gripper.stop());
   }
 
   // The command specified in here is run in autonomous

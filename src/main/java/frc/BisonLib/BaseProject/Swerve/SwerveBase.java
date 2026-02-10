@@ -1,6 +1,5 @@
 package frc.BisonLib.BaseProject.Swerve;
 
-import static edu.wpi.first.units.Units.Volts;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,7 +10,6 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.Orchestra;
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -37,7 +35,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.LimelightHelpers;
 import frc.robot.Constants;
@@ -78,11 +75,8 @@ public class SwerveBase extends SubsystemBase {
     protected double successfulOdometryUpdates = 0;
     protected double limelightUpdateCounter = 0;
 
-
     public final Trigger atRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 1);
     public final Trigger almostAtRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 20);
-
-
 
     // this is a lock to make sure nobody acesses our pose while odometry is updating it
     private final ReentrantReadWriteLock odometryLock = new ReentrantReadWriteLock();
@@ -91,8 +85,8 @@ public class SwerveBase extends SubsystemBase {
     private final Object gyroLock = new Object();
 
     private Pose2d currentRobotPose = new Pose2d();
-    private SwerveModulePosition[] currentModulePositions = new SwerveModulePosition[4];
-    private SwerveModuleState[] currentModuleStates = new SwerveModuleState[4];
+    private SwerveModulePosition[] currentModulePositions = new SwerveModulePosition[]  {new SwerveModulePosition(), new SwerveModulePosition(),new SwerveModulePosition(),new SwerveModulePosition()};
+    private SwerveModuleState[] currentModuleStates = new SwerveModuleState[] {new SwerveModuleState(), new SwerveModuleState(),new SwerveModuleState(),new SwerveModuleState()};
 
     protected String[] camNames;
  
@@ -108,39 +102,6 @@ public class SwerveBase extends SubsystemBase {
 
     public double prevAccelX = 0;
     public double prevAccelY = 0; 
-
-
-    // SysID
-    private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
-        new SysIdRoutine.Config(
-            null, // Default ramp rate (1V/s)
-            Volts.of(4), // Reduce dynamic step voltage to 4 to prevent brownout
-            null, // Default timeout (10s)
-
-            state -> SignalLogger.writeString("State", state.toString())
-        ), 
-        new SysIdRoutine.Mechanism(
-            volts -> {
-                modules[0].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[1].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[2].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[3].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-            },
-            null, // Left null when using a signal logger
-            this
-        )
-    );
-
-    /* The SysId routine to test */
-    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer; //m_sysIdRoutineSteer; m_sysIdRoutineTranslation
-
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.quasistatic(direction);
-    }
-     
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.dynamic(direction);
-    }
 
     Map<String, int[]> tagDictionary;
 
@@ -182,6 +143,7 @@ public class SwerveBase extends SubsystemBase {
 
         // Holds all the modules
         this.modules = modules;
+
 
         /*
         * Sets the gyro at the beginning of the match and 
@@ -655,6 +617,7 @@ public class SwerveBase extends SubsystemBase {
      * @param chassisSpeeds The chassis speeds the robot should travel at
      */
     protected void driveRobotRelative(ChassisSpeeds chassisSpeeds, boolean useMaxSpeed) {
+        SmartDashboard.putString("STUPID SPEEDS", chassisSpeeds.toString());
         var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
         if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
         else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
