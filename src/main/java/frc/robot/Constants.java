@@ -17,20 +17,20 @@ public class Constants {
     public static final SwerveConfig prod_2026_Config =
             new SwerveConfig(
             // module offsets
-                            4.776, // front right
-                -0.5752, // front left
-                3.0347, // back left
-                2.6147, // back right
+                0.268798828125 + 0.5, // front right
+                -0.572266, // front left
+                0.0388, // back left
+                -0.137939 + 0.5, // back right
             // drive gear ratio
-            6.03,
+            6.026785714285714,
             // max speed ft/sec
-            16.5,
+            Units.metersToFeet(4.9),
             // wheel diameter
             4 * Math.PI, 
             // turn wheel kp
             70, 
             // wheelbase and track width
-            23.75, 23.75,
+            21.5, 21.5,
             // turn gear ratio
             26.0, 
             // inverted drive motor
@@ -38,12 +38,12 @@ public class Constants {
             0.01, 
             0,
             // tune stator limit; supply limit doesn't get applied
-            90, 40, 
+            120, 50, 
             // tune velocity pid and ff
-            0, 0.0, 0, 
-            0.0, 0.0,
-            0,
-            0, 1.0);
+            0, 0, 0, 
+            0.4001,0.115,
+            0.0,//0.038,
+            0.14, 1/(30*360/(10435.649414+359.033203)));
         public static final SwerveConfig QC_Config =
             new SwerveConfig(
                 //must find all offsets
