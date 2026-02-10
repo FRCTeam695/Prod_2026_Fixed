@@ -114,10 +114,6 @@ public class TalonFXModule{
     public void configDriveMotor(){
         TalonFXConfiguration config = new TalonFXConfiguration();
 
-        // config.Slot0.kP = Constants.Swerve.DRIVE_WHEEL_KP; 
-        // config.Slot0.kV = Constants.Swerve.DRIVE_WHEEL_KV; 
-        // config.Slot0.kS = Constants.Swerve.DRIVE_WHEEL_KS;
-
         config.Slot0.kP = Constants.Swerve.DRIVE_WHEEL_KP;
         config.Slot0.kV = Constants.Swerve.DRIVE_WHEEL_KV; 
         config.Slot0.kS = Constants.Swerve.DRIVE_WHEEL_KS;
@@ -126,6 +122,8 @@ public class TalonFXModule{
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.CurrentLimits.StatorCurrentLimit = Constants.Swerve.STATOR_CURRENT_LIMIT;
         config.CurrentLimits.SupplyCurrentLimit = Constants.Swerve.SUPPLY_CURRENT_LIMIT;
+        config.CurrentLimits.SupplyCurrentLowerLimit = 40;
+        config.CurrentLimits.SupplyCurrentLowerTime = 1;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
         config.Audio.AllowMusicDurDisable = true;
