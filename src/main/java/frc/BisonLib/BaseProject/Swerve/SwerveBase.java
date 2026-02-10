@@ -901,12 +901,12 @@ public class SwerveBase extends SubsystemBase {
         //}
 
        SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
+       SmartDashboard.putNumber("Accum Gyro Yaw", pigeon.getAccumGyroZ().getValueAsDouble());
     //    SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
         SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
        SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
 
         m_field.setRobotPose(getSavedPose());
-
         SwerveModuleState[] modStates = getModuleStates();
 
         SmartDashboard.putNumber("Module 1 Angle deg", modStates[0].angle.getDegrees());
