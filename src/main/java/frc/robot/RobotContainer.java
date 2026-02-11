@@ -16,6 +16,8 @@ import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.util.datalog.StringLogEntry;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -68,6 +70,7 @@ public class RobotContainer {
 
     // Configure the trigger bindings
     configureBindings();
+    configureDefaultCommands();
 
       
     SmartDashboard.putData(autoChooser);
