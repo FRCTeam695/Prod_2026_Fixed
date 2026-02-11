@@ -11,6 +11,7 @@ import frc.BisonLib.BaseProject.Swerve.SwerveConfig;
 
 public class Constants {
     public static final double g = 9.81;
+    public static final double BUMP_THRESHOLD = 1.0;
     public static final class Swerve {
         
         public static final SwerveConfig QC_Config =
@@ -114,6 +115,7 @@ public class Constants {
         public static final int ODOMETRY_UPDATE_RATE_HZ_INTEGER = 200;
         public static final boolean MODULE_IS_INVERTED = CHOSEN_CONSTANTS.driveMotorInverted;
         public static final double MAX_ACCELERATION_METERS_PER_SECOND_SQ = 37.5;//17.5;
+        public static final double MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ = 45;
         public static final double MAX_ACCEL_METERS_PER_SECOND_SQ_AUTOALIGN = 10;
         public static final double SUPPLY_CURRENT_LIMIT = CHOSEN_CONSTANTS.supplyCurrentLimit;
         public static final double STATOR_CURRENT_LIMIT = CHOSEN_CONSTANTS.statorCurrentLimit;

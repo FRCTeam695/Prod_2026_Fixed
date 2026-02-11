@@ -3,6 +3,9 @@ package frc.BisonLib.BaseProject.Swerve;
 import static edu.wpi.first.units.Units.Volts;
 import static edu.wpi.first.wpilibj2.command.Commands.waitSeconds;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -13,6 +16,7 @@ import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.Pigeon2;
+import com.studica.frc.AHRS;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
@@ -34,12 +38,13 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.BisonLib.BaseProject.LimelightHelpers;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
+import frc.BisonLib.BaseProject.Util.LimelightHelpers;
 import frc.robot.Constants;
 
 public class SwerveBase extends SubsystemBase {
@@ -51,7 +56,7 @@ public class SwerveBase extends SubsystemBase {
 
     // NEVER DIRECTLY CALL ANY GYRO METHODS, ALWAYS USE THE SYNCHRONIZED GYRO LOCK!!
     //private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
-    private final Pigeon2 pigeon;
+    public final Pigeon2 pigeon;
     private final BaseStatusSignal yawSignal;
     private double gyroAccumYawOffset = 0;
 
@@ -97,8 +102,8 @@ public class SwerveBase extends SubsystemBase {
     protected String[] camNames;
  
     public SlewRateLimiter omegaFilter = new SlewRateLimiter(Math.toRadians(1074.5588535));
-    public SlewRateLimiter xFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
-    public SlewRateLimiter yFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
+    public SlewRateLimiter xFilter = new SlewRateLimiter(7);
+    public SlewRateLimiter yFilter = new SlewRateLimiter(7);
     //private Pigeon2 pigeon = new Pigeon2(8);
 
     private VoltageOut m_voltReq;
@@ -142,14 +147,28 @@ public class SwerveBase extends SubsystemBase {
         return m_sysIdRoutineToApply.dynamic(direction);
     }
 
+    Map<String, int[]> tagDictionary;
+
+    public void addTagToDictionary(String tagSetName, int[] tagSet){
+        tagDictionary.put(tagSetName, tagSet);
+    }
+
     /**
-     * Does all da constructing
+     * Does all the constructing
      * 
      * @param cameras An array of cameras used for pose estinmation
      * @param moduleTypes The type of swerve module on the swerve drive
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
+
+        //vision Tag definitions
+        this.validTagIDs = validTagIDs;
+        tagDictionary = new HashMap<String, int[]>();
+        addTagToDictionary("tagSet1", new int[] {7});
+        addTagToDictionary("tagSet2", new int[] {1});
+
+
         pigeon = new Pigeon2(8, "drivetrain");
         yawSignal = pigeon.getAccumGyroZ();
         gyroAccumYawOffset = -yawSignal.getValueAsDouble();
@@ -168,10 +187,6 @@ public class SwerveBase extends SubsystemBase {
 
         // Holds all the modules
         this.modules = modules;
-
-        this.validTagIDs = validTagIDs;
-
-
 
         /*
         * Sets the gyro at the beginning of the match and 
@@ -214,6 +229,25 @@ public class SwerveBase extends SubsystemBase {
         m_voltReq = new VoltageOut(0.0); 
     }
 
+    public void setValidTagIDs(String tagSetName) {
+
+        validTagIDs = tagDictionary.get(tagSetName);
+
+        for (String cam : camNames) {
+            LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
+        }
+
+        SmartDashboard.putString("Valid Tag IDs", Arrays.toString(validTagIDs));
+        SmartDashboard.putString(" Valid Tag Set Name ", tagSetName);
+    }
+
+    public Command setTagSet1() {
+        return runOnce(() -> setValidTagIDs("tagSet1"));
+    }
+
+    public Command setTagSet2() {
+        return runOnce(() -> setValidTagIDs("tagSet2"));
+    }
 
     public void playSong(){
         if(modules[0].getModuleType().equals("TalonFXModule")){
@@ -239,6 +273,7 @@ public class SwerveBase extends SubsystemBase {
         }
     }
 
+    
 
     public void pathplannerDriveRobotRelative(ChassisSpeeds speeds){
         driveRobotRelative(speeds, false);
@@ -725,8 +760,8 @@ public class SwerveBase extends SubsystemBase {
                                (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
         }
         else{
-            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
-                               1.5 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP;
+            max_fwd_accel = Math.min(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               2 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ);
         }
 
         SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
@@ -789,10 +824,10 @@ public class SwerveBase extends SubsystemBase {
 
         // vx_perp = 0;
         // vx_perp = 0;
-        commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
-        commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
-        //commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
-        //commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        //commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        //commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
         commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
         //speeds = applyAccelerationLimit(speeds);
 
@@ -849,7 +884,7 @@ public class SwerveBase extends SubsystemBase {
         double avgLLy = 0;
         double avgLLomega = 0;
         for(String cam : camNames){  
-            LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+            LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, pigeon.getPitch().getValueAsDouble(), 0, pigeon.getRoll().getValueAsDouble(), 0);
             LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
             LimelightHelpers.PoseEstimate mt2_estimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cam);
         
@@ -863,8 +898,10 @@ public class SwerveBase extends SubsystemBase {
                 // Finally, we actually add the measurement to our odometry
                 odometryLock.writeLock().lock();
                 try{
+                    
                     odometry.addVisionMeasurement
                     (
+                        
                         mt2_estimate.pose, 
                         mt2_estimate.timestampSeconds,
                         
