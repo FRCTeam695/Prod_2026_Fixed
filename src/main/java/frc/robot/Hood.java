@@ -24,54 +24,71 @@ public class Hood extends SubsystemBase {
     private final VictorSP r_actuator;
     private final VictorSP l_actuator;
 
-    private double currentPosition;
-    private double targetPosition;
+    private double currentPos;
+    private double targetPos;
+    private double distanceAway = 0;
+    private final double actUnitTo_mm = 100;
 
-    private final double A = 168; // pivot arm length (mm)
-    private final double B = 168*Math.sqrt(2); // hypotenuse (mm)
-    private final double actLen = 168; // actuator base length (mm)
-    private double C = actLen + r_analog.get() * 100; // actuator base length + extension length (mm)
-
-    private final double radToDeg = 180/(Math.PI);
+    private final double A_hoodLen_mm = 168; // pivot arm length (mm)
+    private final double B_hypot_mm = 168*Math.sqrt(2); // hypotenuse (mm)
+    private final double actLen_mm = 168; // actuator base length (mm)
+    private double C_totActLen_mm = actLen_mm + r_analog.get() * actUnitTo_mm; // actuator base length + extension length (mm)
 
     public Hood() {
         r_actuator = new VictorSP(0);
         l_actuator = new VictorSP(1);
-        currentPosition = 0;//absolute position encoder
-        targetPosition = 0;
+        currentPos = 0; //absolute position encoder
+        targetPos = 0;
     }
 
     /** Expects a position between 0.0 and 1.0 */
-    public void setPosition(double desiredPosition) {
-        targetPosition = MathUtil.clamp(desiredPosition, m_MinPosition, m_MaxPosition);
-        currentPosition = r_analog.get();
+    public void setPosition(double unclampedTargetPos) {
+        targetPos = MathUtil.clamp(unclampedTargetPos, m_MinPosition, m_MaxPosition);
+        currentPos = r_analog.get();
+        distanceAway = targetPos - currentPos;
 
-        double diff = targetPosition - currentPosition;
-        double vel = MathUtil.clamp((diff * kP) + kS * Math.signum(diff), -1, 1);
+        // manual PID
+        double vel = MathUtil.clamp((distanceAway * kP) + kS * Math.signum(distanceAway), -1, 1);
         
+        // actuator moves at set velocity
         r_actuator.set(vel);
         l_actuator.set(vel);
 
-        C = actLen + r_analog.get() * 100; //mm
+        updateActuatorLength(); //mm
 
-        double extensionLength = desiredPosition * 100;
-        targetPosDeg.set(desiredHoodDeg(extensionLength));
+        targetPosDeg.set(desiredHoodDeg(targetPos));
     }
 
     /** Expects a position between 0.0 and 1.0 */
-    public Command positionCommand(double position) {
+    public Command setActuatorPos(double position) {
         return run(() -> setPosition(position));
     }
 
+    /** Updates total len of actuator + extension length in mm */
+    public void updateActuatorLength() {
+        C_totActLen_mm = actLen_mm + r_analog.get() * actUnitTo_mm;
+    }
+
     public double currentHoodDeg() {
-        return Math.acos((A*A + B*B - C*C) / (2*A*B)) * radToDeg;
+        return 
+        Math.toDegrees(
+            Math.acos(
+                (Math.pow(A_hoodLen_mm, 2) + Math.pow(B_hypot_mm, 2) - Math.pow(C_totActLen_mm, 2)) 
+                / (2*A_hoodLen_mm*B_hypot_mm)
+            )
+        );
     }
 
-    public double desiredHoodDeg(double extensionLength) {
-        return Math.acos((A*A + B*B - Math.pow(extensionLength+actLen, 2)) / (2*A*B)) * radToDeg;
+    public double desiredHoodDeg(double targetPos_mm) {
+        return 
+        Math.toDegrees(
+            Math.acos(
+                (Math.pow(A_hoodLen_mm, 2) + Math.pow(B_hypot_mm, 2) - Math.pow(targetPos_mm + actLen_mm, 2)) 
+                / (2*A_hoodLen_mm*B_hypot_mm)
+            )
+        );
     }
 
-    // Testing actuator
     public void setDuty(double duty) {
         r_actuator.set(duty);
     }

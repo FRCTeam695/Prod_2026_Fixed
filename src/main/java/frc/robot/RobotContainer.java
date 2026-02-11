@@ -32,7 +32,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public class RobotContainer {
 
-  public final SwerveBase Swerve;
   public final TripleTalonShooter Shooter;
   public final Hood Hood;
   public IntegerSubscriber scoringHeight;
@@ -56,14 +55,10 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    Swerve = new SwerveBase(camNames, modules, reefTags);
     Shooter = new TripleTalonShooter();
     Hood = new Hood();
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
-
-    // SmartDashboarding subsystems allow you to see what commands they are running
-    SmartDashboard.putData("Swerve Subsystem", Swerve);
 
     // Configure the trigger bindings
     configureBindings();
@@ -87,38 +82,11 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
- 
-    // make sure you gyro reset by aligning with the reef, not eyeballing it
-    driver.back().onTrue(Swerve.resetGyro());
-    // driver.b().onTrue(Swerve.runWheelCharacterization());
-    driver.x().whileTrue(run(() -> Shooter.setVel(40, "r"))); 
-    //driver.y().whileTrue(run(() -> Shooter.setVel(60, "r")));
-    //driver.a().whileTrue(run(() -> Shooter.setVel(80, "r"))); 
-    //driver.b().whileTrue(run(() -> Shooter.setVel(-60, "r")));
-    driver.b().whileTrue(Hood.positionCommand(0.25));
-    driver.a().whileTrue(Hood.positionCommand(0.75));
-    driver.y().whileTrue(Hood.positionCommand(0.0));
-    driver.rightBumper().whileTrue(run(() -> Hood.setDuty(driver.getRightY()*-1)));
+   
   }
 
   public void configureDefaultCommands(){
-    // This is the Swerve subsystem default command, this allows the driver to drive the robot
-    Swerve.setDefaultCommand
-      (
-        run
-          (
-            ()-> 
-              Swerve.teleopDefaultCommand(
-                driver::getRequestedChassisSpeeds,
-                true
-              )
-              ,
-              Swerve
-          ).withName("Swerve Drive Command")
-      );
-
-      //Gripper.setDefaultCommand(Gripper.stop());
-      Hood.setDefaultCommand(Hood.stop());
+    
   }
 
   public Command logTrickshotTrue(){

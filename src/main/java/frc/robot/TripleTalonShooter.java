@@ -122,7 +122,7 @@ public class TripleTalonShooter extends SubsystemBase{
 
     }
 
-    public void setVel(double vel, String motor) {
+    public void setRotVel(double vel, String motor) {
         switch (motor) {
             case "r":
                 r_talon.setControl(r_requests.withVelocity(vel)); //rot/sec
