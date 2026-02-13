@@ -64,7 +64,7 @@ public class Swerve extends SwerveBase {
 
         isFullyAutonomous = new Trigger(()-> currentlyFullyAutonomous);
         isAtDestination = false;
-        commandedVelocity = new Translation2d();
+        commandedVelocity = new Translation2d(0,0);
         }
 
     public boolean isOnBump() {
@@ -142,18 +142,17 @@ public class Swerve extends SwerveBase {
 
                         isAtDestination = false;
 
-                        System.out.println("driving");
+                        // System.out.println("driving");
 
                         targetLocationTranslation = bestFuel.get();
 
-                        double kP_assist = 3.5;
+                        double kP_assist = 1;
 
                         Pose2d robotPose = getSavedPose();
                         ChassisSpeeds robotSpeed = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), robotPose.getRotation());
 
                         Translation2d robotToFuel = targetLocationTranslation.minus(robotPose.getTranslation());
-                        commandedVelocity = new Translation2d(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
-                        
+                                                
                         Translation2d direction_commandedVelocity;
 
                         if (commandedVelocity.getNorm() <= 0.01){
@@ -161,12 +160,13 @@ public class Swerve extends SwerveBase {
                         } else {
                             direction_commandedVelocity = commandedVelocity.div(commandedVelocity.getNorm());
                         }
-                        
+
                         Translation2d robotToFuelParallel = direction_commandedVelocity.times(robotToFuel.dot(direction_commandedVelocity));
                         Translation2d robotToFuelPerpendicular = robotToFuel.minus(robotToFuelParallel);
 
                         Translation2d newCommandedVel = commandedVelocity.plus(robotToFuelPerpendicular.times(kP_assist));
                         SmartDashboard.putString("STUPID TRANSLATION", newCommandedVel.toString());
+
                         ChassisSpeeds speeds = new ChassisSpeeds(
                             MathUtil.clamp(newCommandedVel.getX(), -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND),
                             MathUtil.clamp(newCommandedVel.getY(), -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND),
@@ -194,6 +194,10 @@ public class Swerve extends SwerveBase {
       public void periodic(){
         super.periodic();
         
+        commandedVelocity = new Translation2d(
+            ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation()).vxMetersPerSecond,
+            ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation()).vyMetersPerSecond);
+
         commandedVelocityXPub.set(commandedVelocity.getX());
         commandedVelocityYPub.set(commandedVelocity.getY());
         atDestinationPub.set(isAtDestination);
