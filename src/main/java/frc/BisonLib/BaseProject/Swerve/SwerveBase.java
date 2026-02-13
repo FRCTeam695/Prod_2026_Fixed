@@ -359,22 +359,9 @@ public class SwerveBase extends SubsystemBase {
         return states;
     }
 
-    public void xPositionMethod(){
-            modules[0].setDesiredState( 
-                new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
-            );
-            modules[1].setDesiredState(
-                new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
-            );
-            modules[2].setDesiredState(
-                new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
-            );
-            modules[3].setDesiredState(
-                new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
-            );
+    
 
-    }
-
+    //Jarvis, activate swerve wheels in an x-position for max defense against bumping while shooting in place.
     public Command xPosition(){
         return run(  
             ()->{
@@ -621,24 +608,7 @@ public class SwerveBase extends SubsystemBase {
     }
 
     
-    public Command XCommand(){
-        return run(
-            ()-> {
-                modules[0].setDesiredState(
-                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
-                );
-                modules[1].setDesiredState(
-                    new SwerveModuleState(0.0,Rotation2d.fromDegrees(45))
-                );
-                modules[2].setDesiredState(
-                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
-                );
-                modules[3].setDesiredState(
-                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
-                );
-            }
-        );
-    }
+    
 
     /*
      * Stops all of the swerve modules
