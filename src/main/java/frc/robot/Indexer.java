@@ -9,7 +9,7 @@ package frc.robot;
 
     //motor
     import com.ctre.phoenix6.hardware.TalonFXS;
-
+    import com.ctre.phoenix6.controls.DutyCycleOut;
 
 
     import com.ctre.phoenix6.configs.TalonFXSConfiguration;
@@ -28,14 +28,14 @@ package frc.robot;
 public class Indexer extends SubsystemBase {
     
     public TalonFXS floorIndexerMotor;
-
+    private final DutyCycleOut dutyCycle = new DutyCycleOut(0);
 
     //booleans
     public boolean isIndexing;
 
     public Indexer(){
 
-        floorIndexerMotor = new TalonFXS(1); //insert deviceID later, this deviceID is wrong
+        floorIndexerMotor = new TalonFXS(22); //insert deviceID later, this deviceID is wrong
         
         isIndexing = false;
     }
@@ -47,11 +47,12 @@ public class Indexer extends SubsystemBase {
         }else{
             isIndexing = true;
         }
-        floorIndexerMotor.set(speed);
+        floorIndexerMotor.setControl(dutyCycle.withOutput(speed));
     }
 
     public Command feedCommand(){
-        return startEnd(()->set(1),()-> set(0)); //arbitrary run speed, needs tuning
+        return startEnd(()->set(0.2),()-> set(0)
+        ); //arbitrary run speed, needs tuning
     }
 
     public void periodic(){
@@ -59,6 +60,7 @@ public class Indexer extends SubsystemBase {
         SmartDashboard.putNumber("DutyCycleOut", floorIndexerMotor.getDutyCycle().getValueAsDouble());
         SmartDashboard.putNumber("Voltage", floorIndexerMotor.getMotorVoltage().getValueAsDouble());
         SmartDashboard.putBoolean("isIndexing", isIndexing);
+        System.out.println("Indexer Output" + floorIndexerMotor.getDutyCycle().getValueAsDouble());
         
     }
 }
