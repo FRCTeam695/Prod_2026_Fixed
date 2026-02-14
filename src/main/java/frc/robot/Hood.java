@@ -11,48 +11,57 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Hood extends SubsystemBase {
-    private static final double m_MinPosition = 0.0; 
-    private static final double m_MaxPosition = 1.0;
 
-    // Maybe kS will differ slightly on different actuators
-    private static final double kP = 25;
-    private static final double kS = 0.0785;
-
-    // 0-1
-    private static final AnalogPotentiometer r_analog = new AnalogPotentiometer(0);
-
+    /** Actuonix L16 100mm extension length 35mm/s */
     private final VictorSP r_actuator;
+    /** Actuonix L16 100mm extension length 35mm/s */
     private final VictorSP l_actuator;
 
-    private double currentPos;
-    private double targetPos;
-    private double distanceAway = 0;
-    private final double actUnitTo_mm = 100;
+    /** gets actuator position from 0 to 1*/
+    private static final AnalogPotentiometer r_analog = new AnalogPotentiometer(0);
 
-    private final double A_hoodLen_mm = 168; // pivot arm length (mm)
-    private final double B_hypot_mm = 168*Math.sqrt(2); // hypotenuse (mm)
-    private final double actLen_mm = 168; // actuator base length (mm)
-    private double C_totActLen_mm = actLen_mm + r_analog.get() * actUnitTo_mm; // actuator base length + extension length (mm)
+    // Constants
+    /** pivot arm length (mm) */
+    private final double A_HOODLEN = 168;
+
+    /** hypotenuse of pivot arm and actuator extended length (mm)*/
+    private final double B_HYPOT = 168 * Math.sqrt(2);
+
+    /** actuator base length (mm) */
+    private final double ACTLEN = 168;
+
+    /** extended full actuator length (mm) */
+    private double C_ActExtended; 
+
+    private final double ACTMINPOS = 0.0; 
+    private final double ACTMAXPOS = 1.0;
+    private final double ACT_TO_MM = 100;
+
+    // Maybe kS will differ slightly on different actuators
+    private final double kS = 0.0785;
+    private final double kP = 25;
 
     public Hood() {
         r_actuator = new VictorSP(0);
         l_actuator = new VictorSP(1);
-        currentPos = 0; //absolute position encoder
-        targetPos = 0;
+
+        updateActuatorLength();
     }
 
     /** Expects a position between 0.0 and 1.0 */
-    public void setPosition(double unclampedTargetPos) {
-        targetPos = MathUtil.clamp(unclampedTargetPos, m_MinPosition, m_MaxPosition);
-        currentPos = r_analog.get();
-        distanceAway = targetPos - currentPos;
+    private void setPosition(double unclampedTargetPos) {
+
+        double targetPos = MathUtil.clamp(unclampedTargetPos, ACTMINPOS, ACTMAXPOS);
+        double currentPos = r_analog.get(); //absolute position encoder
+        double distanceAway = targetPos - currentPos;
 
         // manual PID
-        double vel = MathUtil.clamp((distanceAway * kP) + kS * Math.signum(distanceAway), -1, 1);
+        double r_vel = MathUtil.clamp((distanceAway * kP) + kS * Math.signum(distanceAway), -1, 1);
+        double l_vel = MathUtil.clamp((distanceAway * kP) + kS * Math.signum(distanceAway), -1, 1);
         
         // actuator moves at set velocity
-        r_actuator.set(vel);
-        l_actuator.set(vel);
+        r_actuator.set(r_vel);
+        l_actuator.set(l_vel);
 
         updateActuatorLength(); //mm
 
@@ -66,15 +75,15 @@ public class Hood extends SubsystemBase {
 
     /** Updates total len of actuator + extension length in mm */
     public void updateActuatorLength() {
-        C_totActLen_mm = actLen_mm + r_analog.get() * actUnitTo_mm;
+        C_ActExtended = ACTLEN + r_analog.get() * ACT_TO_MM;
     }
 
     public double currentHoodDeg() {
         return 
         Math.toDegrees(
             Math.acos(
-                (Math.pow(A_hoodLen_mm, 2) + Math.pow(B_hypot_mm, 2) - Math.pow(C_totActLen_mm, 2)) 
-                / (2*A_hoodLen_mm*B_hypot_mm)
+                (Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) - Math.pow(C_ActExtended, 2)) 
+                / (2*A_HOODLEN*B_HYPOT)
             )
         );
     }
@@ -83,13 +92,13 @@ public class Hood extends SubsystemBase {
         return 
         Math.toDegrees(
             Math.acos(
-                (Math.pow(A_hoodLen_mm, 2) + Math.pow(B_hypot_mm, 2) - Math.pow(targetPos_mm + actLen_mm, 2)) 
-                / (2*A_hoodLen_mm*B_hypot_mm)
+                (Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) - Math.pow(targetPos_mm + ACTLEN, 2)) 
+                / (2*A_HOODLEN*B_HYPOT)
             )
         );
     }
 
-    public void setDuty(double duty) {
+    private void setDuty(double duty) {
         r_actuator.set(duty);
     }
 

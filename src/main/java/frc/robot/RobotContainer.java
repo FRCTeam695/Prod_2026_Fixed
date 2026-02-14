@@ -9,7 +9,6 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -32,8 +31,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public class RobotContainer {
 
-  public final TripleTalonShooter Shooter;
-  public final Hood Hood;
+  public final ShooterConfig r_shooter;
+  public final ShooterConfig m_shooter;
+  public final ShooterConfig l_shooter;
+  public final Hood hood;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -55,8 +56,10 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    Shooter = new TripleTalonShooter();
-    Hood = new Hood();
+    r_shooter = new ShooterConfig(0);
+    m_shooter = new ShooterConfig(0);
+    l_shooter = new ShooterConfig(0);
+    hood = new Hood();
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
@@ -69,8 +72,6 @@ public class RobotContainer {
 
     DataLogManager.start();
   }
-
-
   
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
