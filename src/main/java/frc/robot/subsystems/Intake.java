@@ -24,6 +24,8 @@ import frc.robot.Constants.intakeConstants;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 
@@ -40,7 +42,7 @@ public class Intake extends SubsystemBase {
 
     private MotionMagicVoltage mm_pivot; //maybe make better name?
 
-    private static final double kPivotReduction = 0; //make into constant, amount of rotations for arm to loop once
+    private static final double kPivotReduction = 1; //make into constant, amount of rotations for arm to loop once
     private final Angle kPositionTolerance = Degrees.of(5); //tolerance for range of position
 
     private NetworkTableInstance inst;
@@ -48,22 +50,16 @@ public class Intake extends SubsystemBase {
     private NetworkTableEntry pivotValue;
     private NetworkTableEntry rollerValue;
 
-    private boolean isHomed = false;
-
-    //private VoltageOut pivotVoltageRequest;
-    //private VoltageOut rollerVoltageRequest;
+    // private boolean isHomed = false;
 
     public Intake() {
-        pivot = new TalonFX(0); //not correct id
-        roller = new TalonFX(1); //not correct id
+        pivot = new TalonFX(22); //id of test kraken
+        roller = new TalonFX(14); //not correct id
 
         configurePivot();
         configureRoller();
 
         mm_pivot = new MotionMagicVoltage(0).withSlot(0);
-
-        //pivotVoltageRequest = new VoltageOut(0); //output is zero
-        //rollerVoltageRequest = new VoltageOut(0);
 
         //networktables
         inst = NetworkTableInstance.getDefault();
@@ -93,12 +89,12 @@ public class Intake extends SubsystemBase {
             )
             .withMotionMagic(
                 new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(0) //NEEDS TO BE CHANGED
-                .withMotionMagicAcceleration(0) //NEEDS TO BE CHANGED
+                .withMotionMagicCruiseVelocity(90) //NEEDS TO BE CHANGED, copied from Goldfish elevator
+                .withMotionMagicAcceleration(500) //NEEDS TO BE CHANGED, copied from Goldfish elevator
             )
             .withSlot0(
                 new Slot0Configs()
-                .withKP(0) //NEED TO CHANGE
+                .withKP(50) //NEED TO CHANGE
                 .withKI(0) //NEED TO CHANGE (add kd and kv if needed)
             );
         pivot.getConfigurator().apply(config1);
@@ -107,9 +103,9 @@ public class Intake extends SubsystemBase {
     public void configureRoller() {
         TalonFXConfiguration config2 = new TalonFXConfiguration()
             .withMotorOutput(
-                new MotorOutputConfigs()
-                    .withInverted(InvertedValue.Clockwise_Positive)
-                    .withNeutralMode(NeutralModeValue.Brake)
+               new MotorOutputConfigs()
+               .withInverted(InvertedValue.Clockwise_Positive)
+               .withNeutralMode(NeutralModeValue.Brake)
             )
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
@@ -125,9 +121,20 @@ public class Intake extends SubsystemBase {
         pivot.setControl(mm_pivot.withPosition(pivotVal)); // make into VARIABLE use Degrees.of(0)
     }
 
+    //COMMAND VERSION OF SETPIVOT
+    // public Command setPivot(double pivotVal) {
+    //     //pivot.setControl(mm_pivot.withPosition(pivotVal)); // make into VARIABLE use Degrees.of(0) 
+    //     return runOnce(() -> pivot.setControl(mm_pivot.withPosition(Degrees.of(pivotVal)))).andThen(new PrintCommand("position is set " + pivotVal));
+    // }
+
     public void setRollerPercent(double percent) { //no motion magic
         roller.set(percent);
     }
+
+    //COMMAND VERSION OF SETROLLER
+    // public Command setRollerPercent(double percent) {
+    //     return runOnce(() -> roller.set(percent));
+    // }
 
     private boolean isPositionWithinTolerance() {
         final Angle currentPosition = pivot.getPosition().getValue();
@@ -152,33 +159,42 @@ public class Intake extends SubsystemBase {
             });
     }
 
-    public Command homingCommand() { //this was also mostly copied
-        return Commands.sequence(
-            runOnce(() -> setPivot(0)), //set pivot output
-            Commands.waitUntil(() -> pivot.getSupplyCurrent().getValue().in(Amps) > 6),
-            runOnce(() -> {
-                setPivot(0); //homed angle
-                isHomed = true;
-                setPivot(0); //position stowed
-            })
-        )
-        .unless(() -> isHomed)
-        .withInterruptBehavior(InterruptionBehavior.kCancelIncoming);
-    }
+    // public Command homingCommand() { //this was also mostly copied
+    //     return Commands.sequence(
+    //         runOnce(() -> setPivot(0)), //set pivot output
+    //         Commands.waitUntil(() -> pivot.getSupplyCurrent().getValue().in(Amps) > 6),
+    //         runOnce(() -> {
+    //             setPivot(0); //homed angle
+    //             isHomed = true;
+    //             setPivot(0); //position stowed
+    //         })
+    //     )
+    //     .unless(() -> isHomed)
+    //     .withInterruptBehavior(InterruptionBehavior.kCancelIncoming);
+    // }
 
-    public Command intake() { //fix this
-        return startEnd(
-            () -> {
-                setPivot(intakeConstants.INTAKE_PIVOT);
-                pivotValue.setDouble(
-                    pivot.getPosition().getValue().in(Degrees)
-                );
-                setRollerPercent(intakeConstants.INTAKE_ROLLER);
-                double rollerOutput = roller.getVelocity().getValue().in(Units.RotationsPerSecond);
-                rollerValue.setDouble(rollerOutput);
-            },
-            () -> setRollerPercent(0)
+    // public Command intake() {
+    //     return startEnd(
+    //         () -> {
+    //             setPivot(intakeConstants.INTAKE_PIVOT);
+    //             pivotValue.setDouble(
+    //                 pivot.getPosition().getValue().in(Degrees)
+    //             );
+    //             setRollerPercent(intakeConstants.INTAKE_ROLLER);
+    //             double rollerOutput = roller.getVelocity().getValue().in(Units.RotationsPerSecond);
+    //             rollerValue.setDouble(rollerOutput);
+    //         },
+    //         () -> setRollerPercent(0)
+    //     );
+    // }
+
+    @Override
+    public void periodic(){
+        pivotValue.setDouble(
+            pivot.getPosition().getValue().in(Degrees)
         );
+        SmartDashboard.putNumber("Position in Degrees", pivot.getPosition().getValue().in(Degrees));
+        SmartDashboard.putNumber("Input", pivot.getClosedLoopReference().getValueAsDouble() * 360);
+        SmartDashboard.putNumber("set velocity", roller.get());
     }
-
 }

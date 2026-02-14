@@ -31,35 +31,37 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public class RobotContainer {
 
-  public final SwerveBase Swerve;
+  //public final SwerveBase Swerve;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
-  private final Intake intake = new Intake();
+  private final Intake m_intake = new Intake();
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
 
-  private final TalonFXModule[] modules = new TalonFXModule[] 
-          {
-            new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
-            new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
-            new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
-            new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3)
-          };
+  // private final TalonFXModule[] modules = new TalonFXModule[] 
+  //         {
+  //           new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
+  //           new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
+  //           new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
+  //           new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3)
+  //         };
 
   private final String[] camNames = {"limelight-left", "limelight-right"};
   private static final EnhancedCommandController driver =
       new EnhancedCommandController(1);
+  private final CommandXboxController m_driverController =
+      new CommandXboxController(0); //change
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    Swerve = new SwerveBase(camNames, modules, reefTags);
+    //Swerve = new SwerveBase(camNames, modules, reefTags);
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
     // SmartDashboarding subsystems allow you to see what commands they are running
-    SmartDashboard.putData("Swerve Subsystem", Swerve);
+    //SmartDashboard.putData("Swerve Subsystem", Swerve);
 
     // Configure the trigger bindings
     configureBindings();
@@ -85,29 +87,31 @@ public class RobotContainer {
   private void configureBindings() {
  
     // make sure you gyro reset by aligning with the reef, not eyeballing it
-    driver.back().onTrue(Swerve.resetGyro());
+    // driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
-
-    
+    // m_driverController.a().whileTrue(m_intake.setPivot((360)));
+    // m_driverController.b().whileTrue(m_intake.setPivot((0)));
+    // m_driverController.a().whileTrue(m_intake.setRollerPercent(0.5));
+    // m_driverController.b().whileTrue(m_intake.setRollerPercent(0));
 
   }
 
   public void configureDefaultCommands(){
 
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
-    Swerve.setDefaultCommand
-      (
-        run
-          (
-            ()-> 
-              Swerve.teleopDefaultCommand(
-                driver::getRequestedChassisSpeeds,
-                true
-              )
-              ,
-              Swerve
-          ).withName("Swerve Drive Command")
-      );
+    // Swerve.setDefaultCommand
+    //   (
+    //     run
+    //       (
+    //         ()-> 
+    //           Swerve.teleopDefaultCommand(
+    //             driver::getRequestedChassisSpeeds,
+    //             true
+    //           )
+    //           ,
+    //           Swerve
+    //       ).withName("Swerve Drive Command")
+    //   );
 
       //Gripper.setDefaultCommand(Gripper.stop());
   }
