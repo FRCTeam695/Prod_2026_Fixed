@@ -64,4 +64,28 @@ public class RebuiltSwerve extends SwerveBase{
         }));
     }
 
+    public boolean isOnBump() {
+        double pitch = Math.abs(pigeon.getPitch().getValueAsDouble());
+        double roll = Math.abs(pigeon.getRoll().getValueAsDouble());
+
+        System.out.println("pitch = " + pitch);
+        System.out.println("roll = " + roll);
+
+        return pitch > Constants.BUMP_THRESHOLD || roll > Constants.BUMP_THRESHOLD;
+    }
+
+    public boolean isOnBumpNearExpectedLocation(Pose2d bumpPose, double radiusMeters) {
+        boolean nearBump = getSavedPose().getTranslation().getDistance(bumpPose.getTranslation()) < radiusMeters;
+
+        return nearBump && isOnBump();
+    }
+
+    public Command bumpTest() {
+        return runOnce(() -> {
+            if (isOnBumpNearExpectedLocation(new Pose2d(), 1.0)) {
+                System.out.println("ON BUMP");
+            }
+        });
+    }
+
 }
