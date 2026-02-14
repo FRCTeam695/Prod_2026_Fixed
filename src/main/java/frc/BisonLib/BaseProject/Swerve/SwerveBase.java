@@ -1,7 +1,5 @@
 package frc.BisonLib.BaseProject.Swerve;
 
-import static edu.wpi.first.units.Units.Volts;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,9 +9,7 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.Orchestra;
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
-import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.Pigeon2;
 
 import edu.wpi.first.math.MathUtil;
@@ -37,7 +33,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.LimelightHelpers;
 import frc.robot.Constants;
@@ -57,7 +52,7 @@ public class SwerveBase extends SubsystemBase {
 
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
-    private final PIDController thetaController = new PIDController(Constants.Swerve.ROBOT_ROTATION_KP, 0, 0);
+    private final PIDController thetaController = new PIDController(0.003, 0, 0.0);
     private final BaseStatusSignal[] allOdomSignals;
 
     protected double max_accel = 0;
@@ -101,7 +96,6 @@ public class SwerveBase extends SubsystemBase {
     public SlewRateLimiter yFilter = new SlewRateLimiter(7);
     //private Pigeon2 pigeon = new Pigeon2(8);
 
-    private VoltageOut m_voltReq;
     //6-11
     // 17 -22
     public int[] validTagIDs;
@@ -110,37 +104,6 @@ public class SwerveBase extends SubsystemBase {
     public double prevAccelY = 0; 
 
 
-    // SysID
-    private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
-        new SysIdRoutine.Config(
-            null, // Default ramp rate (1V/s)
-            Volts.of(4), // Reduce dynamic step voltage to 4 to prevent brownout
-            null, // Default timeout (10s)
-
-            state -> SignalLogger.writeString("State", state.toString())
-        ), 
-        new SysIdRoutine.Mechanism(
-            volts -> {
-                modules[0].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[1].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[2].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[3].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-            },
-            null, // Left null when using a signal logger
-            this
-        )
-    );
-
-    /* The SysId routine to test */
-    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer; //m_sysIdRoutineSteer; m_sysIdRoutineTranslation
-
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.quasistatic(direction);
-    }
-     
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.dynamic(direction);
-    }
 
     Map<String, int[]> tagDictionary;
 
@@ -156,7 +119,6 @@ public class SwerveBase extends SubsystemBase {
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
-
         //vision Tag definitions
         this.validTagIDs = validTagIDs;
         tagDictionary = new HashMap<String, int[]>();
@@ -220,8 +182,6 @@ public class SwerveBase extends SubsystemBase {
 
         SmartDashboard.putData("field", m_field);
         SmartDashboard.putData("Robot angle PID controller", thetaController);
-
-        m_voltReq = new VoltageOut(0.0); 
     }
 
     public void setValidTagIDs(String tagSetName) {
@@ -926,6 +886,7 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putNumber("failed odometry updates", failedOdometryUpdates);
         SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
         SmartDashboard.putString("Robot Pose", getSavedPose().toString());
+        SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);
 
         // limelightUpdateCounter++;
         // if(limelightUpdateCounter > 25){

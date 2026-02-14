@@ -3,6 +3,7 @@ package frc.robot;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -10,6 +11,17 @@ import edu.wpi.first.math.util.Units;
 import frc.BisonLib.BaseProject.Swerve.SwerveConfig;
 
 public class Constants {
+    public static final class FieldConstants{
+        public static final class Red{
+            public static final Pose2d hub = new Pose2d();
+        }
+        
+        public static final class Blue{
+            public static final Pose2d hub = new Pose2d();
+        }
+    }
+
+
     public static final double g = 9.81;
     public static final double BUMP_THRESHOLD = 1.0;
     public static final class Swerve {
@@ -39,10 +51,11 @@ public class Constants {
             0,
             200, 100, 
             // tune velocity pid and ff
-            0, 0, 0, 
-            0.4001,0.115,
-            0.0,//0.038,
+            0.0, 0, 0, 
+            0.3,0.115,
+            0.0,
             0.14, 1/(30*360/(10435.649414+359.033203)));
+            //0.14, 0.42, 0.115
         public static final SwerveConfig QC_Config =
             new SwerveConfig(
                 //must find all offsets
@@ -134,7 +147,7 @@ public class Constants {
         public static final double TURN_WHEEL_KP = CHOSEN_CONSTANTS.turnWheelKP;
         public static final double TURN_WHEEL_KS = CHOSEN_CONSTANTS.turnWheelKS;
         public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
-        public static final double ROBOT_ROTATION_KP = 0.008;
+        public static final double ROBOT_ROTATION_KP = 0.0065;
         public static final double MAX_WHEEL_ROTATIONAL_SPEED = CHOSEN_CONSTANTS.maxWheelRotationalSpeed;
         public static final double GYRO_DRIFT_COMPENSATION = CHOSEN_CONSTANTS.gyroDriftCompensation;
         public static final double SKEW_COMPENSATION_RATE = -0.07;

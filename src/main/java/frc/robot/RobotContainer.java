@@ -6,8 +6,8 @@ package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-import frc.BisonLib.BaseProject.Util.ShooterInterpolationMap;
-import frc.robot.subsystems.Swerve;
+import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
+import frc.robot.subsystems.RebuiltSwerve;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -30,11 +30,11 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
  */
 public class RobotContainer {
 
-  public final Swerve swerve;
+  public final RebuiltSwerve swerve;
   //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
-  ShooterInterpolationMap shooterInterpolationMap;
+  SOTMSetpointGenerator shooterInterpolationMap;
 
 
 
@@ -53,14 +53,14 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    swerve = new Swerve(camNames, modules, reefTags);
+    swerve = new RebuiltSwerve(camNames, modules, reefTags);
 
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
     // SmartDashboarding subsystems allow you to see what commands they are running
     SmartDashboard.putData("Swerve Subsystem", swerve);
-    shooterInterpolationMap = new ShooterInterpolationMap("simulated_optimal_trajectories.csv");
+    shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
 
     // Configure the trigger bindings
     configureBindings();
@@ -72,7 +72,7 @@ public class RobotContainer {
     DataLogManager.start();
   }
 
-    public Runnable getOdometryUpdater(){
+  public Runnable getOdometryUpdater(){
     return swerve::updateOdometryWithKinematics;
   }
 
@@ -91,7 +91,7 @@ public class RobotContainer {
  
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(swerve.resetGyro());
-
+    driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
   }
 
   public void configureDefaultCommands(){
