@@ -5,15 +5,11 @@
 package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
-
-// import frc.robot.Subsystems.CoralGripper2Motors;
-import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
+import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-
-import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 
 import edu.wpi.first.networktables.IntegerSubscriber;
@@ -21,6 +17,10 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
+import frc.robot.subsystems.*;
+
 
 
 /**
@@ -31,40 +31,42 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  */
 public class RobotContainer {
 
-  public final ShooterConfig r_shooter;
-  public final ShooterConfig m_shooter;
-  public final ShooterConfig l_shooter;
-  public final Hood hood;
+  public final RebuiltSwerve swerve;
+  //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
+  SOTMSetpointGenerator shooterInterpolationMap;
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
+  private final TalonFXModule[] modules = new TalonFXModule[]
+  {
+    new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
+    new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
+    new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
+    new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3),
+  };
 
-  private final TalonFXModule[] modules = new TalonFXModule[] 
-          {
-            new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
-            new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
-            new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
-            new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3)
-          };
+
 
   private final String[] camNames = {"limelight-left", "limelight-right"};
-  private static final EnhancedCommandController driver =
-      new EnhancedCommandController(0);
+  private static final EnhancedCommandController driver = new EnhancedCommandController(0);
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    r_shooter = new ShooterConfig(0);
-    m_shooter = new ShooterConfig(0);
-    l_shooter = new ShooterConfig(0);
-    hood = new Hood();
+    swerve = new RebuiltSwerve(camNames, modules, reefTags);
+
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
+    // SmartDashboarding subsystems allow you to see what commands they are running
+    SmartDashboard.putData("Swerve Subsystem", swerve);
+    shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
+
     // Configure the trigger bindings
     configureBindings();
+    configureDefaultCommands();
     configureDefaultCommands();
 
       
@@ -72,6 +74,12 @@ public class RobotContainer {
 
     DataLogManager.start();
   }
+
+  public Runnable getOdometryUpdater(){
+    return swerve::updateOdometryWithKinematics;
+  }
+
+
   
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
@@ -83,15 +91,30 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
-   
+ 
+    // make sure you gyro reset by aligning with the reef, not eyeballing it
+    driver.back().onTrue(swerve.resetGyro());
+    driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
   }
 
   public void configureDefaultCommands(){
-    
-  }
+    // This is the Swerve subsystem default command, this allows the driver to drive the robot
+    swerve.setDefaultCommand
+      (
+        
+        run
+          (
+            ()-> 
+              swerve.teleopDefaultCommand(
+                driver::getRequestedChassisSpeeds,
+                true
+              )
+              ,
+              swerve
+          ).withName("Swerve Drive Command"))
+      ;
 
-  public Command logTrickshotTrue(){
-    return runOnce(()-> {SmartDashboard.putBoolean("Trickshot", true);});
+      //Gripper.setDefaultCommand(Gripper.stop());
   }
 
   // The command specified in here is run in autonomous

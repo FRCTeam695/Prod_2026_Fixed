@@ -1,16 +1,15 @@
 package frc.BisonLib.BaseProject.Swerve;
 
-import static edu.wpi.first.units.Units.Volts;
-
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.Orchestra;
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
-import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.Pigeon2;
 
 import edu.wpi.first.math.MathUtil;
@@ -36,6 +35,8 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -44,12 +45,13 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.BisonLib.BaseProject.LimelightHelpers;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
+import frc.BisonLib.BaseProject.Util.LimelightHelpers;
 import frc.robot.Constants;
 
 public class SwerveBase extends SubsystemBase {
+
+    private BooleanPublisher allianceShiftPulisher;
 
     protected TalonFXModule[] modules;
 
@@ -58,13 +60,13 @@ public class SwerveBase extends SubsystemBase {
 
     // NEVER DIRECTLY CALL ANY GYRO METHODS, ALWAYS USE THE SYNCHRONIZED GYRO LOCK!!
     //private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
-    //private final Pigeon2 pigeon;
-    //private final BaseStatusSignal yawSignal;
-    //private double gyroAccumYawOffset = 0;
+    public final Pigeon2 pigeon;
+    private final BaseStatusSignal yawSignal;
+    private double gyroAccumYawOffset = 0;
 
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
-    private final PIDController thetaController = new PIDController(Constants.Swerve.ROBOT_ROTATION_KP, 0, 0);
+    private final PIDController thetaController = new PIDController(0.003, 0, 0.0);
     private final BaseStatusSignal[] allOdomSignals;
 
     protected double max_accel = 0;
@@ -104,11 +106,10 @@ public class SwerveBase extends SubsystemBase {
     protected String[] camNames;
  
     public SlewRateLimiter omegaFilter = new SlewRateLimiter(Math.toRadians(1074.5588535));
-    public SlewRateLimiter xFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
-    public SlewRateLimiter yFilter = new SlewRateLimiter(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ);
+    public SlewRateLimiter xFilter = new SlewRateLimiter(7);
+    public SlewRateLimiter yFilter = new SlewRateLimiter(7);
     //private Pigeon2 pigeon = new Pigeon2(8);
 
-    private VoltageOut m_voltReq;
     //6-11
     // 17 -22
     public int[] validTagIDs;
@@ -116,37 +117,13 @@ public class SwerveBase extends SubsystemBase {
     public double prevAccelX = 0;
     public double prevAccelY = 0; 
 
+    String gameData = DriverStation.getGameSpecificMessage();
 
-    // SysID
-    private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
-        new SysIdRoutine.Config(
-            null, // Default ramp rate (1V/s)
-            Volts.of(4), // Reduce dynamic step voltage to 4 to prevent brownout
-            null, // Default timeout (10s)
 
-            state -> SignalLogger.writeString("State", state.toString())
-        ), 
-        new SysIdRoutine.Mechanism(
-            volts -> {
-                modules[0].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[1].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[2].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[3].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-            },
-            null, // Left null when using a signal logger
-            this
-        )
-    );
+    Map<String, int[]> tagDictionary;
 
-    /* The SysId routine to test */
-    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer; //m_sysIdRoutineSteer; m_sysIdRoutineTranslation
-
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.quasistatic(direction);
-    }
-     
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.dynamic(direction);
+    public void addTagToDictionary(String tagSetName, int[] tagSet){
+        tagDictionary.put(tagSetName, tagSet);
     }
 
     // 50 Hz Networktables
@@ -160,16 +137,24 @@ public class SwerveBase extends SubsystemBase {
     private final NetworkTable poseVisionTable = SwerveBaseTable.getSubTable("Wheel Characterization");
 
     /**
-     * Does all da constructing
+     * Does all the constructing
      * 
      * @param cameras An array of cameras used for pose estinmation
      * @param moduleTypes The type of swerve module on the swerve drive
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
-        //pigeon = new Pigeon2(8, "drivetrain");
-        //yawSignal = pigeon.getAccumGyroZ();
-        //gyroAccumYawOffset = -yawSignal.getValueAsDouble();
+        allianceShiftPulisher = NetworkTableInstance.getDefault().getBooleanTopic("AllianceShift").publish();
+        //vision Tag definitions
+        this.validTagIDs = validTagIDs;
+        tagDictionary = new HashMap<String, int[]>();
+        addTagToDictionary("tagSet1", new int[] {7});
+        addTagToDictionary("tagSet2", new int[] {1});
+
+
+        pigeon = new Pigeon2(8, "drivetrain");
+        yawSignal = pigeon.getAccumGyroZ();
+        gyroAccumYawOffset = -yawSignal.getValueAsDouble();
         //pigeon.setYaw(0);
         // 4 modules * 3 signals per module + 1 for pigeon
         allOdomSignals = new BaseStatusSignal[(4 * 3)];
@@ -185,10 +170,6 @@ public class SwerveBase extends SubsystemBase {
 
         // Holds all the modules
         this.modules = modules;
-
-        this.validTagIDs = validTagIDs;
-
-
 
         /*
         * Sets the gyro at the beginning of the match and 
@@ -227,10 +208,27 @@ public class SwerveBase extends SubsystemBase {
 
         SmartDashboard.putData("field", m_field);
         SmartDashboard.putData("Robot angle PID controller", thetaController);
-
-        m_voltReq = new VoltageOut(0.0); 
     }
 
+    public void setValidTagIDs(String tagSetName) {
+
+        validTagIDs = tagDictionary.get(tagSetName);
+
+        for (String cam : camNames) {
+            LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
+        }
+
+        SmartDashboard.putString("Valid Tag IDs", Arrays.toString(validTagIDs));
+        SmartDashboard.putString(" Valid Tag Set Name ", tagSetName);
+    }
+
+    public Command setTagSet1() {
+        return runOnce(() -> setValidTagIDs("tagSet1"));
+    }
+
+    public Command setTagSet2() {
+        return runOnce(() -> setValidTagIDs("tagSet2"));
+    }
 
     public void playSong(){
         if(modules[0].getModuleType().equals("TalonFXModule")){
@@ -256,6 +254,7 @@ public class SwerveBase extends SubsystemBase {
         }
     }
 
+    
 
     public void pathplannerDriveRobotRelative(ChassisSpeeds speeds){
         driveRobotRelative(speeds, false);
@@ -276,6 +275,36 @@ public class SwerveBase extends SubsystemBase {
         return false;
     }
 
+    /*
+     * Puts whether or not it's our alliance shift on Smart Dashboard for logging purposes
+     */
+    public boolean isAllianceShift(){
+        boolean isShift = false;
+        double matchTime = DriverStation.getMatchTime();
+        if(matchTime <= 130 && matchTime > 105){ //Shift 1
+            isShift = true;
+        } else if(matchTime <= 105 && matchTime > 80){ //Shift 2
+            isShift = false;
+        } else if(matchTime <= 80 && matchTime > 55){ //Shift 3
+            isShift = true;
+        } else if(matchTime <= 55 && matchTime > 30){ //Shift 4
+            isShift = false;
+        }
+    
+        if(gameData.length() > 0){
+            if(matchTime <=130 && matchTime >= 30){
+                if(gameData.charAt(0) == 'R' && isRedAlliance()){ //if the gamespecific data returns "R", and we are the Red Alliance, we are going second.
+                    isShift = !isShift;
+                } else if (gameData.charAt(0) == 'B' && !isRedAlliance()){
+                    isShift = !isShift;
+                }
+            }
+        }
+
+        allianceShiftPulisher.set(isShift);
+
+        return isShift;
+    }
 
     /*
      * Sets all the swerve modules to the states we want them to be in (velocity + angle)
@@ -530,75 +559,6 @@ public class SwerveBase extends SubsystemBase {
         }
     }
 
-    /*
-     * Calculates the circumference of the wheel by turning in place slowly
-     * 
-     * COMMENT OUT DRIVEBASE AND ODOMETRY CODE BEFORE RUNNING THIS
-     */
-    // public Command runWheelCharacterization() {
-
-    //     /*
-    //      * wheel Base is the width or distance from one wheel to the next on the chassis
-    //      * let wheel base = w
-    //      * sqrt((w / 2)^2+(w/2)^2) = distance from wheel to center, or radius = sqrt2 *
-    //      * w/2
-    //      * multiply by 2 to get diameter --> d = sqrt2 * w
-    //      * multiply by pi to get circumference:
-    //      */
-
-    //     double oneRotation = Constants.Swerve.WHEEL_BASE_METERS * Math.PI * Math.sqrt(2);
-    //     backwardsResetGyro();
-    //     initialGyroAngle = gyro.getAngle();
-        
-    //     return runOnce(() -> {
-            
-    //         // get each module in positions
-    //         // sets each motor to stop moving, and converts the module index (which quadrant
-    //         // relative to the chassis the motor is - 1) to degrees
-    //         // for (var mod : modules) {
-    //         //     mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
-    //         // }
-            
-    //     })
-    //     .andThen(waitSeconds(0.5))
-    //     .andThen(
-    //         deadline(
-    //             new WaitCommand(6),
-    //             run(() -> {
-    //             drive( new ChassisSpeeds(0.0,0.0,0.3),false,false);
-    //     }))).andThen(runOnce(() -> {
-    //         //stop motors
-    //         for (var mod : modules) {
-    //             mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
-    //         }
-
-    //     })).andThen(waitSeconds(1))
-    //     .andThen(runOnce(() -> {
-
-    //             double[] currentPositions = getRawDrivePositions();
-    //             double avg_calculated_wheel_circumference = 0;
-    //             //distance of one rotation * number of rotations based on gyro
-    //             double actual_distance_traveled =  oneRotation * Math.abs(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION) / 360;
-    //             for (var mod : modules) {
-
-    //                 //actual distance / wheel rotations = wheel circumference, because wheel circumference * number of rotations = linear distance the wheel travels
-    //                 //actual distance / (pi * wheel rotations (current rotations - original rotations) / gear ratio to account for motor spins per wheel spin)
-    //                 double new_circumference = actual_distance_traveled / 
-    //                 (Math.PI * (currentPositions[mod.index] - initialPositions[mod.index]) /((Constants.Swerve.DRIVING_GEAR_RATIO)));
-                    
-    //                 avg_calculated_wheel_circumference += Math.abs(new_circumference);
-
-    //                 SmartDashboard.putNumber("Actual Distance", actual_distance_traveled);
-    //                 SmartDashboard.putNumber("new circumference " + mod.index, new_circumference);
-    //                 SmartDashboard.putNumber("raw initial distance " + mod.index, initialPositions[mod.index]);
-    //                 SmartDashboard.putNumber("raw current distance " + mod.index, currentPositions[mod.index]);
-    //                 SmartDashboard.putNumber(mod.index + "calculated wheel circumference", new_circumference);
-    //             }
-    //             avg_calculated_wheel_circumference /= 4;
-    //             SmartDashboard.putNumber("Average Calculated Wheel Circumference", avg_calculated_wheel_circumference);
-    //         }));
-    // }
-
 
     public Command requireSubsystem(){
         return new WaitCommand(0);
@@ -714,8 +674,7 @@ public class SwerveBase extends SubsystemBase {
                                (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
         }
         else{
-            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
-                               1.5 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP;
+            max_fwd_accel = Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ;
         }
         
         double desiredForwardAccel = (w_along_v - v_mag)/dt;
@@ -833,7 +792,7 @@ public class SwerveBase extends SubsystemBase {
         double avgLLy = 0;
         double avgLLomega = 0;
         for(String cam : camNames){  
-            LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, 0, 0, 0, 0);
+            LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, pigeon.getPitch().getValueAsDouble(), 0, pigeon.getRoll().getValueAsDouble(), 0);
             LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
             LimelightHelpers.PoseEstimate mt2_estimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cam);
         
@@ -848,8 +807,10 @@ public class SwerveBase extends SubsystemBase {
                 // Finally, we actually add the measurement to our odometry
                 odometryLock.writeLock().lock();
                 try{
+                    
                     odometry.addVisionMeasurement
                     (
+                        
                         mt2_estimate.pose, 
                         mt2_estimate.timestampSeconds,
                         

@@ -49,8 +49,9 @@ public class TalonFXModule extends SubsystemBase{
     // private final SimpleMotorFeedforward driveFf;
     // private final PIDController driveController;
 
-    private final PositionVoltage rotationSetter = new PositionVoltage(0.0);
-    private final VelocityVoltage velocitySetter = new VelocityVoltage(0.0);
+
+    private final PositionVoltage rotationSetter = new PositionVoltage(0);
+    private final VelocityVoltage velocitySetter = new VelocityVoltage(0);
 
     private SwerveModulePosition latestPosition = new SwerveModulePosition();
 
@@ -182,10 +183,6 @@ public class TalonFXModule extends SubsystemBase{
     public void configDriveMotor(){
         TalonFXConfiguration config = new TalonFXConfiguration();
 
-        // config.Slot0.kP = Constants.Swerve.DRIVE_WHEEL_KP; 
-        // config.Slot0.kV = Constants.Swerve.DRIVE_WHEEL_KV; 
-        // config.Slot0.kS = Constants.Swerve.DRIVE_WHEEL_KS;
-
         config.Slot0.kP = Constants.Swerve.DRIVE_WHEEL_KP;
         config.Slot0.kV = Constants.Swerve.DRIVE_WHEEL_KV; 
         config.Slot0.kS = Constants.Swerve.DRIVE_WHEEL_KS;
@@ -194,6 +191,8 @@ public class TalonFXModule extends SubsystemBase{
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.CurrentLimits.StatorCurrentLimit = Constants.Swerve.STATOR_CURRENT_LIMIT;
         config.CurrentLimits.SupplyCurrentLimit = Constants.Swerve.SUPPLY_CURRENT_LIMIT;
+        config.CurrentLimits.SupplyCurrentLowerLimit = 40;
+        config.CurrentLimits.SupplyCurrentLowerTime = 1;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
         config.Audio.AllowMusicDurDisable = true;
@@ -221,17 +220,9 @@ public class TalonFXModule extends SubsystemBase{
      */
     public void configTurnMotor(){
         TalonFXConfiguration config = new TalonFXConfiguration();
-
-        config.Slot0.kP = Constants.Swerve.TURN_WHEEL_KP;
-        config.Slot0.kV = Constants.Swerve.TURN_WHEEL_KV;
-        config.Slot0.kS = Constants.Swerve.TURN_WHEEL_KS;
-
-        config.Slot0.kA = 0;
-
-
         config.ClosedLoopGeneral.ContinuousWrap = true;
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-        config.CurrentLimits.SupplyCurrentLimit = 30;
+        config.CurrentLimits.SupplyCurrentLimit = 40;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
         config.CurrentLimits.StatorCurrentLimit = 90;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
@@ -248,8 +239,13 @@ public class TalonFXModule extends SubsystemBase{
             config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         }
 
-       
-        config.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseVelocitySign;
+
+        config.Slot0.kP = Constants.Swerve.TURN_WHEEL_KP;
+        config.Slot0.kS = Constants.Swerve.TURN_WHEEL_KS;
+        config.Slot0.kA = 0;//0.115;
+        config.Slot0.kV = 0;//2.58;
+
+        config.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
         
         //turnmotor kp = 70, kd = 0, ks = 0.145, ka = 0.12783
 
