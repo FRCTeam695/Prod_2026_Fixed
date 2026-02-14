@@ -10,7 +10,7 @@ import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.robot.Constants;
 
-public class Swerve extends SwerveBase{
+public class Swerve extends SwerveBase {
     public Swerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
     }
@@ -25,11 +25,20 @@ public class Swerve extends SwerveBase{
         return pitch > Constants.BUMP_THRESHOLD || roll > Constants.BUMP_THRESHOLD;
     }
 
+    public boolean isOnBumpNearExpectedLocation(Pose2d bumpPose, double radiusMeters) {
+        boolean nearBump = getSavedPose().getTranslation().getDistance(bumpPose.getTranslation()) < radiusMeters;
+
+        return nearBump && isOnBump();
+    }
+
     public Command bumpTest() {
         return runOnce(() -> {
-            if (isOnBump()) {
+            if (isOnBumpNearExpectedLocation(new Pose2d(), 1.0)) {
                 System.out.println("ON BUMP");
             }
         });
     }
+
+    
+
 }

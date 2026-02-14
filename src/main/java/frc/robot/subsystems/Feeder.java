@@ -18,8 +18,11 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.controller.BangBangController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -41,14 +44,24 @@ public class Feeder extends SubsystemBase{
     }
 
     private final TalonFX motor;
+    private final TalonFX motor2;
     private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
     private final VoltageOut voltageRequest = new VoltageOut(0);
 
+    BangBangController controller;
+    double setpoint;
+    SimpleMotorFeedforward feedforward;
+
     public Feeder() {
 
-        
+        setpoint = 50;
+        feedforward = new SimpleMotorFeedforward(0.1, 0.1, 0,1);
+        controller = new BangBangController();
 
-        motor = new TalonFX(12, "e");
+        
+        //12
+        motor = new TalonFX(22);
+        motor2 = new TalonFX(15);
 
         final TalonFXConfiguration config = new TalonFXConfiguration()
             .withMotorOutput(
@@ -71,7 +84,8 @@ public class Feeder extends SubsystemBase{
                     .withKV(12.0 / RPM.of(6000).in(RotationsPerSecond)) // 12 volts when requesting max RPS
             );
         
-        //motor.getConfigurator().apply(config);
+        motor.getConfigurator().apply(config);
+        motor2.getConfigurator().apply(config);
         SmartDashboard.putData(this);
     }
 
@@ -91,6 +105,33 @@ public class Feeder extends SubsystemBase{
     
     public Command feedCommand() {
         return startEnd(() -> set(Speed.FEED), () -> setPercentOutput(0));
+    }
+
+    public Command moveMotor() {
+        return runOnce(() -> {
+            motor.set(1.0);
+            motor2.set(1.0);
+        });
+    }
+
+    public Command stopMotor() {
+        return runOnce(() -> {
+            motor.set(0.0);
+            motor2.set(0.0);
+        });
+    }
+
+    public Command bangbangTune() {
+        return runOnce(() -> {
+            motor.setVoltage(controller.calculate(motor.getVelocity().getValueAsDouble(), setpoint) * 12.0 + 0.9 * feedforward.calculate(setpoint));
+            motor2.setVoltage(controller.calculate(motor.getVelocity().getValueAsDouble(), setpoint) * 12.0 + 0.9 * feedforward.calculate(setpoint));
+        });
+    }
+
+    @Override
+    public void periodic() {
+        SmartDashboard.putNumber("Motor1 Velocity", motor.getVelocity().getValueAsDouble());
+        SmartDashboard.putNumber("Motor2 Velocity", motor2.getVelocity().getValueAsDouble());
     }
 
     @Override
