@@ -1,7 +1,5 @@
 package frc.BisonLib.BaseProject.Swerve;
 
-import static edu.wpi.first.units.Units.Volts;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,11 +9,8 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.Orchestra;
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.StatusCode;
-import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.Pigeon2;
-import com.studica.frc.AHRS;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
@@ -30,22 +25,24 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.LimelightHelpers;
 import frc.robot.Constants;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 public class SwerveBase extends SubsystemBase {
+
+    private BooleanPublisher allianceShiftPulisher;
 
     protected TalonFXModule[] modules;
 
@@ -60,7 +57,7 @@ public class SwerveBase extends SubsystemBase {
 
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
-    private final PIDController thetaController = new PIDController(Constants.Swerve.ROBOT_ROTATION_KP, 0, 0);
+    private final PIDController thetaController = new PIDController(0.003, 0, 0.0);
     private final BaseStatusSignal[] allOdomSignals;
 
     protected double max_accel = 0;
@@ -104,7 +101,6 @@ public class SwerveBase extends SubsystemBase {
     public SlewRateLimiter yFilter = new SlewRateLimiter(7);
     //private Pigeon2 pigeon = new Pigeon2(8);
 
-    private VoltageOut m_voltReq;
     //6-11
     // 17 -22
     public int[] validTagIDs;
@@ -112,38 +108,8 @@ public class SwerveBase extends SubsystemBase {
     public double prevAccelX = 0;
     public double prevAccelY = 0; 
 
+    String gameData = DriverStation.getGameSpecificMessage();
 
-    // SysID
-    private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
-        new SysIdRoutine.Config(
-            null, // Default ramp rate (1V/s)
-            Volts.of(4), // Reduce dynamic step voltage to 4 to prevent brownout
-            null, // Default timeout (10s)
-
-            state -> SignalLogger.writeString("State", state.toString())
-        ), 
-        new SysIdRoutine.Mechanism(
-            volts -> {
-                modules[0].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[1].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[2].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-                modules[3].getTurnMotor().setControl(m_voltReq.withOutput(volts.in(Volts)));
-            },
-            null, // Left null when using a signal logger
-            this
-        )
-    );
-
-    /* The SysId routine to test */
-    private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineSteer; //m_sysIdRoutineSteer; m_sysIdRoutineTranslation
-
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.quasistatic(direction);
-    }
-     
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return m_sysIdRoutineToApply.dynamic(direction);
-    }
 
     Map<String, int[]> tagDictionary;
 
@@ -159,7 +125,7 @@ public class SwerveBase extends SubsystemBase {
      * @param validTagIDs April Tag IDs which are safe to use for pose estimation (stable tags that don't move around too much)
      */
     public SwerveBase(String[] camNames, TalonFXModule[] modules, int[] validTagIDs) {
-
+        allianceShiftPulisher = NetworkTableInstance.getDefault().getBooleanTopic("AllianceShift").publish();
         //vision Tag definitions
         this.validTagIDs = validTagIDs;
         tagDictionary = new HashMap<String, int[]>();
@@ -223,8 +189,6 @@ public class SwerveBase extends SubsystemBase {
 
         SmartDashboard.putData("field", m_field);
         SmartDashboard.putData("Robot angle PID controller", thetaController);
-
-        m_voltReq = new VoltageOut(0.0); 
     }
 
     public void setValidTagIDs(String tagSetName) {
@@ -292,6 +256,36 @@ public class SwerveBase extends SubsystemBase {
         return false;
     }
 
+    /*
+     * Puts whether or not it's our alliance shift on Smart Dashboard for logging purposes
+     */
+    public boolean isAllianceShift(){
+        boolean isShift = false;
+        double matchTime = DriverStation.getMatchTime();
+        if(matchTime <= 130 && matchTime > 105){ //Shift 1
+            isShift = true;
+        } else if(matchTime <= 105 && matchTime > 80){ //Shift 2
+            isShift = false;
+        } else if(matchTime <= 80 && matchTime > 55){ //Shift 3
+            isShift = true;
+        } else if(matchTime <= 55 && matchTime > 30){ //Shift 4
+            isShift = false;
+        }
+    
+        if(gameData.length() > 0){
+            if(matchTime <=130 && matchTime >= 30){
+                if(gameData.charAt(0) == 'R' && isRedAlliance()){ //if the gamespecific data returns "R", and we are the Red Alliance, we are going second.
+                    isShift = !isShift;
+                } else if (gameData.charAt(0) == 'B' && !isRedAlliance()){
+                    isShift = !isShift;
+                }
+            }
+        }
+
+        allianceShiftPulisher.set(isShift);
+
+        return isShift;
+    }
 
     /*
      * Sets all the swerve modules to the states we want them to be in (velocity + angle)
@@ -727,8 +721,7 @@ public class SwerveBase extends SubsystemBase {
                                (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
         }
         else{
-            max_fwd_accel = Math.min(Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
-                               2 * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ);
+            max_fwd_accel = Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ;
         }
 
         SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
@@ -791,10 +784,10 @@ public class SwerveBase extends SubsystemBase {
 
         // vx_perp = 0;
         // vx_perp = 0;
-        //commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
-        //commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
-        commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
-        commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        //commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        //commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
         commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
         //speeds = applyAccelerationLimit(speeds);
 
@@ -930,6 +923,7 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putNumber("failed odometry updates", failedOdometryUpdates);
         SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
         SmartDashboard.putString("Robot Pose", getSavedPose().toString());
+        SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);
 
         // limelightUpdateCounter++;
         // if(limelightUpdateCounter > 25){
@@ -941,12 +935,12 @@ public class SwerveBase extends SubsystemBase {
         //}
 
        SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
+       SmartDashboard.putNumber("Accum Gyro Yaw", pigeon.getAccumGyroZ().getValueAsDouble());
     //    SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
         SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
        SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
 
         m_field.setRobotPose(getSavedPose());
-
         SwerveModuleState[] modStates = getModuleStates();
 
         SmartDashboard.putNumber("gyro x", pigeon.getAccumGyroX().getValueAsDouble());
