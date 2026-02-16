@@ -40,12 +40,12 @@ public class Feeder extends SubsystemBase {
     private final VelocityVoltage velocitySetter = new VelocityVoltage(0);
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
-    private final NetworkTable indexerTable = inst.getTable("Indexer");
+    private final NetworkTable feederTable = inst.getTable("Feeder");
 
-    private final DoublePublisher mpsPub = indexerTable.getDoubleTopic("Velocity Meters Per Second").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher dutyCycleOutPub = indexerTable.getDoubleTopic("DutyCycleOut").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher voltagePub = indexerTable.getDoubleTopic("Voltage").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher setPointPub = indexerTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher mpsPub = feederTable.getDoubleTopic("Velocity Meters Per Second").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher dutyCycleOutPub = feederTable.getDoubleTopic("DutyCycleOut").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher voltagePub = feederTable.getDoubleTopic("Voltage").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
 
     public static final double metersPerRotationOfMotor = ((12/65.)*30*5)/1000.;
     //1st pulley on motor = 12 teeth
