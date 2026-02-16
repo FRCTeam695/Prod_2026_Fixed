@@ -32,9 +32,9 @@ import java.util.function.DoubleSupplier;
 
 
 
-public class Indexer extends SubsystemBase {
+public class Feeder extends SubsystemBase {
     
-    public TalonFX floorIndexerMotor;
+    public TalonFX floorFeederMotor;
     
     private final DutyCycleOut dutyCycleOut = new DutyCycleOut(0);
     private final VelocityVoltage velocitySetter = new VelocityVoltage(0);
@@ -54,10 +54,10 @@ public class Indexer extends SubsystemBase {
     //5mm belt pitch
     //mm to meters  = 25.4/1
 
-    public Indexer(){
+    public Feeder(){
         
-        floorIndexerMotor = new TalonFX(56);
-        TalonFXConfigurator configurator = floorIndexerMotor.getConfigurator();
+        floorFeederMotor = new TalonFX(56);
+        TalonFXConfigurator configurator = floorFeederMotor.getConfigurator();
     
         Slot0Configs slot0 = new Slot0Configs();
         slot0.kP = 0;
@@ -83,14 +83,14 @@ public class Indexer extends SubsystemBase {
     public Command setVelocity(DoubleSupplier rps){
         return run(()->{
         SmartDashboard.putNumber("Setpoint Vel", rps.getAsDouble() * metersPerRotationOfMotor);
-        floorIndexerMotor.setControl(velocitySetter.withVelocity(rps.getAsDouble()));
+        floorFeederMotor.setControl(velocitySetter.withVelocity(rps.getAsDouble()));
         });
        
     }
 
     public Command openLoopSet(DoubleSupplier percentVbus){
         return run(()->{
-            floorIndexerMotor.setControl(dutyCycleOut.withOutput(percentVbus.getAsDouble()));
+            floorFeederMotor.setControl(dutyCycleOut.withOutput(percentVbus.getAsDouble()));
         });
     }
 
@@ -98,11 +98,11 @@ public class Indexer extends SubsystemBase {
 
     public void periodic(){
 
-        mpsPub.set(floorIndexerMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
-        dutyCycleOutPub.set(floorIndexerMotor.getDutyCycle().getValueAsDouble());
-        voltagePub.set(floorIndexerMotor.getMotorVoltage().getValueAsDouble());  
-        setPointPub.set(floorIndexerMotor.getClosedLoopReference(true).getValueAsDouble()*metersPerRotationOfMotor);
+        mpsPub.set(floorFeederMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
+        dutyCycleOutPub.set(floorFeederMotor.getDutyCycle().getValueAsDouble());
+        voltagePub.set(floorFeederMotor.getMotorVoltage().getValueAsDouble());  
+        setPointPub.set(floorFeederMotor.getClosedLoopReference(true).getValueAsDouble()*metersPerRotationOfMotor);
 
-        SmartDashboard.putNumber("vel", floorIndexerMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
+        SmartDashboard.putNumber("vel", floorFeederMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
     }
 }
