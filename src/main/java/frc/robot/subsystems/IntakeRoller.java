@@ -18,7 +18,7 @@ import java.util.function.DoubleSupplier;
 import static edu.wpi.first.units.Units.Amps;
 
 
-public class Intake_Roller extends SubsystemBase {
+public class IntakeRoller extends SubsystemBase {
     private TalonFX roller;
 
     private NetworkTableInstance inst = NetworkTableInstance.getDefault();
@@ -33,7 +33,7 @@ public class Intake_Roller extends SubsystemBase {
 
     public final double MAX_RPS = 100;
 
-    public Intake_Roller() {
+    public IntakeRoller() {
         roller = new TalonFX(53);
         configureRoller();
     }

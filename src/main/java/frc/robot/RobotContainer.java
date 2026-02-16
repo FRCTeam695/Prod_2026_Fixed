@@ -9,8 +9,8 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-import frc.robot.subsystems.Intake_Pivot;
-import frc.robot.subsystems.Intake_Roller;
+import frc.robot.subsystems.IntakePivot;
+import frc.robot.subsystems.IntakeRoller;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -36,8 +36,8 @@ public class RobotContainer {
   //public final SwerveBase Swerve;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
-  private final Intake_Pivot pivot = new Intake_Pivot();
-  private final Intake_Roller roller_intake = new Intake_Roller();
+  private final IntakePivot intakePivot = new IntakePivot();
+  private final IntakeRoller intakeRoller = new IntakeRoller();
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
@@ -87,9 +87,13 @@ public class RobotContainer {
    */
   private void configureBindings() {
 
-    driver.x().whileTrue(pivot.setDutyCycle(() -> 0.1));
-    driver.y().whileTrue(pivot.setDutyCycle(()-> -0.1));
-    driver.a().whileTrue(pivot.setVoltage(() -> driver.getLeftY() * 0.4));
+    // driver.x().whileTrue(pivot.setDutyCycle(() -> 0.1));
+    // driver.y().whileTrue(pivot.setDutyCycle(()-> -0.1));
+    // driver.a().whileTrue(pivot.setVoltage(() -> driver.getLeftY() * 0.4));
+
+    driver.x().onTrue(intakePivot.setPositionDegrees(30));
+    driver.y().onTrue(intakePivot.setPositionDegrees(60));
+    driver.a().onTrue(intakePivot.homePivot());
 
     //driver.a().whileTrue(roller_intake.setVelocityRPS(() -> driver.getLeftY() * m_intake.MAX_RPS));
 
@@ -114,7 +118,8 @@ public class RobotContainer {
 
       //Gripper.setDefaultCommand(Gripper.stop());
     
-    roller_intake.setDefaultCommand(roller_intake.setVelocityRPS(() -> 0));
+    intakeRoller.setDefaultCommand(intakeRoller.setVelocityRPS(() -> 0));
+    
   }
 
   public Command logTrickshotTrue(){
