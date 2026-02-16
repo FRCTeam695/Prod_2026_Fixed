@@ -14,7 +14,8 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import static edu.wpi.first.units.Units.Amps;
 
-import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -22,12 +23,13 @@ public class Shooter extends SubsystemBase{
     private final TalonFX motor;
     private final DutyCycleOut dutyCycleRequest = new DutyCycleOut(0.0);
     private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
-    public final double kShooterRotationsToMPS = 1;
-    public final double kMaxSpeedMPS = kShooterRotationsToMPS * 100;
+    public final double kShooterRotationsToMeters = 2 * Math.PI * Units.inchesToMeters(4);
+    public final double kMaxSpeedMPS = kShooterRotationsToMeters * 100;
 
     public Shooter(int id, InvertedValue isInverted, double kp, double kv, double ks){
         motor = new TalonFX(id, "rio");
         configureShooter(isInverted, kp, kv, ks);
+        motor.getClosedLoopReference().setUpdateFrequency(200);
     }
 
     public void configureShooter(InvertedValue isInverted, double kp, double kv, double ks){
@@ -46,7 +48,7 @@ public class Shooter extends SubsystemBase{
             )
             .withFeedback(
                 new FeedbackConfigs()
-                    .withSensorToMechanismRatio(kShooterRotationsToMPS)
+                    .withSensorToMechanismRatio(kShooterRotationsToMeters)
             )
             .withSlot0(
                 new Slot0Configs()
@@ -74,12 +76,10 @@ public class Shooter extends SubsystemBase{
     }
 
     @Override
-    public void initSendable(SendableBuilder builder){
-        builder.addStringProperty("Command", () -> getCurrentCommand() != null ? getCurrentCommand().getName() : "null", null);
-        builder.addDoubleProperty("Velocity Meters Per Second", () -> motor.getVelocity().getValueAsDouble(), null);
-        builder.addDoubleProperty("Stator Current", () -> motor.getStatorCurrent().getValue().in(Amps), null);
-        builder.addDoubleProperty("Supply Current", () -> motor.getSupplyCurrent().getValue().in(Amps), null);
-        builder.addDoubleProperty("Velocity Referance MPS", ()-> motor.getClosedLoopReference().getValueAsDouble(), null);
+    public void periodic(){
+        SmartDashboard.putNumber("Vel", motor.getVelocity(true).getValueAsDouble());
+        SmartDashboard.putNumber("Vel Ref", motor.getClosedLoopReference(true).getValueAsDouble());
     }
+
 
 }

@@ -31,9 +31,9 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    leftShooter = new Shooter(54, InvertedValue.Clockwise_Positive, 0, 0, 0);
-    middleShooter = new Shooter(54, InvertedValue.Clockwise_Positive, 0, 0, 0);
-    rightShooter = new Shooter(54, InvertedValue.CounterClockwise_Positive, 0, 0, 0);
+    leftShooter = new Shooter(54, InvertedValue.Clockwise_Positive, 0, 0.09, 0.15);
+    middleShooter = new Shooter(55, InvertedValue.CounterClockwise_Positive, 0, 0.09, 0.15);
+    rightShooter = new Shooter(52, InvertedValue.CounterClockwise_Positive, 0, 0.09, 0.15);
 
     configureBindings();
     configureDefaultCommands();
@@ -44,6 +44,10 @@ public class RobotContainer {
     driver.a().whileTrue(leftShooter.setVelocityMPS(()-> driver.getLeftY() * leftShooter.kMaxSpeedMPS));
     driver.b().whileTrue(middleShooter.setVelocityMPS(()-> driver.getLeftY() * middleShooter.kMaxSpeedMPS));
     driver.x().whileTrue(rightShooter.setVelocityMPS(()-> driver.getLeftY() * rightShooter.kMaxSpeedMPS));
+
+    // driver.a().whileTrue(leftShooter.setDutyCycle(()-> driver.getLeftY()));
+    // driver.b().whileTrue(middleShooter.setDutyCycle(()-> driver.getLeftY()));
+    // driver.x().whileTrue(rightShooter.setDutyCycle(()-> driver.getLeftY()));
 
     driver.rightBumper().whileTrue(
       parallel(
@@ -61,7 +65,6 @@ public class RobotContainer {
 
   }
 
-  // The command specified in here is run in autonomous
   public Command getAutonomousCommand() {
     return new WaitCommand(0);
   }
