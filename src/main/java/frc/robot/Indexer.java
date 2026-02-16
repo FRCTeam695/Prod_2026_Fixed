@@ -5,62 +5,102 @@ package frc.robot;
 
     //command
     import edu.wpi.first.wpilibj2.command.Command;
-    import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 
     //motor
-    import com.ctre.phoenix6.hardware.TalonFXS;
+    import com.ctre.phoenix6.hardware.TalonFX;
+    
     import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+//PID
+    import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfigurator;
+import com.ctre.phoenix6.controls.VelocityDutyCycle;
 
+import edu.wpi.first.networktables.DoublePublisher;
 
-    import com.ctre.phoenix6.configs.TalonFXSConfiguration;
-
-    //Network Tables
+//Network Tables
     import edu.wpi.first.networktables.NetworkTable;
     import edu.wpi.first.networktables.NetworkTableInstance;
-    import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+    import edu.wpi.first.networktables.PubSubOption;
+    
 
     //Units
     import static edu.wpi.first.units.Units.RPM;
+
+import java.util.function.DoubleSupplier;
 
 
 
 
 public class Indexer extends SubsystemBase {
     
-    public TalonFXS floorIndexerMotor;
-    private final DutyCycleOut dutyCycle = new DutyCycleOut(0);
+    public TalonFX floorIndexerMotor;
+    
+    private final DutyCycleOut dutyCycleOut = new DutyCycleOut(0);
+    private final VelocityDutyCycle velocityDutyCycle = new VelocityDutyCycle(0);
 
-    //booleans
-    public boolean isIndexing;
+    private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    private final NetworkTable indexerTable = inst.getTable("Indexer");
+
+    private final DoublePublisher rpmPub = indexerTable.getDoubleTopic("RPM").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher dutyCycleOutPub = indexerTable.getDoubleTopic("DutyCycleOut").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher voltagePub = indexerTable.getDoubleTopic("Voltage").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher setPointPub = indexerTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
+
+    private static final double metersPerRotationOfMotor = ((12/65)*30*5)/1000;
+    //1st pulley on motor = 12 teeth
+    //2nd pulley on shaft = 65 teeth
+    //3rd pulley on same shaft = 30 teeth
+    //5mm belt pitch
+    //mm to meters  = 25.4/1
 
     public Indexer(){
-
-        floorIndexerMotor = new TalonFXS(22); //insert deviceID later, this deviceID is wrong
         
-        isIndexing = false;
+        floorIndexerMotor = new TalonFX(56);
+        TalonFXConfigurator configurator = floorIndexerMotor.getConfigurator();
+    
+        Slot0Configs slot0 = new Slot0Configs();
+        slot0.kP = 0;
+        slot0.kS = 0;
+        slot0.kV = 0;
+
+        CurrentLimitsConfigs currentLimitsConfigs = new CurrentLimitsConfigs();
+        currentLimitsConfigs.StatorCurrentLimit = 120;
+        currentLimitsConfigs.SupplyCurrentLimit = 40;
+        currentLimitsConfigs.StatorCurrentLimitEnable = true;
+        currentLimitsConfigs.SupplyCurrentLimitEnable = true;
+        configurator.apply(currentLimitsConfigs);
+        
+        configurator.apply(slot0);
+        
     }
 
-
-    public void set(double speed){
-        if(speed == 0){
-            isIndexing = false;
-        }else{
-            isIndexing = true;
-        }
-        floorIndexerMotor.setControl(dutyCycle.withOutput(speed));
+    public Command setVelocityMPS(DoubleSupplier MPS){
+        return setVelocity(
+            ()-> (1/metersPerRotationOfMotor*MPS.getAsDouble())
+        );
+    }
+    public Command setVelocity(DoubleSupplier rps){
+        return run(()->{
+        floorIndexerMotor.setControl(velocityDutyCycle.withVelocity(rps.getAsDouble()));
+        });
+       
     }
 
-    public Command feedCommand(){
-        return startEnd(()->set(0.2),()-> set(0)
-        ); //arbitrary run speed, needs tuning
+    public Command openLoopSet(DoubleSupplier percentVbus){
+        return run(()->{
+            floorIndexerMotor.setControl(dutyCycleOut.withOutput(percentVbus.getAsDouble()));
+        });
     }
+
+    
 
     public void periodic(){
-        SmartDashboard.putNumber("RPM",floorIndexerMotor.getVelocity().getValue().in(RPM));
-        SmartDashboard.putNumber("DutyCycleOut", floorIndexerMotor.getDutyCycle().getValueAsDouble());
-        SmartDashboard.putNumber("Voltage", floorIndexerMotor.getMotorVoltage().getValueAsDouble());
-        SmartDashboard.putBoolean("isIndexing", isIndexing);
-        System.out.println("Indexer Output" + floorIndexerMotor.getDutyCycle().getValueAsDouble());
-        
+
+        rpmPub.set(floorIndexerMotor.getVelocity().getValue().in(RPM));
+        dutyCycleOutPub.set(floorIndexerMotor.getDutyCycle().getValueAsDouble());
+        voltagePub.set(floorIndexerMotor.getMotorVoltage().getValueAsDouble());  
+        setPointPub.set(floorIndexerMotor.getClosedLoopReference().getValueAsDouble()*metersPerRotationOfMotor);
+
     }
 }
