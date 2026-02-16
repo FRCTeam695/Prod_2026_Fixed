@@ -89,6 +89,7 @@ public class RobotContainer {
 
     driver.x().whileTrue(pivot.setDutyCycle(() -> 0.1));
     driver.y().whileTrue(pivot.setDutyCycle(()-> -0.1));
+    driver.a().whileTrue(pivot.setVoltage(() -> driver.getLeftY() * 0.4));
 
     //driver.a().whileTrue(roller_intake.setVelocityRPS(() -> driver.getLeftY() * m_intake.MAX_RPS));
 
