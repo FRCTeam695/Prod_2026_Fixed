@@ -84,31 +84,19 @@ public class RobotContainer {
    * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
    * joysticks}.
    */
+  @SuppressWarnings("static-access")
   private void configureBindings() {
  
-    // make sure you gyro reset by aligning with the reef, not eyeballing it
-    //driver.back().onTrue(Swerve.resetGyro());
-    // driver.b().onTrue(Swerve.runWheelCharacterization());
-    driver.a().whileTrue(indexer.feedCommand());
+    driver.a().whileTrue(indexer.openLoopSet(()-> 0.2));
+    driver.b().whileTrue(indexer.openLoopSet(()-> -0.2));
+    driver.x().whileTrue(indexer.setVelocityMPS(()-> 6000 * indexer.metersPerRotationOfMotor/60. * driver.getLeftY()));
+
+
   }
 
   public void configureDefaultCommands(){
-    // This is the Swerve subsystem default command, this allows the driver to drive the robot
-   // Swerve.setDefaultCommand
-      // (
-      //   run
-      //     (
-      //       ()-> 
-      //         Swerve.teleopDefaultCommand(
-      //           driver::getRequestedChassisSpeeds,
-      //           true
-      //         )
-      //         ,
-      //         Swerve
-      //     ).withName("Swerve Drive Command")
-      // );
 
-      //Gripper.setDefaultCommand(Gripper.stop());
+    indexer.setDefaultCommand(indexer.setVelocityMPS(()->0));
   }
 
   public Command logTrickshotTrue(){

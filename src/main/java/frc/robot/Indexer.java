@@ -14,7 +14,7 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 //PID
     import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
-import com.ctre.phoenix6.controls.VelocityDutyCycle;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 
 import edu.wpi.first.networktables.DoublePublisher;
 
@@ -22,9 +22,9 @@ import edu.wpi.first.networktables.DoublePublisher;
     import edu.wpi.first.networktables.NetworkTable;
     import edu.wpi.first.networktables.NetworkTableInstance;
     import edu.wpi.first.networktables.PubSubOption;
-    
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-    //Units
+//Units
     import static edu.wpi.first.units.Units.RPM;
 
 import java.util.function.DoubleSupplier;
@@ -37,17 +37,17 @@ public class Indexer extends SubsystemBase {
     public TalonFX floorIndexerMotor;
     
     private final DutyCycleOut dutyCycleOut = new DutyCycleOut(0);
-    private final VelocityDutyCycle velocityDutyCycle = new VelocityDutyCycle(0);
+    private final VelocityVoltage velocitySetter = new VelocityVoltage(0);
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable indexerTable = inst.getTable("Indexer");
 
-    private final DoublePublisher rpmPub = indexerTable.getDoubleTopic("RPM").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher mpsPub = indexerTable.getDoubleTopic("Velocity Meters Per Second").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCycleOutPub = indexerTable.getDoubleTopic("DutyCycleOut").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher voltagePub = indexerTable.getDoubleTopic("Voltage").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher setPointPub = indexerTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
 
-    private static final double metersPerRotationOfMotor = ((12/65)*30*5)/1000;
+    public static final double metersPerRotationOfMotor = ((12/65.)*30*5)/1000.;
     //1st pulley on motor = 12 teeth
     //2nd pulley on shaft = 65 teeth
     //3rd pulley on same shaft = 30 teeth
@@ -61,8 +61,8 @@ public class Indexer extends SubsystemBase {
     
         Slot0Configs slot0 = new Slot0Configs();
         slot0.kP = 0;
-        slot0.kS = 0;
-        slot0.kV = 0;
+        slot0.kS = 0.23;
+        slot0.kV = 0.12;
 
         CurrentLimitsConfigs currentLimitsConfigs = new CurrentLimitsConfigs();
         currentLimitsConfigs.StatorCurrentLimit = 120;
@@ -82,7 +82,8 @@ public class Indexer extends SubsystemBase {
     }
     public Command setVelocity(DoubleSupplier rps){
         return run(()->{
-        floorIndexerMotor.setControl(velocityDutyCycle.withVelocity(rps.getAsDouble()));
+        SmartDashboard.putNumber("Setpoint Vel", rps.getAsDouble() * metersPerRotationOfMotor);
+        floorIndexerMotor.setControl(velocitySetter.withVelocity(rps.getAsDouble()));
         });
        
     }
@@ -97,10 +98,11 @@ public class Indexer extends SubsystemBase {
 
     public void periodic(){
 
-        rpmPub.set(floorIndexerMotor.getVelocity().getValue().in(RPM));
+        mpsPub.set(floorIndexerMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
         dutyCycleOutPub.set(floorIndexerMotor.getDutyCycle().getValueAsDouble());
         voltagePub.set(floorIndexerMotor.getMotorVoltage().getValueAsDouble());  
-        setPointPub.set(floorIndexerMotor.getClosedLoopReference().getValueAsDouble()*metersPerRotationOfMotor);
+        setPointPub.set(floorIndexerMotor.getClosedLoopReference(true).getValueAsDouble()*metersPerRotationOfMotor);
 
+        SmartDashboard.putNumber("vel", floorIndexerMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
     }
 }
