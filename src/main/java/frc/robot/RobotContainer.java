@@ -21,6 +21,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -35,8 +36,8 @@ public class RobotContainer {
   //public final SwerveBase Swerve;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
-  private final Intake_Pivot mp_intake = new Intake_Pivot();
-  private final Intake_Roller m_intake = new Intake_Roller();
+  private final Intake_Pivot pivot = new Intake_Pivot();
+  private final Intake_Roller roller_intake = new Intake_Roller();
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
@@ -51,9 +52,8 @@ public class RobotContainer {
 
   private final String[] camNames = {"limelight-left", "limelight-right"};
   private static final EnhancedCommandController driver =
-      new EnhancedCommandController(1);
-  private final CommandXboxController m_driverController =
-      new CommandXboxController(0); //change
+      new EnhancedCommandController(0);
+
 
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
@@ -86,14 +86,12 @@ public class RobotContainer {
    * joysticks}.
    */
   private void configureBindings() {
- 
-    // make sure you gyro reset by aligning with the reef, not eyeballing it
-    // driver.back().onTrue(Swerve.resetGyro());
-    // driver.b().onTrue(Swerve.runWheelCharacterization());
-    m_driverController.a().whileTrue(mp_intake.setPivot((90.0)));
-    m_driverController.b().whileTrue(mp_intake.setPivot((0.0)));
-    m_driverController.x().whileTrue(m_intake.setRollerVelocity(50));
-    m_driverController.y().whileTrue(m_intake.setRollerVelocity(0));
+
+    driver.x().whileTrue(pivot.setDutyCycle(() -> 0.1));
+    driver.y().whileTrue(pivot.setDutyCycle(()-> -0.1));
+
+    //driver.a().whileTrue(roller_intake.setVelocityRPS(() -> driver.getLeftY() * m_intake.MAX_RPS));
+
   }
 
   public void configureDefaultCommands(){
@@ -114,6 +112,8 @@ public class RobotContainer {
     //   );
 
       //Gripper.setDefaultCommand(Gripper.stop());
+    
+    roller_intake.setDefaultCommand(roller_intake.setVelocityRPS(() -> 0));
   }
 
   public Command logTrickshotTrue(){
