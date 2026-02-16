@@ -17,6 +17,7 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
@@ -27,6 +28,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -257,7 +259,7 @@ public class SwerveBase extends SubsystemBase {
      */
     public void setModules(SwerveModuleState[] desiredStates, boolean useMaxSpeed) {
         if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
-        else SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
+        else SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
 
         for(var module : modules){
             //SmartDashboard.putString("Swerve/Module State " + module.index, desiredStates[module.index].toString());
@@ -454,8 +456,8 @@ public class SwerveBase extends SubsystemBase {
 
             ChassisSpeeds speeds =
                     new ChassisSpeeds(
-                        MathUtil.clamp(speed, -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND),
-                        MathUtil.clamp(speed, -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND),
+                        MathUtil.clamp(speed, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                        MathUtil.clamp(speed, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
                     getAngularComponentFromRotationOverride(0)
                 );
                 SmartDashboard.putString("align speeds", speeds.toString());
@@ -620,7 +622,7 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putString("STUPID SPEEDS", chassisSpeeds.toString());
         var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
         if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
-        else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
+        else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
         var speeds = Constants.Swerve.kDriveKinematics.toChassisSpeeds(tmpStates);
 
         Rotation2d skewCompensationFactor = Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * Constants.Swerve.SKEW_COMPENSATION_RATE);
@@ -883,6 +885,77 @@ public class SwerveBase extends SubsystemBase {
         return pose;
     }
 
+
+     public Command driveToPose(Pose2d targetPose, double distanceEnd){
+
+        return
+            
+            run(
+            ()->{
+
+                System.out.println("driving to pose");
+
+                double kp_attract = 3.5;
+
+                SmartDashboard.putBoolean("reached destination", false);
+ 
+                m_field.getObject("targetPose").setPose(targetPose);
+                SmartDashboard.putString("targetPose", targetPose.toString());
+
+                // the current field relative robot pose
+                Pose2d robotPose = getSavedPose();
+
+                double dx = targetPose.getX() - robotPose.getX();
+                double dy = targetPose.getY() - robotPose.getY();
+
+                // converting the errors to components of a unit vector
+                double distance = Math.hypot(dx, dy);
+                double unitX = dx / distance;
+                double unitY = dy / distance;
+
+                SmartDashboard.putNumber("alignment dx", dx);
+                SmartDashboard.putNumber("alignment dy", dy);
+
+                double speed = MathUtil.clamp(kp_attract * distance, 
+                    -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, 
+                    Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+                // calculating the desired velocity based on the controller
+                // double desiredVelocity = controller.getSetpoint().velocity;
+
+                // calculating the desired velocity for the next loop
+                // controller.calculate(distance, 0);
+
+                // makes robot go straight by applying calculated velocity to unit vector
+                double attractY = unitY * speed;
+                double attractX = unitX * speed;
+           
+                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
+                SmartDashboard.putNumber("distance to target", distance);
+                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                
+                ChassisSpeeds speeds =
+                    new ChassisSpeeds(
+                        MathUtil.clamp(attractX, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                        MathUtil.clamp(attractY, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                    getAngularComponentFromRotationOverride(targetPose.getRotation().getDegrees())
+                );
+                SmartDashboard.putString("align speeds", speeds.toString());
+
+                drive(speeds, true, false);
+            }
+            ).until(() -> getDistanceToTranslation(targetPose.getTranslation()) < distanceEnd)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }));
+    }
+    
+    public Command driveToIntermediatePose(Pose2d intermediaryPose, double distanceEndFromIntermediary, 
+    Pose2d finalPose, double distanceEndFinal) {
+        return driveToPose(intermediaryPose, distanceEndFromIntermediary)
+        .andThen(driveToPose(finalPose, distanceEndFinal));
+    }
 
     @Override
     public void periodic() {

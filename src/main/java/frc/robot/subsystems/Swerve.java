@@ -42,15 +42,23 @@ public class Swerve extends SwerveBase {
     
     public Trigger isFullyAutonomous;
     public boolean isAtDestination;
+    public boolean fuelDetected;
     public Trigger bestFuelPresent;
     public Translation2d commandedVelocity;
+
+    Optional<Translation2d> bestFuel;
+    Optional<Translation2d> lastBestFuel;
+    public double distanceFromIntakeToFuel;
 
     public boolean currentlyFullyAutonomous = false;
 
     public Swerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
 
-          inst = NetworkTableInstance.getDefault();
+        bestFuel = Optional.empty();
+        lastBestFuel = Optional.empty();
+
+        inst = NetworkTableInstance.getDefault();
         swerveTable = inst.getTable("Swerve");
         targetLocationTranslation = new Translation2d(100,0);
 
@@ -65,6 +73,7 @@ public class Swerve extends SwerveBase {
         isFullyAutonomous = new Trigger(()-> currentlyFullyAutonomous);
         isAtDestination = false;
         commandedVelocity = new Translation2d(0,0);
+        
         }
 
     public boolean isOnBump() {
@@ -106,18 +115,31 @@ public class Swerve extends SwerveBase {
         ChassisSpeeds robotSpeed = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), robotPose.getRotation());
 
         Translation2d bestFuel = new Translation2d();
-        double mostVelocityTowardsFuel = Double.NEGATIVE_INFINITY;
+        // double mostVelocityTowardsFuel = Double.NEGATIVE_INFINITY;
+
+        double fastestTimeToFuel = Double.POSITIVE_INFINITY; // the bigger the index, the better
 
         if (allFuelList.size() != 0){
             for (Translation2d fuel : allFuelList){
-            double dx = fuel.getX() - robotPose.getX();
-            double dy = fuel.getY() - robotPose.getY();
-            double distanceToFuel = Math.hypot(dx,dy);
-                 
-            double currentVelocityTowardsFuel = (robotSpeed.vxMetersPerSecond*dx + robotSpeed.vyMetersPerSecond*dy)/distanceToFuel;
+                double dx = fuel.getX() - robotPose.getX();
+                double dy = fuel.getY() - robotPose.getY();
+                double distanceToFuel = Math.hypot(dx,dy);
+                    
+                //distance/velcoty 
+                // less number would be better
 
-                if (currentVelocityTowardsFuel > mostVelocityTowardsFuel){
-                    mostVelocityTowardsFuel = currentVelocityTowardsFuel;
+                double currentVelocityTowardsFuel = (robotSpeed.vxMetersPerSecond*dx + robotSpeed.vyMetersPerSecond*dy)/distanceToFuel;
+
+                if (Math.abs(currentVelocityTowardsFuel) < 0.02){
+                    currentVelocityTowardsFuel = 1;
+                } 
+
+                double timeToFuel;
+        
+                timeToFuel = distanceToFuel/currentVelocityTowardsFuel;
+
+                if (timeToFuel < fastestTimeToFuel){
+                    fastestTimeToFuel = timeToFuel;
                     bestFuel = fuel;
                 }
             }
@@ -128,81 +150,103 @@ public class Swerve extends SwerveBase {
 
     }
 
-     public Command driveToBestFuel(Supplier<Optional<Translation2d>> bestFuelSupplier){
+    public Command driveToBestFuel(Supplier<Optional<Translation2d>> bestFuelSupplier, Supplier<List<Translation2d>> fuelListSupplier){
         return
-            runOnce(() -> currentlyFullyAutonomous = true)
-            .andThen(
-                runOnce( ()-> {System.out.println(bestFuelSupplier.get().isEmpty());})
-            )
+            runOnce(() -> {
+                
+                currentlyFullyAutonomous = true;
+                
+                bestFuel = Optional.empty();
+                lastBestFuel = Optional.empty();
+                
+                // saves the fuel pose, uses it all throughout command
+                // risky if fuel is far away because it is not updating
+
+                
+            })
             .andThen(
                 run(()->{
-                    Optional<Translation2d> bestFuel = bestFuelSupplier.get();
-                    System.out.println(bestFuel.isEmpty());
-                    if (bestFuel.isPresent()){
 
+                    bestFuel = bestFuelSupplier.get();
+
+                    viewFuel(fuelListSupplier);
+                
+                    if (bestFuel.isPresent()){
+                        lastBestFuel = bestFuel;
+                    }
+
+                    if ( lastBestFuel.isPresent()){
+                        fuelDetected = true;
                         isAtDestination = false;
 
-                        // System.out.println("driving");
+                        targetLocationTranslation = lastBestFuel.get();
+                        m_field.getObject("lastBestFuel").setPose(new Pose2d(targetLocationTranslation, new Rotation2d(-Math.PI)));
 
-                        targetLocationTranslation = bestFuel.get();
+                        double kp_attract = 1;
+        
+                        // the current field relative robot pose
+                        Translation2d robotPose = getSavedPose().getTranslation();
 
-                        double kP_assist = 1;
+                        // ChassisSpeeds robotSpeed = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), robotPose.getRotation());
 
-                        Pose2d robotPose = getSavedPose();
-                        ChassisSpeeds robotSpeed = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), robotPose.getRotation());
+                        Translation2d robotToFuel = targetLocationTranslation.minus(robotPose);
 
-                        Translation2d robotToFuel = targetLocationTranslation.minus(robotPose.getTranslation());
-                                                
-                        Translation2d direction_commandedVelocity;
+                        double dx = robotToFuel.getX();
+                        double dy = robotToFuel.getY();
 
-                        if (commandedVelocity.getNorm() <= 0.01){
-                            direction_commandedVelocity = new Translation2d(0,0);
-                        } else {
-                            direction_commandedVelocity = commandedVelocity.div(commandedVelocity.getNorm());
-                        }
+                        double thetaFuel = (Math.toDegrees(Math.atan2(dy, dx)));
 
-                        Translation2d robotToFuelParallel = direction_commandedVelocity.times(robotToFuel.dot(direction_commandedVelocity));
-                        Translation2d robotToFuelPerpendicular = robotToFuel.minus(robotToFuelParallel);
+                        SmartDashboard.putNumber("thetaFuel", thetaFuel);
 
-                        Translation2d newCommandedVel = commandedVelocity.plus(robotToFuelPerpendicular.times(kP_assist));
-                        SmartDashboard.putString("STUPID TRANSLATION", newCommandedVel.toString());
+                        // converting the errors to components of a unit vector
+                        distanceFromIntakeToFuel = Math.hypot(dx, dy) - 0.4826;
 
-                        ChassisSpeeds speeds = new ChassisSpeeds(
-                            MathUtil.clamp(newCommandedVel.getX(), -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND),
-                            MathUtil.clamp(newCommandedVel.getY(), -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND),
-                            getAngularComponentFromRotationOverride(robotPose.getRotation().getDegrees())
+                        Translation2d intakeToFuel = new Translation2d(
+                            Math.min(
+                                Math.abs(kp_attract * distanceFromIntakeToFuel), 
+                                Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP
+                            ), 
+                                Rotation2d.fromDegrees(thetaFuel)
+                            );
+                        
+  
+                
+                        // SmartDashboard.putNumber("desired velocity", desiredVelocity);
+                        SmartDashboard.putNumber("distance from intake to fuel", distanceFromIntakeToFuel);
+                        SmartDashboard.putNumber("attract speed", intakeToFuel.getNorm());
+                        
+                        ChassisSpeeds speeds =
+                            new ChassisSpeeds(
+                                MathUtil.clamp(intakeToFuel.getX(), -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                                MathUtil.clamp(intakeToFuel.getY(), -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                            getAngularComponentFromRotationOverride(thetaFuel)
                         );
+                        SmartDashboard.putString("align speeds", speeds.toString());
 
                         drive(speeds, true, false);
+                    
+                    } else {
+                        fuelDetected = false;
                     }
                 })
-            ).until(new Trigger(()-> getDistanceToTranslation(targetLocationTranslation) < 0.02).or(()-> bestFuelSupplier.get().isEmpty()))
-            .andThen(
-                runOnce(()->{
-                    isAtDestination = false;
-                    this.stopModules();
-                    System.out.print("isAtDestination"); System.out.println(isAtDestination);
-
-                    
-                })
-            )
             .finallyDo(()->{
                 currentlyFullyAutonomous = false;
-            });
-     }
+            }));
+    }
 
-      public void periodic(){
+    public void periodic(){
         super.periodic();
         
         commandedVelocity = new Translation2d(
             ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation()).vxMetersPerSecond,
-            ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation()).vyMetersPerSecond);
-
+            ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation()).vyMetersPerSecond
+        );
+        
         commandedVelocityXPub.set(commandedVelocity.getX());
         commandedVelocityYPub.set(commandedVelocity.getY());
         atDestinationPub.set(isAtDestination);
         fullyAutonomousPub.set(isFullyAutonomous.getAsBoolean());
         distanceToTarget.set(getDistanceToTranslation(targetLocationTranslation));
         targetPosePub.set(targetLocationTranslation.toString());
-      }
+    }
 }

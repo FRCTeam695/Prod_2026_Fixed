@@ -23,6 +23,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+
 
 
 /**
@@ -104,10 +107,10 @@ public class RobotContainer {
 
      driver.leftTrigger().whileTrue(
       Swerve.driveToBestFuel( () -> Swerve.getMostEfficientFuelToDriveTo(
-        () -> VisionManager.getFuelList()
-        )
+        VisionManager::getFuelList
+        ),VisionManager::getFuelList
       )
-    );
+     );
 
     //  driver.leftTrigger(0.5).whileTrue(
     //   Swerve.driveToBestFuel(
@@ -115,7 +118,19 @@ public class RobotContainer {
     //   )
     // );
 
-    driver.a().whileTrue(Swerve.viewFuel(()->VisionManager.getFuelList()));
+    driver.a().whileTrue(Swerve.viewFuel(VisionManager::getFuelList));
+
+    driver.x().whileTrue(
+      Swerve.driveToPose(new Pose2d(1,1, new Rotation2d(0)), 0.02)
+    );
+
+    driver.b().whileTrue(
+      Swerve.driveToIntermediatePose(
+        new Pose2d(1,1.25, new Rotation2d(0)), 
+        0.75, 
+        new Pose2d(1,2, new Rotation2d(0)), 
+        0.02)
+    );
 
   }
 
