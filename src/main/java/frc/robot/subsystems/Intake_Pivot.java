@@ -72,9 +72,9 @@ public class Intake_Pivot extends SubsystemBase {
             )
             .withCurrentLimits( //taken from WCP code
                 new CurrentLimitsConfigs()
-                .withStatorCurrentLimit(Amps.of(120))
+                .withStatorCurrentLimit(Amps.of(20)) //was 120
                 .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(70))
+                .withSupplyCurrentLimit(Amps.of(20)) //was 70
                 .withSupplyCurrentLimitEnable(true)
             )
             .withFeedback(
@@ -91,6 +91,7 @@ public class Intake_Pivot extends SubsystemBase {
                 new Slot0Configs()
                 .withKP(50) //NEED TO CHANGE
                 .withKI(0) //NEED TO CHANGE (add kd and kv if needed)
+                .withKV(0)
             );
         pivot.getConfigurator().apply(config1);
     }

@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -41,19 +42,22 @@ public class Intake_Roller extends SubsystemBase {
 
     private NetworkTableInstance inst;
     private NetworkTable table;
-    private NetworkTableEntry pivotValue;
+    private NetworkTableEntry rollerSetValue;
+    private NetworkTableEntry rollerActValue;
+
+    private final VelocityVoltage velocity = new VelocityVoltage(0);
 
     // private boolean isHomed = false;
 
     public Intake_Roller() {
         roller = new TalonFX(14); //not correct id
-
         configureRoller();
 
         //networktables
         inst = NetworkTableInstance.getDefault();
         table = inst.getTable("Values");
-        pivotValue = table.getEntry("Pivot Position");
+        rollerSetValue = table.getEntry("Roller Setpoint");
+        rollerActValue = table.getEntry("Roller Actual");
     }
 
     public void configureRoller() {
@@ -69,16 +73,30 @@ public class Intake_Roller extends SubsystemBase {
                 .withStatorCurrentLimitEnable(true)
                 .withSupplyCurrentLimit(Amps.of(70))
                 .withSupplyCurrentLimitEnable(true)
+            )
+            .withSlot0(
+                new Slot0Configs()
+                    .withKP(0)
+                    .withKI(0)
+                    .withKD(0)
+                    .withKV(0)
             );
         roller.getConfigurator().apply(config2);
     }
 
-    public Command setRollerPercent(double percent) {
-        return runOnce(() -> roller.set(percent));
+    public Command setRollerVelocity(double targetVelocity) {
+        return run(() -> roller.setControl(velocity.withVelocity(targetVelocity)));
     }
 
     @Override
     public void periodic(){
-        SmartDashboard.putNumber("set velocity", roller.get());
+        double r_actual = roller.getVelocity().getValueAsDouble();
+        double r_setpoint = velocity.Velocity;
+        
+        rollerActValue.setDouble(r_actual);
+        rollerSetValue.setDouble(r_setpoint);
+        
+        SmartDashboard.putNumber("Actual Velocity", r_actual);
+        SmartDashboard.putNumber("Set Velocity", r_setpoint);
     }
 }

@@ -76,7 +76,6 @@ public class RobotContainer {
   }
 
 
-  
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
    * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary
@@ -93,8 +92,8 @@ public class RobotContainer {
     // driver.b().onTrue(Swerve.runWheelCharacterization());
     m_driverController.a().whileTrue(mp_intake.setPivot((90.0)));
     m_driverController.b().whileTrue(mp_intake.setPivot((0.0)));
-    m_driverController.x().whileTrue(m_intake.setRollerPercent(0.5));
-    m_driverController.y().whileTrue(m_intake.setRollerPercent(0));
+    m_driverController.x().whileTrue(m_intake.setRollerVelocity(50));
+    m_driverController.y().whileTrue(m_intake.setRollerVelocity(0));
   }
 
   public void configureDefaultCommands(){
