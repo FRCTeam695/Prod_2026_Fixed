@@ -15,6 +15,7 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import static edu.wpi.first.units.Units.Amps;
@@ -27,7 +28,7 @@ public class Intake_Pivot extends SubsystemBase {
 
     private MotionMagicVoltage motionMagicSetter;
 
-    private static final double kPivotReduction = 3; //make into constant, amount of rotations for arm to loop once
+    private static final double kPivotReduction = 46.4; //make into constant, amount of rotations for arm to loop once
 
     private NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private NetworkTable table = inst.getTable("Intake_Pivot");
@@ -36,14 +37,14 @@ public class Intake_Pivot extends SubsystemBase {
     private final DoublePublisher setpointPositionDegreesPub = table.getDoubleTopic("Setpoint Position Degrees").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
 
-    private final double pivotOffsetDegrees = 0;
+    private final double pivotOffsetRotations = 0.056; // retracted position
 
     public Intake_Pivot() {
         pivot = new TalonFX(57);
         configurePivot();
         motionMagicSetter = new MotionMagicVoltage(0).withSlot(0);
 
-        pivot.setPosition(pivotOffsetDegrees);
+        pivot.setPosition(pivotOffsetRotations);
     }
     
     public void configurePivot() {
@@ -51,7 +52,7 @@ public class Intake_Pivot extends SubsystemBase {
             .withMotorOutput(
                 new MotorOutputConfigs()
                     .withInverted(InvertedValue.CounterClockwise_Positive)
-                    .withNeutralMode(NeutralModeValue.Brake)
+                    .withNeutralMode(NeutralModeValue.Coast)
             )
             .withCurrentLimits( //taken from WCP code
                 new CurrentLimitsConfigs()
@@ -90,11 +91,15 @@ public class Intake_Pivot extends SubsystemBase {
     }
 
     public Command homePivot(){
-        return setDutyCycle(() -> -0.05).until(() -> pivot.getMotorStallCurrent().getValueAsDouble() > 15).andThen(runOnce(() -> pivot.setPosition(pivotOffsetDegrees))); // make the StatorCurrentLimit (15) into a constant
+        return setDutyCycle(() -> -0.05).until(() -> pivot.getMotorStallCurrent().getValueAsDouble() > 15).andThen(runOnce(() -> pivot.setPosition(pivotOffsetRotations))); // make the StatorCurrentLimit (15) into a constant
     }
 
     @Override
     public void periodic(){
+        SmartDashboard.putNumber("Voltage", pivot.getMotorVoltage().getValueAsDouble());
+        SmartDashboard.putNumber("Current", pivot.getStatorCurrent().getValueAsDouble());
+
+
         currentPositionDegreesPub.set(pivot.getPosition().getValueAsDouble());
         setpointPositionDegreesPub.set(pivot.getClosedLoopReference().getValueAsDouble());
         dutyCyclePub.set(pivot.getDutyCycle().getValueAsDouble());
