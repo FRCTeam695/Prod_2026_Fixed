@@ -9,7 +9,8 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 // import frc.robot.Subsystems.CoralGripper2Motors;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
-import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Intake_Pivot;
+import frc.robot.subsystems.Intake_Roller;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -34,7 +35,8 @@ public class RobotContainer {
   //public final SwerveBase Swerve;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
-  private final Intake m_intake = new Intake();
+  private final Intake_Pivot mp_intake = new Intake_Pivot();
+  private final Intake_Roller m_intake = new Intake_Roller();
 
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
@@ -89,11 +91,10 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     // driver.back().onTrue(Swerve.resetGyro());
     // driver.b().onTrue(Swerve.runWheelCharacterization());
-    // m_driverController.a().whileTrue(m_intake.setPivot((360)));
-    // m_driverController.b().whileTrue(m_intake.setPivot((0)));
-    // m_driverController.a().whileTrue(m_intake.setRollerPercent(0.5));
-    // m_driverController.b().whileTrue(m_intake.setRollerPercent(0));
-
+    m_driverController.a().whileTrue(mp_intake.setPivot((90.0)));
+    m_driverController.b().whileTrue(mp_intake.setPivot((0.0)));
+    m_driverController.x().whileTrue(m_intake.setRollerPercent(0.5));
+    m_driverController.y().whileTrue(m_intake.setRollerPercent(0));
   }
 
   public void configureDefaultCommands(){
