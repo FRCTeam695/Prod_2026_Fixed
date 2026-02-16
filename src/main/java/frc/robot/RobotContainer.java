@@ -5,8 +5,6 @@
 package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
-import frc.BisonLib.BaseProject.Swerve.SwerveBase;
-import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import frc.robot.subsystems.Feeder;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -15,13 +13,10 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 
 import edu.wpi.first.networktables.IntegerSubscriber;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import frc.robot.subsystems.*;
 
 
 
@@ -33,57 +28,25 @@ import frc.robot.subsystems.*;
  */
 public class RobotContainer {
 
-  public final SwerveBase Swerve;
   public final Feeder kicker;
-  public final RebuiltSwerve swerve;
-  //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
   SOTMSetpointGenerator shooterInterpolationMap;
 
-  public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
-
-  private final TalonFXModule[] modules = new TalonFXModule[]
-  {
-    new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
-    new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
-    new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
-    new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3),
-  };
 
 
 
-  private final String[] camNames = {"limelight-left", "limelight-right"};
   private static final EnhancedCommandController driver = new EnhancedCommandController(0);
 
-
-  /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    swerve = new RebuiltSwerve(camNames, modules, reefTags);
     kicker = new Feeder();
-    Swerve = new SwerveBase(camNames, modules, reefTags);
 
-
-   
-    scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
-
-    // SmartDashboarding subsystems allow you to see what commands they are running
-    SmartDashboard.putData("Swerve Subsystem", swerve);
-    shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
-
-    // Configure the trigger bindings
     configureBindings();
     configureDefaultCommands();
-    configureDefaultCommands();
-
       
     SmartDashboard.putData(autoChooser);
 
     DataLogManager.start();
-  }
-
-  public Runnable getOdometryUpdater(){
-    return swerve::updateOdometryWithKinematics;
   }
 
 
@@ -99,32 +62,16 @@ public class RobotContainer {
    */
   private void configureBindings() {
  
-    // make sure you gyro reset by aligning with the reef, not eyeballing it
-    driver.back().onTrue(swerve.resetGyro());
-    driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
+    driver.b().onTrue(kicker.stop()); 
+    driver.y().onTrue(kicker.setVoltage(() -> 10));
+
   }
 
   public void configureDefaultCommands(){
-    // This is the Swerve subsystem default command, this allows the driver to drive the robot
-    swerve.setDefaultCommand
-      (
-        
-        run
-          (
-            ()-> 
-              swerve.teleopDefaultCommand(
-                driver::getRequestedChassisSpeeds,
-                true
-              )
-              ,
-              swerve
-          ).withName("Swerve Drive Command"))
-      ;
-
-      //Gripper.setDefaultCommand(Gripper.stop());
+    //kicker.setDefaultCommand(kicker.joystickBangBangCommand(() -> driver.getRightX()));
+    kicker.setDefaultCommand(kicker.setVelocityMPS(() -> driver.getRightY() * kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation));
   }
 
-  // The command specified in here is run in autonomous
   public Command getAutonomousCommand() {
     return autoChooser.getSelected();
   }
