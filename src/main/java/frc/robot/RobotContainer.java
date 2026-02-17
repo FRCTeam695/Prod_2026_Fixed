@@ -10,8 +10,7 @@ import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-
-
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -19,6 +18,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import com.ctre.phoenix6.SignalLogger;
+
+import edu.wpi.first.hal.SimDevice.Direction;
 import frc.robot.subsystems.*;
 
 
@@ -32,6 +34,9 @@ import frc.robot.subsystems.*;
 public class RobotContainer {
 
   public final RebuiltSwerve swerve;
+  public final ShooterConfig shooter1;
+  //public final ShooterConfig shooter2;
+  //public final ShooterConfig shooter3;
   //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -56,7 +61,10 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     swerve = new RebuiltSwerve(camNames, modules, reefTags);
-
+    shooter1 = new ShooterConfig(55);
+    /** different */
+    //shooter2 = new ShooterConfig(55);
+    //shooter3 = new ShooterConfig(52);
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
@@ -67,12 +75,10 @@ public class RobotContainer {
     // Configure the trigger bindings
     configureBindings();
     configureDefaultCommands();
-    configureDefaultCommands();
-
       
     SmartDashboard.putData(autoChooser);
 
-    DataLogManager.start();
+    //DataLogManager.start();
   }
 
   public Runnable getOdometryUpdater(){
@@ -95,11 +101,41 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(swerve.resetGyro());
     driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
+ 
+    driver.a().whileTrue(
+      run(()-> {
+        shooter1.setAngularVel(20);
+      }, shooter1)
+    );
+    driver.b().whileTrue(
+      run(()-> {
+        shooter1.setAngularVel(40);
+      }, shooter1)
+    );
+    driver.x().whileTrue(
+      run(()-> {
+        shooter1.setAngularVel(60);
+      }, shooter1)
+    );
+    driver.y().whileTrue(
+      run(()-> {
+        shooter1.setAngularVel(80);
+      }, shooter1)
+    );
+    /* 
+    driver.a().whileTrue(shooter1.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+    driver.b().whileTrue(shooter1.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+    driver.x().whileTrue(shooter1.sysIdDynamic(SysIdRoutine.Direction.kForward));
+    driver.y().whileTrue(shooter1.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+    driver.rightBumper().onTrue(runOnce(() -> SignalLogger.start()));
+    driver.leftBumper().onTrue(runOnce(() -> SignalLogger.stop()));
+    */
   }
 
   public void configureDefaultCommands(){
+    shooter1.setDefaultCommand(run(()-> shooter1.setAngularVel(0), shooter1));
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
-    swerve.setDefaultCommand
+    /*swerve.setDefaultCommand
       (
         
         run
@@ -114,7 +150,7 @@ public class RobotContainer {
           ).withName("Swerve Drive Command"))
       ;
 
-      //Gripper.setDefaultCommand(Gripper.stop());
+      //Gripper.setDefaultCommand(Gripper.stop());*/
   }
 
   // The command specified in here is run in autonomous

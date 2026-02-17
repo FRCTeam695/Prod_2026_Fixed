@@ -53,11 +53,12 @@ public class Hood extends SubsystemBase {
 
         double targetPos = MathUtil.clamp(unclampedTargetPos, ACTMINPOS, ACTMAXPOS);
         double currentPos = r_analog.get(); //absolute position encoder
-        double distanceAway = targetPos - currentPos;
+        double targetDistance = targetPos - currentPos;
+        //double actDiff = r_analog;
 
         // manual PID
-        double r_vel = MathUtil.clamp((distanceAway * kP) + kS * Math.signum(distanceAway), -1, 1);
-        double l_vel = MathUtil.clamp((distanceAway * kP) + kS * Math.signum(distanceAway), -1, 1);
+        double r_vel = MathUtil.clamp((targetDistance * kP) + kS * Math.signum(targetDistance), -1, 1);
+        double l_vel = MathUtil.clamp((targetDistance * kP) + kS * Math.signum(targetDistance), -1, 1);
         
         // actuator moves at set velocity
         r_actuator.set(r_vel);

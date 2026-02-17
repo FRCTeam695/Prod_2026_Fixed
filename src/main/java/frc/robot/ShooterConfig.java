@@ -4,7 +4,8 @@ import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
+import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -25,22 +26,30 @@ public class ShooterConfig extends SubsystemBase{
 
     private TalonFXConfiguration talonFXconfigs;
 
-    private MotionMagicVelocityVoltage request;
+    private VelocityVoltage request;
+    private DutyCycleOut duty;
 
     private VoltageOut voltReq; // Only for SysID
 
     public ShooterConfig(int ID) {
+        //54 is inverted!!!!!!!!!!
         // Talon controls
         talonFX = new TalonFX(ID);
 
         talonFXconfigs = new TalonFXConfiguration();
 
-        request = new MotionMagicVelocityVoltage(0);
+        request = new VelocityVoltage(0);
+        duty = new DutyCycleOut(0);
 
         talonFX.setControl(request.withUpdateFreqHz(50));
 
+        voltReq = new VoltageOut(0.0);
+        
         // INVERSION CHECK!!!!!!!
-        talonFXconfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
+        if (ID == 54)
+            talonFXconfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+        else
+            talonFXconfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
 
         // Limits and modes 
         talonFXconfigs.MotorOutput.NeutralMode = NeutralModeValue.Brake;
@@ -48,16 +57,26 @@ public class ShooterConfig extends SubsystemBase{
         talonFXconfigs.CurrentLimits.SupplyCurrentLimit = 40;
 
         // Gains
-        talonFXconfigs.Slot0.kS = 0;
+        if (ID == 54) {
+        talonFXconfigs.Slot0.kS = 0.11821;
         talonFXconfigs.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
-        talonFXconfigs.Slot0.kV = 0;
-        talonFXconfigs.Slot0.kA = 0;
-        talonFXconfigs.Slot0.kP = 0; 
-        talonFXconfigs.Slot0.kD = 0;
+        talonFXconfigs.Slot0.kV = 0.115;
+        talonFXconfigs.Slot0.kA = 0.012983;
+        talonFXconfigs.Slot0.kP = 0.14362; 
+        } else if (ID == 52) {
+        talonFXconfigs.Slot0.kS = 0.14611;
+        talonFXconfigs.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
+        talonFXconfigs.Slot0.kV = 0.116;
+        talonFXconfigs.Slot0.kA = 0.013726;
+        talonFXconfigs.Slot0.kP = 0.076057; 
+        } else {
+        talonFXconfigs.Slot0.kS = 0.12779;
+        talonFXconfigs.Slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
+        talonFXconfigs.Slot0.kV = 0.1145;
+        talonFXconfigs.Slot0.kA = 0.012318;
+        talonFXconfigs.Slot0.kP = 0.060303; 
+        }
 
-        // Motion Magic
-        talonFXconfigs.MotionMagic.MotionMagicAcceleration = 800; // rot/sec^2
-        talonFXconfigs.MotionMagic.MotionMagicJerk = 4000; // rot/sec^3
 
         // Applying configs
         talonFX.getConfigurator().apply(talonFXconfigs);
@@ -113,6 +132,7 @@ public class ShooterConfig extends SubsystemBase{
     public void periodic() {
         // Field variable outputs
         // Velocity
+        if (talonFX.getDeviceID() == 55) {
         currentVel.set(talonFX.getVelocity(true).getValueAsDouble()*60);
         targetVel.set(talonFX.getClosedLoopReference(true).getValueAsDouble()*60);
         velDiff.set((talonFX.getVelocity(true).getValueAsDouble() - talonFX.getClosedLoopReference(true).getValueAsDouble())*60);
@@ -120,5 +140,6 @@ public class ShooterConfig extends SubsystemBase{
         currentAccel.set(talonFX.getAcceleration(true).getValueAsDouble());
         targetAccel.set(talonFX.getClosedLoopReferenceSlope(true).getValueAsDouble());
         accelDiff.set((talonFX.getAcceleration(true).getValueAsDouble() - talonFX.getClosedLoopReferenceSlope(true).getValueAsDouble())*60);
+        }
     }
 }
