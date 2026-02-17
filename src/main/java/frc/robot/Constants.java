@@ -40,7 +40,7 @@ public class Constants {
             // wheel diameter
             4 * Math.PI, 
             // turn wheel kp
-            70, 
+            45, 
             // wheelbase and track width
             21.5, 21.5,
             // turn gear ratio
@@ -51,7 +51,7 @@ public class Constants {
             0,
             200, 100, 
             // tune velocity pid and ff
-            0.0, 0, 0, 
+            0.0, 0.14, 0, 
             0.3,0.115,
             0.0,
             0.14, 1/(30*360/(10435.649414+359.033203)));
@@ -124,6 +124,33 @@ public class Constants {
                  0.05, 0.12,0,  0.2, 1.0/1.003344);
                  //0.99622314806
 
+        public static final SwerveConfig cart_Config =
+                new SwerveConfig(
+                    //must find all offsets
+                4.776, // front right
+                -0.5752, // front left
+                3.0347, // back left
+                2.6147, // back right
+                 8.14, 
+                 1, 
+                 4 * Math.PI, 
+                 // must find this kp
+                 50, 
+                 // must find wheelbase and track width
+                 23.75, 23.75, 287/11.0, false, 
+                 // must tune this
+                 0.0, 
+                 // find this with field
+                 0, 
+                 // tune stator limit
+                 90, 40, 
+                 // tune velocity pid and ff
+                 0, 0.145, 0, 
+                 0.05, 0.09,0,  
+                 0.18, 1);
+                 //0.99622314806
+
+
         public static final Map<String, SwerveConfig> ROBOT_MAP = new HashMap<String, SwerveConfig>() {
             {
                 put("QB", QBConfig);
@@ -146,7 +173,7 @@ public class Constants {
         public static final double WHEEL_CIRCUMFERENCE_METERS = CHOSEN_CONSTANTS.wheelCircumferenceMeters;
         public static final double TURN_WHEEL_KP = CHOSEN_CONSTANTS.turnWheelKP;
         public static final double TURN_WHEEL_KS = CHOSEN_CONSTANTS.turnWheelKS;
-        public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
+        //public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
         public static final double ROBOT_ROTATION_KP = 0.0065;
         public static final double MAX_WHEEL_ROTATIONAL_SPEED = CHOSEN_CONSTANTS.maxWheelRotationalSpeed;
         public static final double GYRO_DRIFT_COMPENSATION = CHOSEN_CONSTANTS.gyroDriftCompensation;

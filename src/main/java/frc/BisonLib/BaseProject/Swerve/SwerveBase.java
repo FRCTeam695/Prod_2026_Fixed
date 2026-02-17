@@ -25,6 +25,16 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -116,6 +126,16 @@ public class SwerveBase extends SubsystemBase {
         tagDictionary.put(tagSetName, tagSet);
     }
 
+    // 50 Hz Networktables
+    private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    private final NetworkTable SwerveBaseTable = inst.getTable("SwerveBase");
+    private final NetworkTable poseTable = SwerveBaseTable.getSubTable("Pose");
+    private final NetworkTable cmdSpeedTable = SwerveBaseTable.getSubTable("Commanded Speed");
+    private final NetworkTable odometryTable = SwerveBaseTable.getSubTable("Odometry");
+    private final NetworkTable NavXTable = SwerveBaseTable.getSubTable("NavX");
+    private final NetworkTable wheelChar = SwerveBaseTable.getSubTable("Wheel Characterization");
+    private final NetworkTable poseVisionTable = SwerveBaseTable.getSubTable("Wheel Characterization");
+
     /**
      * Does all the constructing
      * 
@@ -137,14 +157,14 @@ public class SwerveBase extends SubsystemBase {
         gyroAccumYawOffset = -yawSignal.getValueAsDouble();
         //pigeon.setYaw(0);
         // 4 modules * 3 signals per module + 1 for pigeon
-        allOdomSignals = new BaseStatusSignal[(4 * 3) + 1];
+        allOdomSignals = new BaseStatusSignal[(4 * 3)];
         for(int i = 0; i < modules.length; ++i){
             var signals = modules[i].getOdometrySignals();
             allOdomSignals[i*3 + 0] = signals[0]; // drive position
             allOdomSignals[i*3 + 1] = signals[1]; // drive velocity
             allOdomSignals[i*3 + 2] = signals[2]; // module rotation (cancoder)
         }
-        allOdomSignals[allOdomSignals.length-1] = yawSignal;
+        //allOdomSignals[allOdomSignals.length-1] = yawSignal;
 
         this.camNames = camNames;
 
@@ -310,7 +330,7 @@ public class SwerveBase extends SubsystemBase {
         synchronized(gyroLock){
             // gyro.reset();
             // gyro.setAngleAdjustment(-degrees);
-            gyroAccumYawOffset = -allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION + degrees;
+            //gyroAccumYawOffset = -allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION + degrees;
         }
     }
 
@@ -341,10 +361,12 @@ public class SwerveBase extends SubsystemBase {
     private Rotation2d getGyroHeading() {
         //0.99622314806
         synchronized (gyroLock){
-            double unmoddedGyoHeading = gyroAccumYawOffset + (allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION);
-            SmartDashboard.putNumber("Unmodded Gyro Heading", unmoddedGyoHeading);
-            return Rotation2d.fromDegrees(Math.IEEEremainder(unmoddedGyoHeading, 360));
+            // double unmoddedGyoHeading = gyroAccumYawOffset + (allOdomSignals[allOdomSignals.length-1].getValueAsDouble()/Constants.Swerve.GYRO_DRIFT_COMPENSATION);
+            // SmartDashboard.putNumber("Unmodded Gyro Heading", unmoddedGyoHeading);
+            // return Rotation2d.fromDegrees(Math.IEEEremainder(unmoddedGyoHeading, 360));
             //return new Rotation2d(-Math.toRadians(Math.IEEEremainder(gyro.getAngle()/Constants.Swerve.GYRO_DRIFT_COMPENSATION, 360)));
+
+            return new Rotation2d(0);
         }
     }
 
@@ -608,6 +630,11 @@ public class SwerveBase extends SubsystemBase {
         drive(speedsSupplier.get(), true, true);
     } //590, 736
     
+
+    //CommandedSpeeds
+    private final DoublePublisher omega = cmdSpeedTable.getDoubleTopic("Zj").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher vx = cmdSpeedTable.getDoubleTopic("Xj").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher vy = cmdSpeedTable.getDoubleTopic("Yj").publish(PubSubOption.periodic(0.02));
     /**
      * Drives swerve given chassis speeds
      * Should be called every loop
@@ -638,9 +665,6 @@ public class SwerveBase extends SubsystemBase {
             w_along_v = Math.hypot(w_x, w_y);
         }
 
-        SmartDashboard.putNumber("w along v", w_along_v);
-        SmartDashboard.putNumber("v mag", v_mag);
-        
         // the signum signifies if we are requesting speed up/braking
         double max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
                                (1 - Math.signum(w_along_v - v_mag) * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
@@ -652,21 +676,17 @@ public class SwerveBase extends SubsystemBase {
         else{
             max_fwd_accel = Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ;
         }
-
-        SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
         
         double desiredForwardAccel = (w_along_v - v_mag)/dt;
 
         // project commanded vel onto forward axis, if we aren't moving rn then all wanted vel is parallel
         double w_parallel_x = (v_mag > 1e-6) ? (v_x / v_mag) * w_along_v : w_x;
         double w_parallel_y = (v_mag > 1e-6) ? (v_y / v_mag) * w_along_v : w_y;
-        SmartDashboard.putNumber("parallel cmd vel", Math.hypot(w_parallel_x, w_parallel_y));
 
         // perpendicular component = commanded - parallel
         double w_perp_x = w_x - w_parallel_x;
         double w_perp_y = w_y - w_parallel_y;
         double w_perp_mag = Math.hypot(w_perp_x, w_perp_y);
-        SmartDashboard.putNumber("perp cmd vel", w_perp_mag);
 
         // current sideways vel is always 0 since no component of the current vel doesn't point in the direction of the current vel
         double desiredSkidAccel = w_perp_mag/dt;
@@ -675,16 +695,13 @@ public class SwerveBase extends SubsystemBase {
         double norm = Math.pow(desiredForwardAccel/max_fwd_accel, 2)
                     + Math.pow(desiredSkidAccel/Constants.Swerve.MAX_SKID_ACCEL, 2);
         if(norm > 1){
-            SmartDashboard.putBoolean("scaling acceleration", true);
             double scale = 1 / Math.sqrt(norm);
             desiredForwardAccel *= scale;
             desiredSkidAccel *= scale;
         }
         else{
-            SmartDashboard.putBoolean("scaling acceleration", false);
         }
         double newForwardVel = v_mag + desiredForwardAccel * dt;
-        SmartDashboard.putNumber("new forward vel", newForwardVel);
 
         double vx_forward;
         double vy_forward;
@@ -720,9 +737,9 @@ public class SwerveBase extends SubsystemBase {
         commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
         //speeds = applyAccelerationLimit(speeds);
 
-        SmartDashboard.putNumber("Zj", commandedSpeeds.omegaRadiansPerSecond);
-        SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
-        SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
+        omega.set(commandedSpeeds.omegaRadiansPerSecond);
+        vx.set(commandedSpeeds.vxMetersPerSecond);
+        vy.set(commandedSpeeds.vyMetersPerSecond);
 
         this.driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), useMaxSpeed);
 
@@ -760,6 +777,8 @@ public class SwerveBase extends SubsystemBase {
         }
     }
 
+    public DoublePublisher avgTagDistance = null;
+    public StringPublisher estimatePose = null;
 
     /*
      * updateOdometryWithVision uses vision to add measurements to the odometry
@@ -780,7 +799,8 @@ public class SwerveBase extends SubsystemBase {
             // Only update pose if it is valid and if we arent spinning too fast
             if(mt2_estimate != null && mt2_estimate.tagCount != 0){//remove rotation speed limit
                 ++inc;
-                SmartDashboard.putNumber(inc + " Average Tag Distance", mt2_estimate.avgTagDist);
+                avgTagDistance = poseVisionTable.getDoubleTopic(inc + " Average Tag Distance").publish(PubSubOption.periodic(0.02));
+                avgTagDistance.set(mt2_estimate.avgTagDist);
                 avgLLx += mt2_estimate.pose.getX();
                 avgLLy += mt2_estimate.pose.getY();
                 avgLLomega += mt2_estimate.pose.getRotation().getDegrees();
@@ -805,7 +825,8 @@ public class SwerveBase extends SubsystemBase {
                 // This puts the pose reading from each camera onto the Field2d Widget,
                 // Docs - https://docs.wpilib.org/en/stable/docs/software/dashboards/glass/field2d-widget.html
                 m_field.getObject(cam).setPose(mt2_estimate.pose);
-                SmartDashboard.putString("mt2 pose", mt2_estimate.pose.toString());
+                estimatePose = poseVisionTable.getStringTopic("mt2 pose").publish(PubSubOption.periodic(0.02));
+                estimatePose.set(mt2_estimate.pose.toString());
             }
             avgLLx /= inc;
             avgLLy /= inc;
@@ -845,14 +866,27 @@ public class SwerveBase extends SubsystemBase {
         return pose;
     }
 
+    //Odometry
+    private final DoublePublisher AvgOdometryLoopTime = odometryTable.getDoubleTopic("Average odometry loop time").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher FailedOdometryUpdates = odometryTable.getDoubleTopic("Failed odometry updates").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher SuccessfulOdometryUpdates = odometryTable.getDoubleTopic("Sucessful odometry updates").publish(PubSubOption.periodic(0.02));
+
+    //NavX
+    private final DoublePublisher NavXPos = NavXTable.getDoubleTopic("NavX Position").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher NavXTemp = NavXTable.getDoubleTopic("NavX temperature").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher NavXModPos = NavXTable.getDoubleTopic("NavX Modified Position").publish(PubSubOption.periodic(0.02));
+
+    //Pose
+    private final StringPublisher robotPose = poseTable.getStringTopic("robot pose").publish(PubSubOption.periodic(0.02));
+    private final BooleanPublisher atRotSetpoint = poseTable.getBooleanTopic("at rotation setpoint").publish(PubSubOption.periodic(0.02));
+
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("average odometry loop time", avgLoopTIme);
-        SmartDashboard.putNumber("failed odometry updates", failedOdometryUpdates);
-        SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
-        SmartDashboard.putString("Robot Pose", getSavedPose().toString());
-        SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);
+        AvgOdometryLoopTime.set(avgLoopTIme);
+        FailedOdometryUpdates.set(failedOdometryUpdates);
+        SuccessfulOdometryUpdates.set(successfulOdometryUpdates);
+        robotPose.set(getSavedPose().toString());
 
         // limelightUpdateCounter++;
         // if(limelightUpdateCounter > 25){
@@ -863,28 +897,13 @@ public class SwerveBase extends SubsystemBase {
             updateOdometryWithVision(false);
         //}
 
-       SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
-       SmartDashboard.putNumber("Accum Gyro Yaw", pigeon.getAccumGyroZ().getValueAsDouble());
-    //    SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
-        SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
-       SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
+       //SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
+        //NavXPos.set(gyro.getAngle());
+        //NavXTemp.set(gyro.getTempC());
+        NavXModPos.set(getGyroHeading().getDegrees());
 
         m_field.setRobotPose(getSavedPose());
-        SwerveModuleState[] modStates = getModuleStates();
 
-        SmartDashboard.putNumber("Module 1 Angle deg", modStates[0].angle.getDegrees());
-        SmartDashboard.putNumber("Module 2 Angle deg", modStates[1].angle.getDegrees());
-        SmartDashboard.putNumber("Module 3 Angle deg", modStates[2].angle.getDegrees());
-        SmartDashboard.putNumber("Module 4 Angle deg", modStates[3].angle.getDegrees());        
-        
-        SmartDashboard.putBoolean("Robot Rotation at Setpoint", atRotationSetpoint.getAsBoolean());
-
-        if (currentModuleStates[0] != null) {
-            ChassisSpeeds currentFieldRelativeSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
-            double currentvx = currentFieldRelativeSpeeds.vxMetersPerSecond;
-            double currentvy = currentFieldRelativeSpeeds.vyMetersPerSecond;
-            SmartDashboard.putNumber("Currentvx", currentvx);
-            SmartDashboard.putNumber("Currentvy", currentvy);
-        }
+         ((BooleanPublisher) atRotSetpoint).set(atRotationSetpoint.getAsBoolean());
     }
 }
