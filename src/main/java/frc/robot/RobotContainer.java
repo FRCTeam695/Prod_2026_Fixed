@@ -81,10 +81,6 @@ public class RobotContainer {
   private void configureBindings() {
     driver.back().onTrue(swerve.resetGyro());
 
-    driver.a().whileTrue(
-      tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * driver.getLeftX())
-    );
-
     driver.leftTrigger(0.5).whileTrue(
         pivot.setPositionDegrees(pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)
         .andThen(
@@ -94,13 +90,14 @@ public class RobotContainer {
           )
         )
     );
+    driver.b().onTrue(pivot.setPositionDegrees(pivot.pivotRetractedPositionDegrees));
 
     driver.rightTrigger().whileTrue(
-      tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.2).withTimeout(3)
+      tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5).withTimeout(3)
       .andThen(
         parallel(
-          kicker.setDutyCycle(()-> 0.6),
-          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.2),
+          kicker.setDutyCycle(()-> 1),
+          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5),
           feeder.setVelocityMPS(()-> -2)
         )
       )
@@ -110,6 +107,7 @@ public class RobotContainer {
       pivot.homePivot()
     );
   }
+
 
 
   public void configureDefaultCommands(){
