@@ -53,7 +53,7 @@ public class RobotContainer {
     kicker = new Kicker();
     tripleShooter = new TripleShooter(
                                 new ShooterMiniConfig(InvertedValue.Clockwise_Positive, 0.14362, 0.115, 0.11821, 0.012983, "left", 54),
-                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.60303, 0.1145, 0.12779, 0.012318,"middle", 55),
+                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.060303, 0.1145, 0.12779, 0.012318,"middle", 55),
                                 new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.076057, 0.116, 0.14611, 0.013726,"right", 52)
                               );
     pivot = new IntakePivot();
@@ -113,20 +113,20 @@ public class RobotContainer {
 
 
   public void configureDefaultCommands(){
-    swerve.setDefaultCommand
-      (
+    // swerve.setDefaultCommand
+    //   (
         
-        run
-          (
-            ()-> 
-              swerve.teleopDefaultCommand(
-                driver::getRequestedChassisSpeeds,
-                true
-              )
-              ,
-              swerve
-          ).withName("Swerve Drive Command")
-      );
+    //     run
+    //       (
+    //         ()-> 
+    //           swerve.teleopDefaultCommand(
+    //             driver::getRequestedChassisSpeeds,
+    //             true
+    //           )
+    //           ,
+    //           swerve
+    //       ).withName("Swerve Drive Command")
+    //   );
     feeder.setDefaultCommand(feeder.openLoopSet(()-> 0));
     intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
