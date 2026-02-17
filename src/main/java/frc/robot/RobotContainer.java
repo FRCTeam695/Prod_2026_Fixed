@@ -10,7 +10,6 @@ import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -18,9 +17,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import com.ctre.phoenix6.SignalLogger;
 
-import edu.wpi.first.hal.SimDevice.Direction;
 import frc.robot.subsystems.*;
 
 
@@ -34,9 +31,9 @@ import frc.robot.subsystems.*;
 public class RobotContainer {
 
   public final RebuiltSwerve swerve;
-  public final ShooterConfig shooter1;
-  //public final ShooterConfig shooter2;
-  //public final ShooterConfig shooter3;
+  public final ShooterConfig shooter;
+  public final Hood bothActuators;
+
   //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
   SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -61,10 +58,8 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     swerve = new RebuiltSwerve(camNames, modules, reefTags);
-    shooter1 = new ShooterConfig(55);
-    /** different */
-    //shooter2 = new ShooterConfig(55);
-    //shooter3 = new ShooterConfig(52);
+    shooter = new ShooterConfig(55);
+    bothActuators = new Hood();
    
     scoringHeight = NetworkTableInstance.getDefault().getTable("sidecarTable").getIntegerTopic("scoringLevel").subscribe(1);
 
@@ -78,14 +73,12 @@ public class RobotContainer {
       
     SmartDashboard.putData(autoChooser);
 
-    //DataLogManager.start();
+    DataLogManager.start();
   }
 
   public Runnable getOdometryUpdater(){
     return swerve::updateOdometryWithKinematics;
   }
-
-
   
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
@@ -102,38 +95,16 @@ public class RobotContainer {
     driver.back().onTrue(swerve.resetGyro());
     driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
  
-    driver.a().whileTrue(
-      run(()-> {
-        shooter1.setAngularVel(20);
-      }, shooter1)
-    );
-    driver.b().whileTrue(
-      run(()-> {
-        shooter1.setAngularVel(40);
-      }, shooter1)
-    );
-    driver.x().whileTrue(
-      run(()-> {
-        shooter1.setAngularVel(60);
-      }, shooter1)
-    );
-    driver.y().whileTrue(
-      run(()-> {
-        shooter1.setAngularVel(80);
-      }, shooter1)
-    );
-    /* 
-    driver.a().whileTrue(shooter1.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    driver.b().whileTrue(shooter1.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    driver.x().whileTrue(shooter1.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    driver.y().whileTrue(shooter1.sysIdDynamic(SysIdRoutine.Direction.kReverse));
-    driver.rightBumper().onTrue(runOnce(() -> SignalLogger.start()));
-    driver.leftBumper().onTrue(runOnce(() -> SignalLogger.stop()));
-    */
+    // 53.433 - ???
+    driver.a().whileTrue(bothActuators.setActuatorDeg(65));
+    driver.b().whileTrue(bothActuators.setActuatorDeg(75));
+    driver.x().whileTrue(bothActuators.setActuatorDeg(85));
+    driver.y().whileTrue(run(() -> bothActuators.setDuty(-0.5)));
   }
 
   public void configureDefaultCommands(){
-    shooter1.setDefaultCommand(run(()-> shooter1.setAngularVel(0), shooter1));
+    shooter.setDefaultCommand(run(()-> shooter.setAngularVel(0), shooter));
+    bothActuators.setDefaultCommand(run(() -> bothActuators.setDuty(0), bothActuators));
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
     /*swerve.setDefaultCommand
       (
