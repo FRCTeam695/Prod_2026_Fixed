@@ -63,11 +63,11 @@ public class Feeder extends SubsystemBase {
     }
 
     public Command setVelocityMPS(DoubleSupplier MPS){
-        return setVelocity(
+        return setVelocityRPS(
             ()-> (1/metersPerRotationOfMotor*MPS.getAsDouble())
         );
     }
-    public Command setVelocity(DoubleSupplier rps){
+    public Command setVelocityRPS(DoubleSupplier rps){
         return run(()->{
         SmartDashboard.putNumber("Setpoint Vel", rps.getAsDouble() * metersPerRotationOfMotor);
         floorFeederMotor.setControl(velocitySetter.withVelocity(rps.getAsDouble()));

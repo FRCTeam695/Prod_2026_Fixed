@@ -26,8 +26,8 @@ public class Kicker extends SubsystemBase {
     // 1 motor Rotation       12 teeth         1 rot        1.625 inches (diameter)   pi (circumference)       1 meter
     // ----------------  *  ------------  *  ----------  *  ----------------------- * ------------------- * -------------
     //        1                1 rot          36 teeth               1 rot                1 diameter         39.37 inches
-    public final double surfaceMetersPerMotorRotation = 12.0 / 36.0 * 1.625 / 39.37;
-    public final double maxSpeedRPS = 100;
+    public final double surfaceMetersPerMotorRotation = 12.0 / 36.0 * 1.625 * Math.PI / 39.37;
+    public final double maxSpeedRPS = 100.;
 
     private final TalonFX motor;
 
@@ -39,12 +39,12 @@ public class Kicker extends SubsystemBase {
     final VoltageOut m_voltage;
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
-    private final NetworkTable feederTable = inst.getTable("Feeder");
+    private final NetworkTable feederTable = inst.getTable("Kicker");
 
-    private final DoublePublisher dutyCyclePub = feederTable.getDoubleTopic("Feeder Duty Cycle").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Feeder Set Point (Meters/Sec)").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher velocityPub = feederTable.getDoubleTopic("Feeder Current Velocity (Meters/Sec)").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher outputVoltagePub = feederTable.getDoubleTopic("Feeder Output Voltage (Volts)").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher dutyCyclePub = feederTable.getDoubleTopic("Kicker Duty Cycle").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Kicker Set Point (Meters Per Sec)").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher velocityPub = feederTable.getDoubleTopic("Kicker Current Velocity (Meters Per Sec)").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher outputVoltagePub = feederTable.getDoubleTopic("Kicker Output Voltage (Volts)").publish(PubSubOption.periodic(0.02));
 
     public Kicker() {
         motor = new TalonFX(51);
@@ -112,7 +112,7 @@ public class Kicker extends SubsystemBase {
         });
     }
 
-    public Command setdutyCycle(DoubleSupplier dutyCycle) {
+    public Command setDutyCycle(DoubleSupplier dutyCycle) {
         return run(() -> {
             motor.set(dutyCycle.getAsDouble());
         });

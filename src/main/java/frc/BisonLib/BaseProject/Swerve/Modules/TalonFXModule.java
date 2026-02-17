@@ -122,7 +122,7 @@ public class TalonFXModule{
 
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         config.CurrentLimits.StatorCurrentLimit = Constants.Swerve.STATOR_CURRENT_LIMIT;
-        config.CurrentLimits.SupplyCurrentLimit = Constants.Swerve.SUPPLY_CURRENT_LIMIT;
+        // config.CurrentLimits.SupplyCurrentLimit = Constants.Swerve.SUPPLY_CURRENT_LIMIT;
         config.CurrentLimits.SupplyCurrentLowerLimit = 40;
         config.CurrentLimits.SupplyCurrentLowerTime = 1;
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
