@@ -35,7 +35,6 @@ import java.util.function.DoubleSupplier;
 
 
 public class IntakePivot extends SubsystemBase {
-
     private TalonFX pivot;
 
     private MotionMagicVoltage motionMagicSetter;
@@ -71,7 +70,6 @@ public class IntakePivot extends SubsystemBase {
             dutyCycleSetter = new DutyCycleOut(0);
     
             pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees));
-            
             atSetpoint = new Trigger(
                 ()-> Units.rotationsToDegrees(motionMagicSetter.Position - pivot.getPosition().getValueAsDouble()) < pivotTolerance
             );
