@@ -6,9 +6,6 @@ package frc.robot;
 
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 
-// import frc.robot.Subsystems.CoralGripper2Motors;
-import frc.BisonLib.BaseProject.Swerve.SwerveBase;
-import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.robot.subsystems.IntakePivot;
 import frc.robot.subsystems.IntakeRoller;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -17,11 +14,9 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
-import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -94,6 +89,10 @@ public class RobotContainer {
     driver.x().onTrue(intakePivot.setPositionDegrees(30));
     driver.y().onTrue(intakePivot.setPositionDegrees(60));
     driver.a().onTrue(intakePivot.homePivot());
+
+    driver.b().whileTrue(
+      intakePivot.agitateCommand());
+
 
     //driver.a().whileTrue(roller_intake.setVelocityRPS(() -> driver.getLeftY() * m_intake.MAX_RPS));
 

@@ -17,6 +17,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
+import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -24,13 +25,17 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.util.*;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+
 import static edu.wpi.first.units.Units.Amps;
 
 import java.util.function.DoubleSupplier;
 
 
 public class IntakePivot extends SubsystemBase {
+
     private TalonFX pivot;
 
     private MotionMagicVoltage motionMagicSetter;
@@ -40,14 +45,20 @@ public class IntakePivot extends SubsystemBase {
     private static final double kPivotReduction = 46.4; //make into constant, amount of rotations for arm to loop once
 
     private NetworkTableInstance inst = NetworkTableInstance.getDefault();
-    private NetworkTable table = inst.getTable("Intake_Pivot");
+    private NetworkTable table = inst.getTable("Intake Pivot");
 
     private final DoublePublisher currentPositionDegreesPub = table.getDoubleTopic("Current Position Degrees").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher setpointPositionDegreesPub = table.getDoubleTopic("Setpoint Position Degrees").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
+    private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));;
 
-    private final double pivotRetractedPositionDegrees = 20.16 + 90;
-    private final double pivotExtendedPositionDegrees = -86.04 + 90;
+    public final double pivotRetractedPositionDegrees = 110.16;
+    public final double pivotExtendedPositionDegrees = 3.96;
+    public final double pivotAgitatePositionDegrees = 27.96;
+    public final Trigger atSetpoint;
+    private final double pivotTolerance = 5;
+    private final double stallCurrentLimit = 10;
+    private final double typicalCurrentLimit = 50;
 
         public IntakePivot() {
     
@@ -60,70 +71,132 @@ public class IntakePivot extends SubsystemBase {
             dutyCycleSetter = new DutyCycleOut(0);
     
             pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees));
+            
+            atSetpoint = new Trigger(
+                ()-> Units.rotationsToDegrees(motionMagicSetter.Position - pivot.getPosition().getValueAsDouble()) < pivotTolerance
+            );
         }
         
-    
         public void configurePivot() {
-        TalonFXConfiguration config = new TalonFXConfiguration()
-            .withMotorOutput(
-                new MotorOutputConfigs()
-                    .withInverted(InvertedValue.CounterClockwise_Positive)
-                    .withNeutralMode(NeutralModeValue.Brake)
-            )
-            .withCurrentLimits( //taken from WCP code
-                new CurrentLimitsConfigs()
-                .withStatorCurrentLimit(Amps.of(50))//was 120
-                .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(30)) //was 70
-                .withSupplyCurrentLimitEnable(true)
-            )
-            .withFeedback(
-                new FeedbackConfigs()
-                .withFeedbackSensorSource(FeedbackSensorSourceValue.RotorSensor)
-                .withSensorToMechanismRatio(kPivotReduction)
-            )
-            .withMotionMagic(
-                new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(Units.degreesToRotations(300)) //NEEDS TO BE CHANGED, copied from Goldfish elevator
-                .withMotionMagicAcceleration(Units.degreesToRotations(300)) //NEEDS TO BE CHANGED, copied from Goldfish elevator
-            )
-            .withSlot0(
-                new Slot0Configs()
-                .withKP(10) //NEED TO CHANGE
-                .withKI(0) //NEED TO CHANGE (add kd and kv if needed)
-                .withKV(5.51)
-                .withKG(0.3)
-                .withKS(0.06)
-                .withKA(0.11)
-                .withGravityType(GravityTypeValue.Arm_Cosine)
-                .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseVelocitySign)
+            TalonFXConfiguration config = new TalonFXConfiguration()
+                .withMotorOutput(
+                    new MotorOutputConfigs()
+                        .withInverted(InvertedValue.CounterClockwise_Positive)
+                        .withNeutralMode(NeutralModeValue.Brake)
+                )
+                .withCurrentLimits( //taken from WCP code
+                    new CurrentLimitsConfigs()
+                    .withStatorCurrentLimit(Amps.of(typicalCurrentLimit))//was 120
+                    .withStatorCurrentLimitEnable(true)
+                    .withSupplyCurrentLimit(Amps.of(30)) //was 70
+                    .withSupplyCurrentLimitEnable(true)
+                )
+                .withFeedback(
+                    new FeedbackConfigs()
+                    .withFeedbackSensorSource(FeedbackSensorSourceValue.RotorSensor)
+                    .withSensorToMechanismRatio(kPivotReduction)
+                )
+                .withMotionMagic(
+                    new MotionMagicConfigs()
+                    .withMotionMagicCruiseVelocity(Units.degreesToRotations(300)) //NEEDS TO BE CHANGED, copied from Goldfish elevator
+                    .withMotionMagicAcceleration(Units.degreesToRotations(300)) //NEEDS TO BE CHANGED, copied from Goldfish elevator
+                )
+                .withSlot0(
+                    new Slot0Configs()
+                    .withKP(10) //NEED TO CHANGE
+                    .withKI(0) //NEED TO CHANGE (add kd and kv if needed)
+                    .withKV(5.51)
+                    .withKG(0.3)
+                    .withKS(0.06)
+                    .withKA(0.11)
+                    .withGravityType(GravityTypeValue.Arm_Cosine)
+                    .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseVelocitySign)
+                ).withSoftwareLimitSwitch(
+                    new SoftwareLimitSwitchConfigs()
+                    .withForwardSoftLimitThreshold(Units.degreesToRotations(pivotRetractedPositionDegrees))
+                    .withReverseSoftLimitThreshold(Units.degreesToRotations(pivotExtendedPositionDegrees))
+                    .withForwardSoftLimitEnable(true)
+                    .withReverseSoftLimitEnable(true)
+                );
+            pivot.getConfigurator().apply(config);
+        }
 
-                // kg + ks = 0.28 V
-                // kg - ks = 0.2 V
-
-                // ks = 0.04, kg = 0.24
-
-            ).withSoftwareLimitSwitch(
-                new SoftwareLimitSwitchConfigs()
-                .withForwardSoftLimitThreshold(Units.degreesToRotations(pivotRetractedPositionDegrees))
-                .withReverseSoftLimitThreshold(Units.degreesToRotations(pivotExtendedPositionDegrees))
-                .withForwardSoftLimitEnable(true)
-                .withReverseSoftLimitEnable(true)
+        public Command setPositionDegrees(double angleDegrees) {
+            return run(
+                () -> {
+                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(angleDegrees)));
+                }
             );
-        pivot.getConfigurator().apply(config);
+        }
 
+        public Command setDutyCycle(DoubleSupplier velocity) {
+            return run(
+                () -> {
+                    pivot.set(velocity.getAsDouble());
+                }
+            );
+        }
+
+    public Command stallIntoBumper(){
+        return 
+            runOnce
+                (
+                    ()-> {
+                        var talonFXConfigurator = pivot.getConfigurator();
+                        var limitConfigs = new CurrentLimitsConfigs();
+
+                        limitConfigs.StatorCurrentLimit = stallCurrentLimit;
+                        limitConfigs.StatorCurrentLimitEnable = true;
+
+                        talonFXConfigurator.apply(limitConfigs);
+                    }
+                ).andThen
+            (run
+                (
+                    ()-> {
+                        pivot.setControl(
+                            dutyCycleSetter.withOutput(-0.05)
+                        );
+                    }
+                )
+            ).handleInterrupt
+                (
+                    ()-> {
+                        var talonFXConfigurator = pivot.getConfigurator();
+                        var limitConfigs = new CurrentLimitsConfigs();
+
+                        limitConfigs.StatorCurrentLimit = typicalCurrentLimit;
+                        limitConfigs.StatorCurrentLimitEnable = true;
+
+                        talonFXConfigurator.apply(limitConfigs);
+                    }
+                );
     }
 
-    public Command setPositionDegrees(double angleDegrees) {
-        return run(() -> pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(angleDegrees))));
-    }
-
-    public Command setDutyCycle(DoubleSupplier velocity) {
-        return run(() -> pivot.set(velocity.getAsDouble()));
+    /*
+     * Moves the intake up and down to prevent fuel from getting stuck in a full hopper
+     */
+    public Command agitateCommand(){
+        return run(() -> 
+            Commands.sequence(
+                runOnce(() -> setPositionDegrees(pivotAgitatePositionDegrees)),
+                Commands.waitUntil(() -> atSetpoint.getAsBoolean()),
+                runOnce(() -> setPositionDegrees(pivotExtendedPositionDegrees)),
+                Commands.waitUntil(() -> atSetpoint.getAsBoolean())
+            )
+            .repeatedly()
+        )
+        .handleInterrupt(() -> {
+            stallIntoBumper();
+        });
     }
 
     public Command setVoltage(DoubleSupplier voltage){
-        return run(() -> pivot.setControl(voltageSetter.withOutput(voltage.getAsDouble())));
+        return run(
+            () -> {
+                pivot.setControl(voltageSetter.withOutput(voltage.getAsDouble()));
+            }
+        );
     }
 
     public Command homePivot(){
@@ -155,5 +228,6 @@ public class IntakePivot extends SubsystemBase {
         currentPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()));
         setpointPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getClosedLoopReference().getValueAsDouble()));
         dutyCyclePub.set(pivot.getDutyCycle().getValueAsDouble());
+        atSetpointPub.set(atSetpoint.getAsBoolean());
     }
 }
