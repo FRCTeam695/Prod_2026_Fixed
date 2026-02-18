@@ -30,7 +30,7 @@ public class RobotContainer {
   private final IntakePivot pivot;
 
 
-  SendableChooser<Command> autoChooser = new SendableChooser<>();
+  private SendableChooser<Command> autoChooser = new SendableChooser<>();
   SOTMSetpointGenerator shooterInterpolationMap;
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
