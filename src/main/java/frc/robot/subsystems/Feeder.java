@@ -1,10 +1,12 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.*;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.Command;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
-import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -16,125 +18,89 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
+
+import edu.wpi.first.networktables.DoublePublisher;
+
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import static edu.wpi.first.units.Units.RPM;
+import java.util.function.DoubleSupplier;
 import java.util.function.DoubleSupplier;
 
 public class Feeder extends SubsystemBase {
-
-    // 1 motor Rotation       12 teeth         1 rot        1.625 inches (diameter)   pi (circumference)       1 meter
-    // ----------------  *  ------------  *  ----------  *  ----------------------- * ------------------- * -------------
-    //        1                1 rot          36 teeth               1 rot                1 diameter         39.37 inches
-    public final double surfaceMetersPerMotorRotation = 12.0 / 36.0 * 1.625 / 39.37;
-    public final double maxSpeedRPS = 100;
-
-    private final TalonFX motor;
-
-    private final DutyCycleOut dutyCycleRequest = new DutyCycleOut(0);
-
-    private final double kMaxRPM = 6000.0;
-
-    final VelocityVoltage m_velocity;
-    final VoltageOut m_voltage;
+    
+    public TalonFX floorFeederMotor;
+    
+    private final DutyCycleOut dutyCycleOut = new DutyCycleOut(0);
+    private final VelocityVoltage velocitySetter = new VelocityVoltage(0);
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable feederTable = inst.getTable("Feeder");
 
-    private final DoublePublisher dutyCyclePub = feederTable.getDoubleTopic("Feeder Duty Cycle").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Feeder Set Point (Meters/Sec)").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher velocityPub = feederTable.getDoubleTopic("Feeder Current Velocity (Meters/Sec)").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher outputVoltagePub = feederTable.getDoubleTopic("Feeder Output Voltage (Volts)").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher mpsPub = feederTable.getDoubleTopic("Velocity Meters Per Second").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher dutyCycleOutPub = feederTable.getDoubleTopic("DutyCycleOut").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher voltagePub = feederTable.getDoubleTopic("Voltage").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
 
-    public Feeder() {
-        motor = new TalonFX(51);
+    public static final double metersPerRotationOfMotor = ((12/36.)*30*5)/1000.;
+    //1st pulley on motor = 12 teeth
+    //2nd pulley on shaft = 36 teeth
+    //3rd pulley on same shaft = 30 teeth
+    //5mm belt pitch
+    //mm to meters  = 25.4/1
 
-        final TalonFXConfiguration config = new TalonFXConfiguration()
-                .withMotorOutput(new MotorOutputConfigs()
-                        .withInverted(InvertedValue.CounterClockwise_Positive)
-                        .withNeutralMode(NeutralModeValue.Coast))
-                .withCurrentLimits(new CurrentLimitsConfigs()
-                        .withStatorCurrentLimit(Amps.of(120))
-                        .withSupplyCurrentLimit(40)
-                        .withSupplyCurrentLimitEnable(true)
-                        .withStatorCurrentLimitEnable(true));
+    public Feeder(){
+        
+        floorFeederMotor = new TalonFX(56);
+        TalonFXConfigurator configurator = floorFeederMotor.getConfigurator();
+    
+        Slot0Configs slot0 = new Slot0Configs();
+        slot0.kP = 0;
+        slot0.kS = 0.23;
+        slot0.kV = 0.12;
 
-        motor.getConfigurator().apply(config);
-        SmartDashboard.putData(this);
+        CurrentLimitsConfigs currentLimitsConfigs = new CurrentLimitsConfigs();
+        currentLimitsConfigs.StatorCurrentLimit = 120;
+        currentLimitsConfigs.SupplyCurrentLimit = 40;
+        currentLimitsConfigs.StatorCurrentLimitEnable = true;
+        currentLimitsConfigs.SupplyCurrentLimitEnable = true;
+        configurator.apply(currentLimitsConfigs);
+        
+        configurator.apply(slot0);
+        
+    }
+
+    public Command setVelocityMPS(DoubleSupplier MPS){
+        return setVelocityRPS(
+            ()-> (1/metersPerRotationOfMotor*MPS.getAsDouble())
+        );
+    }
+    public Command setVelocityRPS(DoubleSupplier rps){
+        return run(()->{
+        SmartDashboard.putNumber("Setpoint Vel", rps.getAsDouble() * metersPerRotationOfMotor);
+        floorFeederMotor.setControl(velocitySetter.withVelocity(rps.getAsDouble()));
+        });
+       
+    }
+
+    public Command openLoopSet(DoubleSupplier percentVbus){
+        return run(()->{
+            floorFeederMotor.setControl(dutyCycleOut.withOutput(percentVbus.getAsDouble()));
+        });
+    }
+
     
 
-        // class member variable
-        m_velocity = new VelocityVoltage(0);
-        m_voltage = new VoltageOut(0);
+    public void periodic(){
 
-        // robot init, set slot 0 gains
-        var slot0Configs = new Slot0Configs();
-        slot0Configs.kV = 9.8 / 83.5;
-        slot0Configs.kP = 0.3;
-        // slot0Configs.kI = 0.48;
-        // slot0Configs.kD = 0.01;
-        slot0Configs.kS = 0.2; //V
-        motor.getConfigurator().apply(slot0Configs, 0.050);
-    }
+        mpsPub.set(floorFeederMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
+        dutyCycleOutPub.set(floorFeederMotor.getDutyCycle().getValueAsDouble());
+        voltagePub.set(floorFeederMotor.getMotorVoltage().getValueAsDouble());  
+        setPointPub.set(floorFeederMotor.getClosedLoopReference(true).getValueAsDouble()*metersPerRotationOfMotor);
 
-    public void runBangBang(double targetRPM) {
-        double currentRPM = motor.getVelocity().getValue().in(RPM);
-
-        if (targetRPM > 50 && currentRPM < targetRPM) {
-            motor.setControl(dutyCycleRequest.withOutput(1.0));
-        } else {
-            stop();
-        }
-    }
-
-    public Command joystickBangBangCommand(DoubleSupplier speedSupplier) {
-        return run(() -> {
-            double target = Math.abs(speedSupplier.getAsDouble()) * kMaxRPM;
-            runBangBang(target);
-        }).withName("JoystickBangBang");
-    }
-
-    public double motorRotationsFromSurfaceMeters(double surfaceMeters) {
-        return surfaceMeters / surfaceMetersPerMotorRotation;
-    }
-
-    public double surfaceMetersFromMotorRotations(double motorRotations) {
-        return motorRotations * surfaceMetersPerMotorRotation;
-    }
-
-    public Command setVelocityMPS(DoubleSupplier velocityMPS) {
-        return setVelocityRPS(() -> motorRotationsFromSurfaceMeters(velocityMPS.getAsDouble()));
-    }
-
-    private Command setVelocityRPS(DoubleSupplier velocityRPS) {
-        return run(() -> {
-            motor.setControl(m_velocity.withVelocity(velocityRPS.getAsDouble()));
-        });
-    }
-
-    public Command setdutyCycle(DoubleSupplier dutyCycle) {
-        return run(() -> {
-            motor.set(dutyCycle.getAsDouble());
-        });
-    }
-
-    public Command setVoltage(DoubleSupplier voltage) {
-        return run(() -> {
-            motor.setControl(m_voltage.withOutput(voltage.getAsDouble()));
-        });
-    }
-
-    public Command stop() {
-        return runOnce(() -> {
-            motor.setControl(dutyCycleRequest.withOutput(0));
-        });
-    }
-
-    @Override
-    public void periodic() {
-        dutyCyclePub.set(motor.getDutyCycle().getValueAsDouble());
-        setPointPub.set(surfaceMetersFromMotorRotations(motor.getClosedLoopReference().getValueAsDouble()));
-        velocityPub.set(surfaceMetersFromMotorRotations(motor.getVelocity().getValueAsDouble()));
-        outputVoltagePub.set(motor.getMotorVoltage().getValueAsDouble());
+        SmartDashboard.putNumber("vel", floorFeederMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
     }
 }
