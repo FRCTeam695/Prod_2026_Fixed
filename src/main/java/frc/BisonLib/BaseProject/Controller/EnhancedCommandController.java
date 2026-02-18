@@ -161,14 +161,14 @@ public class EnhancedCommandController extends CommandXboxController{
             // SmartDashboard.putBoolean("isFlicked", isFlicked);
 
         // +Z is ccw
-        double Zj = -getSquaredRightStick();
+        double Zj = -getControllableRightStick();
 
 
         if(!isRedAlliance()){
             Xj *= -1;
             Yj *= -1;
         }
-        double db = 0.2;
+        double db = 0.05;
 
         Xj = MathUtil.applyDeadband(Xj, db);
         Yj = MathUtil.applyDeadband(Yj, db);
@@ -188,10 +188,9 @@ public class EnhancedCommandController extends CommandXboxController{
      * 
      * @return the squared right stick values
      */
-    public double getSquaredRightStick(){
-        double original = super.getRightX();
-        if(original > 0) return Math.pow(original, 2);
-        return Math.pow(original, 2) * -1;
+    public double getControllableRightStick(){
+        double original = super.getRightX() * 0.75;
+        return original;
     }
 
     /**
