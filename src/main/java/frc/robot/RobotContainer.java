@@ -7,15 +7,12 @@ package frc.robot;
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
-
-import frc.robot.subsystems.IntakePivot;
 import edu.wpi.first.wpilibj2.command.Command;
-
-import static edu.wpi.first.wpilibj2.command.Commands.*;
-
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+
 
 import com.ctre.phoenix6.signals.InvertedValue;
 
@@ -33,7 +30,7 @@ public class RobotContainer {
   private final IntakePivot pivot;
 
 
-  SendableChooser<Command> autoChooser = new SendableChooser<>();
+  private SendableChooser<Command> autoChooser = new SendableChooser<>();
   SOTMSetpointGenerator shooterInterpolationMap;
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
@@ -46,7 +43,6 @@ public class RobotContainer {
   };
   private final String[] camNames = {"limelight-shooter"};
   private static final EnhancedCommandController driver = new EnhancedCommandController(0);
-
 
 
 
@@ -86,7 +82,7 @@ public class RobotContainer {
     driver.back().onTrue(swerve.resetGyro());
 
     driver.leftTrigger(0.5).whileTrue(
-        pivot.setPositionDegrees(pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)
+        pivot.setPositionDegrees(pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)  
         .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
@@ -110,6 +106,10 @@ public class RobotContainer {
     driver.rightBumper().onTrue(
       pivot.homePivot()
     );
+
+    // fix later
+    driver.a().whileTrue(pivot.agitateCommand());
+    
   }
 
 

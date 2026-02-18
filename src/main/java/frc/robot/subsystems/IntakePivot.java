@@ -25,9 +25,9 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.util.*;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 import static edu.wpi.first.units.Units.Amps;
 
@@ -53,7 +53,7 @@ public class IntakePivot extends SubsystemBase {
 
     public final double pivotRetractedPositionDegrees = 110.16;
     public final double pivotExtendedPositionDegrees = 3.96;
-    public final double pivotAgitatePositionDegrees = 27.96;
+    public final double pivotAgitatePositionDegrees = 50;
     public final Trigger atSetpoint;
     private final double pivotTolerance = 5;
     private final double stallCurrentLimit = 10;
@@ -175,18 +175,16 @@ public class IntakePivot extends SubsystemBase {
      * Moves the intake up and down to prevent fuel from getting stuck in a full hopper
      */
     public Command agitateCommand(){
-        return run(() -> 
-            Commands.sequence(
-                runOnce(() -> setPositionDegrees(pivotAgitatePositionDegrees)),
-                Commands.waitUntil(() -> atSetpoint.getAsBoolean()),
-                runOnce(() -> setPositionDegrees(pivotExtendedPositionDegrees)),
-                Commands.waitUntil(() -> atSetpoint.getAsBoolean())
-            )
-            .repeatedly()
+         return
+        setPositionDegrees(pivotAgitatePositionDegrees)
+        .until(
+            atSetpoint.or(() -> pivot.getStatorCurrent().getValueAsDouble() > 20)
         )
-        .handleInterrupt(() -> {
-            stallIntoBumper();
-        });
+        .andThen(
+            setPositionDegrees(pivotExtendedPositionDegrees)
+        ).until(
+            atSetpoint
+        );
     }
 
     public Command setVoltage(DoubleSupplier voltage){
