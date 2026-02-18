@@ -15,11 +15,6 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     m_robotContainer = new RobotContainer();
 
-    Runnable odometryUpdater = m_robotContainer.getOdometryUpdater();
-
-    // Update odometry on a different thread for faster loop period.
-    // https://www.desmos.com/calculator/vdgebi9s4t
-    addPeriodic(odometryUpdater::run, 1.0/Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
   }
 
   @Override

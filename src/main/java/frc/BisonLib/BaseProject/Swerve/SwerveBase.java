@@ -38,6 +38,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.LimelightHelpers;
 import frc.robot.Constants;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 public class SwerveBase extends SubsystemBase {
 
@@ -129,7 +130,7 @@ public class SwerveBase extends SubsystemBase {
         this.validTagIDs = validTagIDs;
         tagDictionary = new HashMap<String, int[]>();
         addTagToDictionary("tagSet1", new int[] {7});
-        addTagToDictionary("tagSet2", new int[] {1});
+        addTagToDictionary("tagSet2", new int[] {8});
 
 
         pigeon = new Pigeon2(8, "drivetrain");
@@ -538,6 +539,76 @@ public class SwerveBase extends SubsystemBase {
     }
 
 
+    /*
+     * Calculates the circumference of the wheel by turning in place slowly
+     * 
+     * COMMENT OUT DRIVEBASE AND ODOMETRY CODE BEFORE RUNNING THIS
+     */
+    public Command runWheelCharacterization() {
+
+        /*
+         * wheel Base is the width or distance from one wheel to the next on the chassis
+         * let wheel base = w
+         * sqrt((w / 2)^2+(w/2)^2) = distance from wheel to center, or radius = sqrt2 *
+         * w/2
+         * multiply by 2 to get diameter --> d = sqrt2 * w
+         * multiply by pi to get circumference:
+         */
+
+        double oneRotation = Constants.Swerve.WHEEL_BASE_METERS * Math.PI * Math.sqrt(2);
+        backwardsResetGyro();
+        initialGyroAngle = pigeon.getAccumGyroZ().getValueAsDouble();
+        
+        return runOnce(() -> {
+            
+            // get each module in positions
+            // sets each motor to stop moving, and converts the module index (which quadrant
+            // relative to the chassis the motor is - 1) to degrees
+            // for (var mod : modules) {
+            //     mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
+            // }
+            
+        })
+        .andThen(waitSeconds(0.5))
+        .andThen(
+            deadline(
+                new WaitCommand(6),
+                run(() -> {
+                drive( new ChassisSpeeds(0.0,0.0,0.3),false,false);
+        }))).andThen(runOnce(() -> {
+            //stop motors
+            for (var mod : modules) {
+                mod.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45 + mod.index * 90)));
+            }
+
+        })).andThen(waitSeconds(1.0))
+        .andThen(runOnce(() -> {
+
+                double[] currentPositions = getRawDrivePositions();
+                double avg_calculated_wheel_circumference = 0;
+                //distance of one rotation * number of rotations based on gyro
+                double actual_distance_traveled =  oneRotation * Math.abs((pigeon.getAccumGyroZ().getValueAsDouble() - initialGyroAngle)/Constants.Swerve.GYRO_DRIFT_COMPENSATION) / 360;
+                for (var mod : modules) {
+
+                    //actual distance / wheel rotations = wheel circumference, because wheel circumference * number of rotations = linear distance the wheel travels
+                    //actual distance / (pi * wheel rotations (current rotations - original rotations) / gear ratio to account for motor spins per wheel spin)
+                    double new_circumference = actual_distance_traveled / 
+                    (Math.PI * (currentPositions[mod.index] - initialPositions[mod.index]) /((Constants.Swerve.DRIVING_GEAR_RATIO)));
+                    
+                    avg_calculated_wheel_circumference += Math.abs(new_circumference);
+
+                    SmartDashboard.putNumber("Actual Distance", actual_distance_traveled);
+                    SmartDashboard.putNumber("new circumference " + mod.index, new_circumference);
+                    SmartDashboard.putNumber("raw initial distance " + mod.index, initialPositions[mod.index]);
+                    SmartDashboard.putNumber("raw current distance " + mod.index, currentPositions[mod.index]);
+                    SmartDashboard.putNumber(mod.index + " calculated wheel circumference", Math.abs(new_circumference));
+                }
+                avg_calculated_wheel_circumference /= 4;
+                SmartDashboard.putNumber("Average Calculated Wheel Circumference", avg_calculated_wheel_circumference);
+            }));
+    }
+
+
     public Command requireSubsystem(){
         return new WaitCommand(0);
     }
@@ -871,6 +942,10 @@ public class SwerveBase extends SubsystemBase {
 
         m_field.setRobotPose(getSavedPose());
         SwerveModuleState[] modStates = getModuleStates();
+
+        SmartDashboard.putNumber("gyro x", pigeon.getAccumGyroX().getValueAsDouble());
+        SmartDashboard.putNumber("gyro y", pigeon.getAccumGyroY().getValueAsDouble());
+        SmartDashboard.putNumber("gyro z", pigeon.getAccumGyroZ().getValueAsDouble());
 
         SmartDashboard.putNumber("Module 1 Angle deg", modStates[0].angle.getDegrees());
         SmartDashboard.putNumber("Module 2 Angle deg", modStates[1].angle.getDegrees());

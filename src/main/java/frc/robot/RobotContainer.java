@@ -7,11 +7,16 @@ package frc.robot;
 import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
+import frc.robot.subsystems.Feeder;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+
+
+import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -65,8 +70,6 @@ public class RobotContainer {
 
     configureBindings();
     configureDefaultCommands();
-    configureDefaultCommands();
-
       
     SmartDashboard.putData(autoChooser);
 
@@ -79,33 +82,10 @@ public class RobotContainer {
 
 
   private void configureBindings() {
+ 
+    // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(swerve.resetGyro());
-
-    driver.leftTrigger(0.5).whileTrue(
-        pivot.setPositionDegrees(pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)
-        .andThen(
-          parallel(
-            pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setVelocityRPS(()-> 70)
-          )
-        )
-    );
-    driver.b().onTrue(pivot.setPositionDegrees(pivot.pivotRetractedPositionDegrees));
-
-    driver.rightTrigger().whileTrue(
-      tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5).withTimeout(3)
-      .andThen(
-        parallel(
-          kicker.setDutyCycle(()-> 1),
-          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5),
-          feeder.setVelocityMPS(()-> -2)
-        )
-      )
-    );
-
-    driver.rightBumper().onTrue(
-      pivot.homePivot()
-    );
+    driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
   }
 
 
