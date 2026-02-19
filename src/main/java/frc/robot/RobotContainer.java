@@ -109,13 +109,17 @@ public class RobotContainer {
       )
     );
 
+    driver.rightTrigger().whileTrue(
+      Swerve.turnTowardsClosestFuel(VisionManager::getClosestFuelFieldRelative, driver::getRequestedChassisSpeeds)
+    );
+
     //  driver.leftTrigger(0.5).whileTrue(
     //   Swerve.driveToBestFuel(
     //     ()-> VisionManager.getClosestFuelFieldRelative()
     //   )
     // );
 
-    driver.a().whileTrue(Swerve.viewFuel(()->VisionManager.getFuelList()));
+    driver.a().whileTrue(Swerve.viewFuel(()->VisionManager.getFuelList(), VisionManager::getClosestFuelFieldRelative));
 
   }
 

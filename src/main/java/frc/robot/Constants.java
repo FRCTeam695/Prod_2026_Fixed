@@ -135,7 +135,7 @@ public class Constants {
         public static final double TURN_WHEEL_KP = CHOSEN_CONSTANTS.turnWheelKP;
         public static final double TURN_WHEEL_KS = CHOSEN_CONSTANTS.turnWheelKS;
         public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
-        public static final double ROBOT_ROTATION_KP = 0.008;
+        public static final double ROBOT_ROTATION_KP = 0.006;
         public static final double MAX_WHEEL_ROTATIONAL_SPEED = CHOSEN_CONSTANTS.maxWheelRotationalSpeed;
         public static final double GYRO_DRIFT_COMPENSATION = CHOSEN_CONSTANTS.gyroDriftCompensation;
         public static final double SKEW_COMPENSATION_RATE = -0.07;
@@ -208,6 +208,7 @@ public class Constants {
         public static final double MOUNT_YAW_DIST = 0; //yaw used during distance to fuel calculations
         public static final double MOUNT_YAW_ANGLE = 0; //yaw used during angle to fuel calculations
         public static final double FUEL_HEIGHT = .075;
+
     }
     
 }

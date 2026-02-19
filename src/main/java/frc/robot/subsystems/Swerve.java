@@ -2,6 +2,9 @@ package frc.robot.subsystems;
 
 
 
+import static edu.wpi.first.units.Units.Rotation;
+
+import java.security.spec.ECPublicKeySpec;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -85,7 +88,7 @@ public class Swerve extends SwerveBase {
         });
     }
 
-     public Command viewFuel(Supplier<List<Translation2d>> fuelSupplier){
+     public Command viewFuel(Supplier<List<Translation2d>> fuelSupplier,Supplier<Optional<Translation2d>> closestFuel){
         return run( 
             () -> {
                 List<Translation2d> fuelList = fuelSupplier.get();
@@ -95,6 +98,13 @@ public class Swerve extends SwerveBase {
                 for (int i = fuelList.size(); i < 50; i++){
                     m_field.getObject("fuel " + i).setPose(new Pose2d(-10,-10, new Rotation2d()));
                 }
+
+                if(closestFuel.get().isPresent()){
+                    m_field.getObject("ClosestFuel").setPose(new Pose2d(closestFuel.get().get(), new Rotation2d(Math.PI/2)));
+                }else{
+                    m_field.getObject("ClosestFuel").setPose(new Pose2d(-10,-10, new Rotation2d()));
+                }
+        
             }).ignoringDisable(true);
     }
 
@@ -189,6 +199,28 @@ public class Swerve extends SwerveBase {
             .finallyDo(()->{
                 currentlyFullyAutonomous = false;
             });
+     }
+
+     public Command turnTowardsClosestFuel(Supplier<Optional<Translation2d>> closestFuelSupplier, Supplier<ChassisSpeeds> wantedSpeedSupplier){
+        return 
+            run(() -> {
+                Optional<Translation2d> closestFuelOptional = closestFuelSupplier.get();
+                if(closestFuelOptional.isPresent()){
+                    Translation2d closestFuel= closestFuelOptional.get();
+                    Translation2d robotTranslation = getSavedPose().getTranslation();
+                    
+                    double dx = closestFuel.getX() - robotTranslation.getX();
+                    double dy = closestFuel.getY() - robotTranslation.getY();
+                    double theta = Math.toDegrees(Math.atan2(dy,dx));
+
+                    ChassisSpeeds speeds = wantedSpeedSupplier.get();
+                    speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(theta);
+                    drive(speeds,true,true);
+                } else{
+                    drive(wantedSpeedSupplier.get(),true,true);
+                }
+            }
+            );
      }
 
       public void periodic(){

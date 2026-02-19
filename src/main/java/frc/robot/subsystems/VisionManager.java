@@ -75,15 +75,21 @@ public class VisionManager extends SubsystemBase {
     return Optional.of(fuelTranslationRobotRelative);
   }
 
-  public Optional<Translation2d> calculateClosestFuelFieldRelative(){
+  private Optional<Translation2d> calculateClosestFuelFieldRelative(){
     double minDistance = Double.MAX_VALUE;
     Optional<Translation2d> closestFuel = Optional.empty();
+    Translation2d robotTranslation = robotPoseSupplier.get().getTranslation();
     for (Translation2d fuel: fuelLocations){
+      fuel = fuel.minus(robotTranslation);
       double dist = fuel.getNorm();
       if ( minDistance > dist){
         closestFuel = Optional.of(fuel);
         minDistance = dist;
       }
+    }
+
+    if(closestFuel.isPresent()){
+      closestFuel = Optional.of(closestFuel.get().plus(robotTranslation));
     }
     // System.out.println(closestFuel.isEmpty());
     return closestFuel;
@@ -110,8 +116,8 @@ public class VisionManager extends SubsystemBase {
             fuelLocations.add(location_Optional.get());
           }
         }
-        closestFuel = calculateClosestFuelFieldRelative();
       }
+      closestFuel = calculateClosestFuelFieldRelative();
       SmartDashboard.putNumber("numFuelSeen",numFuelSeen);
       numFuelSeen = fuelLocations.size();
       if(closestFuel.isPresent()){
