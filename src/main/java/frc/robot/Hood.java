@@ -64,12 +64,13 @@ public class Hood extends SubsystemBase {
         r_actuator.set(r_vel);
         l_actuator.set(l_vel);
 
-        targetPosDeg.set(desiredHoodDeg(targetPos));
+        // networktables
+        targetPosDeg.set(hoodDeg("desired", targetPos));
     }
 
     /**  */
     public Command setActuatorDeg(double deg) {
-        return run(() -> setPosition(degToActUnit(deg)));
+        return run(() -> setPosition(degToActUnit(deg + hoodDeg("original hood deg", -1))));
     }
 
     /** Updates total len of actuator + extension length in mm */
@@ -77,34 +78,32 @@ public class Hood extends SubsystemBase {
         C_ActExtended = ACTLEN + r_analog.get() * ACT_TO_MM;
     }
 
-    public double currentHoodDeg() {
-        return 
-        Math.toDegrees(
-            Math.acos(
-                (Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) - Math.pow(C_ActExtended, 2)) 
-                / (2*A_HOODLEN*B_HYPOT)
-            )
-        );
-    }
+    public double hoodDeg(String type, double targetPos_mm) {
+        double temp = 0;
 
-    public double desiredHoodDeg(double targetPos_mm) {
-        return 
-        Math.toDegrees(
-            Math.acos(
-                (Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) - Math.pow(targetPos_mm + ACTLEN, 2)) 
-                / (2*A_HOODLEN*B_HYPOT)
+        // switches which angle we're calculating
+        switch (type) {
+            case "current":
+                temp = C_ActExtended;
+                break;
+            case "desired":
+                temp = targetPos_mm + ACTLEN;
+                break;
+            default:
+                temp = ACTLEN;
+        }
+
+        return Math.toDegrees(Math.acos(
+                (Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) - Math.pow(temp, 2)) / (2*A_HOODLEN*B_HYPOT)
             )
         );
     }
 
     public double degToActUnit(double deg) {
-        double num = Math.sqrt(
-            Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2)
-            - (2*A_HOODLEN*B_HYPOT*Math.cos(Math.toRadians(deg)))
-        ) - ACTLEN;
-        num = num / ACT_TO_MM;
-        SmartDashboard.putNumber("deg to actuator", num);
-        return num;
+        return (Math.sqrt(
+                Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) - (2*A_HOODLEN*B_HYPOT*Math.cos(Math.toRadians(deg)))
+            ) - ACTLEN
+        ) / ACT_TO_MM;
     }
 
     public void setDuty(double duty) {
@@ -119,10 +118,10 @@ public class Hood extends SubsystemBase {
     // Networktables
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable hoodTable = inst.getTable("Hood");
-    private final DoublePublisher r_currentPosRot = hoodTable.getDoubleTopic("Right current Position (Rot)").publish();
-    private final DoublePublisher l_currentPosRot = hoodTable.getDoubleTopic("Left current Position (Rot)").publish();
+    private final DoublePublisher r_currentRot = hoodTable.getDoubleTopic("Right current Position (Rot)").publish();
+    private final DoublePublisher l_currentRot = hoodTable.getDoubleTopic("Left current Position (Rot)").publish();
 
-    private final DoublePublisher currentPosDeg = hoodTable.getDoubleTopic("Current deg on hood").publish();
+    private final DoublePublisher currentHoodDeg = hoodTable.getDoubleTopic("Current deg on hood").publish();
     private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
     private final DoublePublisher r_voltageApplied = hoodTable.getDoubleTopic("Voltage applied r").publish();
     private final DoublePublisher l_voltageApplied = hoodTable.getDoubleTopic("Voltage applied l").publish();
@@ -130,9 +129,9 @@ public class Hood extends SubsystemBase {
     @Override
     public void periodic() {
         updateActuatorLength(); //mm
-        r_currentPosRot.set(r_analog.get());
-        l_currentPosRot.set(l_analog.get());
-        currentPosDeg.set(currentHoodDeg());
+        r_currentRot.set(r_analog.get());
+        l_currentRot.set(l_analog.get());
+        currentHoodDeg.set(hoodDeg("current", -1));
         r_voltageApplied.set(r_actuator.getVoltage());
         l_voltageApplied.set(l_actuator.getVoltage());
         SmartDashboard.putNumber("Actuator duty cycle", r_actuator.get());

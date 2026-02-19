@@ -95,10 +95,10 @@ public class RobotContainer {
     driver.back().onTrue(swerve.resetGyro());
     driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
  
-    // 53.433 - ???
-    driver.a().whileTrue(bothActuators.setActuatorDeg(65));
-    driver.b().whileTrue(bothActuators.setActuatorDeg(75));
-    driver.x().whileTrue(bothActuators.setActuatorDeg(85));
+    // 0 - ???
+    driver.a().whileTrue(bothActuators.setActuatorDeg(10));
+    driver.b().whileTrue(bothActuators.setActuatorDeg(20));
+    driver.x().whileTrue(bothActuators.setActuatorDeg(30));
     driver.y().whileTrue(run(() -> bothActuators.setDuty(-0.5)));
   }
 
