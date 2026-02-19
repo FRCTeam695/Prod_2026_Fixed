@@ -22,7 +22,7 @@ import frc.robot.subsystems.IndividualShooter.ShooterMiniConfig;
 
 public class RobotContainer {
 
-  private final RebuiltSwerve swerve;
+  // private final RebuiltSwerve swerve;
   private final Feeder feeder;
   private final IntakeRollers intakeRollers;
   private final Kicker kicker;
@@ -34,20 +34,20 @@ public class RobotContainer {
   SOTMSetpointGenerator shooterInterpolationMap;
   public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
 
-  private final TalonFXModule[] modules = new TalonFXModule[]
-  {
-    new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
-    new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
-    new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
-    new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3),
-  };
+  // private final TalonFXModule[] modules = new TalonFXModule[]
+  // {
+  //   new TalonFXModule(Constants.Swerve.FRONT_RIGHT_DRIVE_ID, Constants.Swerve.FRONT_RIGHT_TURN_ID, Constants.Swerve.FRONT_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_RIGHT_CANCODER_ID, 0),
+  //   new TalonFXModule(Constants.Swerve.FRONT_LEFT_DRIVE_ID, Constants.Swerve.FRONT_LEFT_TURN_ID, Constants.Swerve.FRONT_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.FRONT_LEFT_CANCODER_ID, 1),
+  //   new TalonFXModule(Constants.Swerve.BACK_LEFT_DRIVE_ID, Constants.Swerve.BACK_LEFT_TURN_ID, Constants.Swerve.BACK_LEFT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_LEFT_CANCODER_ID, 2),
+  //   new TalonFXModule(Constants.Swerve.BACK_RIGHT_DRIVE_ID, Constants.Swerve.BACK_RIGHT_TURN_ID, Constants.Swerve.BACK_RIGHT_ABS_ENCODER_OFFSET_ROTATIONS, Constants.Swerve.BACK_RIGHT_CANCODER_ID, 3),
+  // };
   private final String[] camNames = {"limelight-shooter"};
   private static final EnhancedCommandController driver = new EnhancedCommandController(0);
 
 
 
   public RobotContainer() {
-    swerve = new RebuiltSwerve(camNames, modules, reefTags);
+    // swerve = new RebuiltSwerve(camNames, modules, reefTags);
     feeder = new Feeder();
     intakeRollers = new IntakeRollers();
     kicker = new Kicker();
@@ -59,8 +59,8 @@ public class RobotContainer {
     pivot = new IntakePivot();
 
 
-    SmartDashboard.putData("Swerve Subsystem", swerve);
-    shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
+    // SmartDashboard.putData("Swerve Subsystem", swerve);
+    // shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
 
 
     configureBindings();
@@ -73,16 +73,16 @@ public class RobotContainer {
     DataLogManager.start();
   }
 
-  public Runnable getOdometryUpdater(){
-    return swerve::updateOdometryWithKinematics;
-  }
+  // public Runnable getOdometryUpdater(){
+  //   return swerve::updateOdometryWithKinematics;
+  // }
 
 
   private void configureBindings() {
-    driver.back().onTrue(swerve.resetGyro());
+    // driver.back().onTrue(swerve.resetGyro());
 
     driver.leftTrigger(0.5).whileTrue(
-        pivot.setPositionDegrees(pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)  
+        pivot.setPositionDegrees(() -> pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)  
         .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
@@ -90,7 +90,7 @@ public class RobotContainer {
           )
         )
     );
-    driver.b().onTrue(pivot.setPositionDegrees(pivot.pivotRetractedPositionDegrees));
+    driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
 
     driver.rightTrigger().whileTrue(
       tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5).withTimeout(3)
@@ -104,15 +104,13 @@ public class RobotContainer {
     );
 
     driver.rightBumper().onTrue(
-      pivot.homePivot()
+      pivot.homePivotToRetracted()
     );
 
-    // fix later
-    driver.a().whileTrue(pivot.agitateCommand());
+    // update with agitate commands when testing
+    driver.a().whileTrue(pivot.agitateWithIntervals());
     
   }
-
-
 
   public void configureDefaultCommands(){
     // swerve.setDefaultCommand
