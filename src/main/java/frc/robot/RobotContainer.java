@@ -94,16 +94,16 @@ public class RobotContainer {
     // make sure you gyro reset by aligning with the reef, not eyeballing it
     driver.back().onTrue(swerve.resetGyro());
     driver.leftTrigger().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds));
- 
-    // 0 - ???
-    driver.a().whileTrue(bothActuators.setActuatorDeg(10));
-    driver.b().whileTrue(bothActuators.setActuatorDeg(20));
-    driver.x().whileTrue(bothActuators.setActuatorDeg(30));
-    driver.y().whileTrue(run(() -> bothActuators.setDuty(-0.5)));
+
+    driver.a().whileTrue(shooter.runTorqueCurrent(40));
+    driver.b().whileTrue(shooter.runTorqueCurrent(80));    
+    driver.x().whileTrue(shooter.runBangBangDuty(40));
+    driver.y().whileTrue(shooter.runBangBangDuty(80));    
+
   }
 
   public void configureDefaultCommands(){
-    shooter.setDefaultCommand(run(()-> shooter.setAngularVel(0), shooter));
+    shooter.setDefaultCommand(run(()-> shooter.stop(), shooter));
     bothActuators.setDefaultCommand(run(() -> bothActuators.setDuty(0), bothActuators));
     // This is the Swerve subsystem default command, this allows the driver to drive the robot
     /*swerve.setDefaultCommand

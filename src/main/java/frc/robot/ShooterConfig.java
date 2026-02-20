@@ -2,12 +2,16 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.Volts;
 
+import java.io.ObjectInputFilter.Config;
 import java.util.function.BooleanSupplier;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.TorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VelocityDutyCycle;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -15,7 +19,6 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 
-import edu.wpi.first.math.controller.BangBangController;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -23,114 +26,56 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 public class ShooterConfig extends SubsystemBase{
 
-    private TalonFX talonFX; //ID?
-    private TalonFXConfiguration talonFXconfigs;
-    private VelocityVoltage request;
-    private VoltageOut voltReq; // Only for SysID
+    private TalonFX talonFX;
+    private TalonFXConfiguration configs;
 
-    private DutyCycleOut duty;
-    private BangBangController bangBangController;
-    private boolean reachedSetpoint;
+    private VelocityDutyCycle dutyRequest;
+    private VelocityTorqueCurrentFOC torqueCurrentRequest;
+    private VelocityVoltage voltageRequest;
 
     public ShooterConfig(int ID) {
-        //54 is inverted!!!!!!!!!!
         // Talon controls
-        talonFX = new TalonFX(ID);
-        talonFXconfigs = new TalonFXConfiguration();
-        request = new VelocityVoltage(0);
-        talonFX.setControl(request.withUpdateFreqHz(50));
-        voltReq = new VoltageOut(0.0);
+        talonFX = new TalonFX(15);
+        configs = new TalonFXConfiguration();
 
-        // control types
-        duty = new DutyCycleOut(0);
-        bangBangController = new BangBangController();
-        
-        // INVERSION CHECK!!!!!!!
-        if (ID == 54)
-            talonFXconfigs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
-        else
-            talonFXconfigs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
+        // bangbang control types
+        dutyRequest = new VelocityDutyCycle(0);
+        torqueCurrentRequest = new VelocityTorqueCurrentFOC(0);
+        voltageRequest = new VelocityVoltage(0);
 
         // Limits and modes 
-        talonFXconfigs.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-        talonFXconfigs.CurrentLimits.SupplyCurrentLimitEnable = true;
-        talonFXconfigs.CurrentLimits.SupplyCurrentLimit = 40;
+        configs.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        configs.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
 
-        Slot0Configs slot0 = talonFXconfigs.Slot0;
-        // Gains
-        if (ID == 54) {
-            slot0.kS = 0.11821;
-            slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
-            slot0.kV = 0.115;
-            slot0.kA = 0.012983;
-            slot0.kP = 0.14362; 
-        } else if (ID == 52) {
-            slot0.kS = 0.14611;
-            slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
-            slot0.kV = 0.116;
-            slot0.kA = 0.013726;
-            slot0.kP = 0.076057; 
-        } else {
-            slot0.kS = 0.12779;
-            slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
-            slot0.kV = 0.1145;
-            slot0.kA = 0.012318;
-            slot0.kP = 0.060303; 
-        }
+        configs.CurrentLimits.SupplyCurrentLimitEnable = true;
+        configs.CurrentLimits.SupplyCurrentLimit = 40;
+
+        configs.Slot0.kP = 999999.0;
+        
+        // Bang bang voltage use in startup and recovery
+        // Bang bang current-torque control in idle and ball mode
+        configs.TorqueCurrent.PeakForwardTorqueCurrent = 40.0;
+        configs.TorqueCurrent.PeakReverseTorqueCurrent = 0.0;
+        configs.MotorOutput.PeakForwardDutyCycle = 1.0;
+        configs.MotorOutput.PeakReverseDutyCycle = 0.0;
 
         // Applying configs
-        talonFX.getConfigurator().apply(talonFXconfigs);
-
+        talonFX.getConfigurator().apply(configs);
         talonFX.setPosition(0); //reset position
-
-        reachedSetpoint = false;
     }
 
-    /** units of rot/s */
-    public void setAngularVel(double vel) {
-        talonFX.setControl(request.withVelocity(vel)); //rot/sec
-        // setpoint changes
-        reachedSetpoint = false;
-    }
-    
-    public boolean rpmWithin(double error) {
-        double target = talonFX.getClosedLoopReference().getValueAsDouble();
-        double current = talonFX.getVelocity().getValueAsDouble();
-
-        if (Math.abs(target) < 1e-6) return false; // avoid divide by zero
-
-        double relativeError = Math.abs(current - target) / Math.abs(target);
-        if (relativeError < error) reachedSetpoint = true;
-
-        return relativeError < error && reachedSetpoint;
+    public Command runTorqueCurrent(double rpm) {
+        return runOnce(() -> talonFX.setControl(dutyRequest.withVelocity(rpm)));
     }
 
-    // SysID
-    private SysIdRoutine sysIdRoutine = new SysIdRoutine(
-        new SysIdRoutine.Config(
-            null, // Default ramp rate (1V/s)
-            Volts.of(4), // Reduce dynamic step voltage to 4 to prevent brownout
-            null, // Default timeout (10s)
-
-            (state) -> SignalLogger.writeString("State", state.toString())
-        ), 
-        new SysIdRoutine.Mechanism(
-            (volts) -> talonFX.setControl(voltReq.withOutput(volts.in(Volts))),
-            null, // Left null when using a signal logger
-            this
-        )
-    );
-
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return sysIdRoutine.quasistatic(direction);
+    public Command runBangBangDuty(double rpm) {
+        return runOnce(() -> talonFX.setControl(torqueCurrentRequest.withVelocity(rpm)));
     }
-
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return sysIdRoutine.dynamic(direction);
+    public Command stop() {
+        return runOnce(() -> talonFX.setControl(voltageRequest.withVelocity(0)));
     }
 
     // 50Hz NetworkTable variables
@@ -152,16 +97,10 @@ public class ShooterConfig extends SubsystemBase{
         double targetrpm = talonFX.getClosedLoopReference().getValueAsDouble();
         double currentrpm = talonFX.getVelocity().getValueAsDouble();
 
-        // within 0.67% rpm of error
-        if (rpmWithin(0.0067)) {
-            double output = bangBangController.calculate(currentrpm, targetrpm);
-            talonFX.setControl(duty.withOutput(output));
-        } else talonFX.setControl(request.withVelocity(targetrpm));
-
         // Field variable outputs
         // Velocity
-        if (talonFX.getDeviceID() == 55) {
-        currentRpm.set(targetrpm*60);
+        if (talonFX.getDeviceID() == 15) {
+        currentRpm.set(currentrpm*60);
         targetRpm.set(targetrpm*60);
         rpmDiff.set((currentrpm - targetrpm)*60);
         // Acceleration
@@ -171,3 +110,27 @@ public class ShooterConfig extends SubsystemBase{
         }
     }
 }
+
+// CONSTANTS
+/*
+ * // Gains
+        if (ID == 54) {
+            slot0.kS = 0.11821;
+            slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
+            slot0.kV = 0.115;
+            slot0.kA = 0.012983;
+            slot0.kP = 0.14362; 
+        } else if (ID == 52) {
+            slot0.kS = 0.14611;
+            slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
+            slot0.kV = 0.116;
+            slot0.kA = 0.013726;
+            slot0.kP = 0.076057; 
+        } else {
+            slot0.kS = 0.12779;
+            slot0.StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign;
+            slot0.kV = 0.1145;
+            slot0.kA = 0.012318;
+            slot0.kP = 0.060303; 
+        }
+ */
