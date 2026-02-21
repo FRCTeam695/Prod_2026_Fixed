@@ -49,16 +49,16 @@ public class IntakePivot extends SubsystemBase {
     private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));;
 
     public final double pivotRetractedPositionDegrees = 110.16;
-    public final double pivotExtendedPositionDegrees = 3.96;
+    public final double pivotExtendedPositionDegrees = 5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
     public final double pivotAgitatePositionDegrees = 50;
 
-    public final Trigger atSetpoint;
+    public final Trigger withinTolerance;
     public final Trigger statorOverThreshold;
     public final Trigger velocityAtZero;
 
     private final double pivotTolerance = 5;
     private final double typicalCurrentLimit = 50;
-    private final double agitateDegreeError = 20;
+    private final double agitateDegreeError = 10;
     private final double statorAmpLimit = 20;
 
 
@@ -75,7 +75,7 @@ public class IntakePivot extends SubsystemBase {
             pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees));
             motionMagicSetter.withPosition(pivotExtendedPositionDegrees);
 
-            atSetpoint = new Trigger(
+            withinTolerance = new Trigger(
                 ()-> Math.abs(Units.rotationsToDegrees(motionMagicSetter.Position - pivot.getPosition().getValueAsDouble())) < pivotTolerance
             );
 
@@ -148,18 +148,25 @@ public class IntakePivot extends SubsystemBase {
                 )
                 .andThen(new ConditionalCommand(
                     // if intake has enough room to move backwards, send it back by agitateDegreeError
-                    run (()-> {
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(agitateDegreeError)));
-                    }).until(atSetpoint),
+                    goToPositionDegreesWithCondition(pivot.getPosition().getValueAsDouble() - agitateDegreeError, withinTolerance),
 
                     // if intake doesn't have enough room to move backwards by agitateDegreeError, return to extended position
-                    run (()-> {
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(pivotExtendedPositionDegrees)));
-                    }).until(atSetpoint),
+                    goToPositionDegreesWithCondition(pivotExtendedPositionDegrees, withinTolerance),
                     
-                    () -> Units.rotationsToDegrees(Math.abs(pivot.getPosition().getValueAsDouble()) - agitateDegreeError) > 0
+                    () -> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > agitateDegreeError
                 )))
                 .repeatedly();        
+        }
+
+        public Command goToPositionDegreesWithCondition(double degrees, Trigger condition){
+            return runOnce(()-> {
+                pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(degrees)));
+            })
+            .andThen(
+                run(()-> {
+                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(degrees)));
+                }).until(condition)
+            );
         }
 
 
@@ -201,7 +208,6 @@ public class IntakePivot extends SubsystemBase {
     public Command setPivotStartingPositionToExtended(){
         return runOnce( () -> {
             pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees));
-            motionMagicSetter.withPosition(pivotExtendedPositionDegrees);
          });
     }
    
@@ -214,7 +220,7 @@ public class IntakePivot extends SubsystemBase {
         currentPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()));
         setpointPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getClosedLoopReference().getValueAsDouble()));
         dutyCyclePub.set(pivot.getDutyCycle().getValueAsDouble());
-        atSetpointPub.set(atSetpoint.getAsBoolean());
+        atSetpointPub.set(withinTolerance.getAsBoolean());
 
         SmartDashboard.putBoolean("Stator Current Trigger", statorOverThreshold.getAsBoolean());
     }

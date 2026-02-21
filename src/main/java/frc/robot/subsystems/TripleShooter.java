@@ -35,6 +35,22 @@ public class TripleShooter extends SubsystemBase{
         );
     }
 
+    public Command setVelocityMPSWithCondition(DoubleSupplier velocityMPS, Trigger condition){
+        return runOnce(
+            ()-> {
+                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+            }
+        ).andThen(
+            run(()-> {
+                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+            }).until(condition)
+        );
+    }
+
     public Command setDutyCycle(DoubleSupplier percentVbus){
         return run(
             ()-> {

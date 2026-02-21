@@ -36,6 +36,7 @@ public class IndividualShooter {
     private final double unitConversionFactor;
 
     public IndividualShooter(ShooterMiniConfig miniConfig, double unitConversionFactor){
+        //12/20*pi*1.475/39.37
         motor = new TalonFX(miniConfig.id, "rio");
         configureMotor(miniConfig.isInverted, miniConfig.kp, miniConfig.kv, miniConfig.ks, miniConfig.ka);
         motor.getClosedLoopReference().setUpdateFrequency(200);

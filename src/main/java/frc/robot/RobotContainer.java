@@ -28,6 +28,7 @@ public class RobotContainer {
   private final Kicker kicker;
   private final TripleShooter tripleShooter;
   private final IntakePivot pivot;
+  private final Hood hood;
 
 
   private SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -57,6 +58,7 @@ public class RobotContainer {
                                 new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.076057, 0.116, 0.14611, 0.013726,"right", 52)
                               );
     pivot = new IntakePivot();
+    hood = new Hood();
 
 
     SmartDashboard.putData("Swerve Subsystem", swerve);
@@ -82,18 +84,28 @@ public class RobotContainer {
     driver.back().onTrue(swerve.resetGyro());
 
     driver.leftTrigger(0.5).whileTrue(
-        pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)
-        .andThen(
+        //parallel(
+          pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
+          .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setVelocityRPS(()-> 70)
+            intakeRollers.setVelocityRPS(()-> 50)
           )
-        )
+          )//,
+
+          // run(
+          //   ()-> swerve.teleopDefaultCommand(
+          //     ()-> new ChassisSpeeds(0.5, 0, 0), 
+          //     true
+          //   ),
+          //   swerve
+          // )
+        //)
     );
-    driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
+    
 
     driver.rightTrigger().whileTrue(
-      tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5).withTimeout(3)
+      tripleShooter.setVelocityMPSWithCondition(()-> tripleShooter.kMaxSpeedMPS * 0.5, tripleShooter.allShootersWithinTolerance)
       .andThen(
         parallel(
           kicker.setDutyCycle(()-> 1),
@@ -106,25 +118,29 @@ public class RobotContainer {
     driver.rightBumper().onTrue(
       pivot.homePivotToRetracted()
     );
+
+    driver.a().onTrue(hood.setActuatorDeg(65));
+    driver.b().onTrue(hood.setActuatorDeg(55));
+    driver.y().onTrue(hood.setActuatorDeg(45.0));
   }
 
 
 
   public void configureDefaultCommands(){
-    // swerve.setDefaultCommand
-    //   (
+    swerve.setDefaultCommand
+      (
         
-    //     run
-    //       (
-    //         ()-> 
-    //           swerve.teleopDefaultCommand(
-    //             driver::getRequestedChassisSpeeds,
-    //             true
-    //           )
-    //           ,
-    //           swerve
-    //       ).withName("Swerve Drive Command")
-    //   );
+        run
+          (
+            ()-> 
+              swerve.teleopDefaultCommand(
+                driver::getRequestedChassisSpeeds,
+                true
+              )
+              ,
+              swerve
+          ).withName("Swerve Drive Command")
+      );
     feeder.setDefaultCommand(feeder.openLoopSet(()-> 0));
     intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
