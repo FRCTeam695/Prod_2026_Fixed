@@ -8,6 +8,7 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -90,7 +91,7 @@ public class RobotContainer {
           )
         )
     );
-    driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
+    // driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
 
     driver.rightTrigger().whileTrue(
       tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5).withTimeout(3)
@@ -108,7 +109,11 @@ public class RobotContainer {
     );
 
     // update with agitate commands when testing
-    driver.a().whileTrue(pivot.agitateWithIntervals());
+    driver.a().whileTrue(pivot.agitateWithDutyCycleAndDegreeError());
+
+    driver.x().onTrue(pivot.homePivotToExtended());
+    driver.b().onTrue(pivot.goToAngleWithTrigger(pivot.pivotRetractedPositionDegrees, pivot.atSetpoint).andThen(new PrintCommand("hi1")));
+    driver.y().onTrue(pivot.goToAngleWithTrigger(pivot.pivotExtendedPositionDegrees, pivot.atSetpoint).andThen(new PrintCommand("hi2")));
     
   }
 

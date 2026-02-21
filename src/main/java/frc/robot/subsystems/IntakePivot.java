@@ -59,9 +59,9 @@ public class IntakePivot extends SubsystemBase {
     public final Trigger velocityAtZero;
 
     private final double pivotTolerance = 5;
-    private final double typicalCurrentLimit = 50;
-    private final double agitateDegreeError = 20;
-    private final double statorAmpLimit = 20;
+    private final double typicalCurrentLimit = 50.;
+    private final double agitateDegreeError = 20.;
+    private final double statorAmpLimit = 20.;
 
 
         public IntakePivot() {
@@ -74,9 +74,7 @@ public class IntakePivot extends SubsystemBase {
             voltageSetter = new VoltageOut(0);
             dutyCycleSetter = new DutyCycleOut(0);
     
-            // ALL NEEDS TO CHANGE BACK TO RETRACTED, THIS CODE STARTS AND HOMES THE INTAKE DEPLOYED FOR TESTING CONVNIENCE
-            pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees));
-            motionMagicSetter.withPosition(pivotExtendedPositionDegrees);
+            pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees));
 
             atSetpoint = new Trigger(
                 ()-> Math.abs(Units.rotationsToDegrees(motionMagicSetter.Position - pivot.getPosition().getValueAsDouble())) < pivotTolerance
@@ -87,7 +85,7 @@ public class IntakePivot extends SubsystemBase {
             );
 
             velocityAtZero = new Trigger(
-                ()-> pivot.getVelocity().getValueAsDouble() < 0.02
+                ()-> Math.abs(pivot.getVelocity().getValueAsDouble()) < 0.02
             );
 
         }
@@ -141,59 +139,73 @@ public class IntakePivot extends SubsystemBase {
          * Moves the intake down a specified degree amount to allow fuel to wiggle.
          * Repeats.
          */
-        public Command agitateWithDutyCycleAndDegreeError(){
+        public Command agitateWithDutyCycleAndDegreeErrorFake(){
             return (
                 run(()->{
                     pivot.set(0.1);
                 })
                 .until(
-                    statorOverThreshold.or(velocityAtZero)
+                    //statorOverThreshold
+                    // .or(velocityAtZero)
+                    statorOverThreshold.or(()-> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 40))
+                    
+                )
+                .andThen(
+                        run(()-> {
+                            pivot.set(-0.1);
+                        })
+                        .until(
+                            ()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) < 15
+                        )
+
+
+                )
+                )
+                .repeatedly().handleInterrupt(()-> pivot.set(0));        
+        }
+
+         public Command agitateWithDutyCycleAndDegreeError(){
+            return (
+                run(()->{
+                    pivot.set(0.1);
+                })
+                .until(
+                    statorOverThreshold
+                    .or((()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 45))
                 )
                 .andThen(new ConditionalCommand(
                     // if intake has enough room to move backwards, send it back by agitateDegreeError
-                    run (()-> {
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(agitateDegreeError)));
-                    }).until(atSetpoint),
+                    goToAngleWithTrigger(Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) - agitateDegreeError, atSetpoint),
 
                     // if intake doesn't have enough room to move backwards by agitateDegreeError, return to extended position
-                    run (()-> {
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(pivotExtendedPositionDegrees)));
-                    }).until(atSetpoint),
+                    goToAngleWithTrigger(pivotExtendedPositionDegrees, atSetpoint),
                     
                     () -> Units.rotationsToDegrees(Math.abs(pivot.getPosition().getValueAsDouble()) - agitateDegreeError) > 0
                 )))
                 .repeatedly();        
         }
 
-        /*
-         * Moves the intake up until it can't move anymore (pushing on fuel).
-         * Then, moves the intake down until it hits the bumpers.
-         * Repeats.
-         */
-        public Command agitateWithDutyCycleOnly(){
-            return (
-                 run(()->{
-                    pivot.set(0.1);
-                })
-                .until(
-                    statorOverThreshold.or(velocityAtZero)
-                )
-                .andThen(
-                    run(()->{
-                        pivot.set(-0.1);
-                    })
-                    .until(
-                        statorOverThreshold.or(velocityAtZero)
-                    )
-                )
-            ).repeatedly();
+        public Command goToAngleWithTrigger(double angle, Trigger condition){
+            return
+            runOnce(()-> pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(angle))))
+            .andThen(
+                run(()-> {
+                   pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(angle)));
+                }).until(condition)
+            );
         }
 
 
-        /*
-        * Moves the intake up and down to a fixed angle in degrees
-        */
-        public Command agitateToConstantDegreeValue(){
+
+    public Command setVoltage(DoubleSupplier voltage){
+        return run(
+            () -> {
+                pivot.setControl(voltageSetter.withOutput(voltage.getAsDouble()));
+            }
+        );
+    }
+
+    public Command agitateToConstantDegreeValue(){
             return
             ( run(
                     () -> {
@@ -210,51 +222,6 @@ public class IntakePivot extends SubsystemBase {
             ))).repeatedly();
         }
 
-        /*
-         * Moves the intake up and down at two different degree values (alternating frequency)
-         */
-        public Command agitateWithIntervals(){
-            return (
-                run(()->{
-                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(22.5)));
-                })
-                .until(
-                    atSetpoint.or(statorOverThreshold)
-                )
-                .andThen( 
-                    run (()->{
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(pivotExtendedPositionDegrees)));
-                    })
-                    .until(
-                        atSetpoint.or(statorOverThreshold)
-                    )
-                )
-                .andThen( 
-                    run (()->{
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(45)));
-                    })
-                    .until(
-                        atSetpoint.or(statorOverThreshold)
-                    )
-                )
-                .andThen( 
-                    run (()->{
-                        pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(pivotExtendedPositionDegrees)));
-                    })
-                    .until(
-                        atSetpoint.or(statorOverThreshold)
-                    )
-                )
-            ).repeatedly();
-        }
-
-    public Command setVoltage(DoubleSupplier voltage){
-        return run(
-            () -> {
-                pivot.setControl(voltageSetter.withOutput(voltage.getAsDouble()));
-            }
-        );
-    }
 
      public Command setPositionDegrees(DoubleSupplier angleDegrees) {
             return run(
@@ -291,13 +258,25 @@ public class IntakePivot extends SubsystemBase {
         ); // make the StatorCurrentLimit (15) into a constant
     }
 
-    public Command setPivotStartingPositionToExtended(){
-        return runOnce( () -> {
-            pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees));
-            motionMagicSetter.withPosition(pivotExtendedPositionDegrees);
-         });
+    public Command homePivotToExtended(){
+        return
+        (run ( () -> {
+
+            pivot.setControl(dutyCycleSetter.withOutput(-0.05).withIgnoreSoftwareLimits(true));
+        }))
+        .until(
+            () -> 
+            pivot.getStatorCurrent().getValueAsDouble() > 15
+        )
+        .andThen(
+            runOnce(
+                () -> pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees))
+        ))
+        .andThen(
+            run ( () -> pivot.setControl(dutyCycleSetter.withOutput(0)))
+        ); // make the StatorCurrentLimit (15) into a constant
     }
-   
+
     @Override
     public void periodic(){
         SmartDashboard.putNumber("Voltage", pivot.getMotorVoltage().getValueAsDouble());
