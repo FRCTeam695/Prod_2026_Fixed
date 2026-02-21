@@ -32,7 +32,7 @@ public class IndividualShooter {
     private final DoublePublisher setPointHub;
     private final DoublePublisher velocityPub;
     private final BooleanPublisher atSetpointPub;
-    public final Trigger atSetpoint;
+    public final Trigger withinTolerance;
     private final double unitConversionFactor;
 
     public IndividualShooter(ShooterMiniConfig miniConfig, double unitConversionFactor){
@@ -40,7 +40,7 @@ public class IndividualShooter {
         configureMotor(miniConfig.isInverted, miniConfig.kp, miniConfig.kv, miniConfig.ks, miniConfig.ka);
         motor.getClosedLoopReference().setUpdateFrequency(200);
         this.unitConversionFactor = unitConversionFactor;
-        atSetpoint = new Trigger(()-> (velocityRequest.Velocity - motor.getVelocity().getValueAsDouble())* this.unitConversionFactor < 100 * 0.05 * this.unitConversionFactor );
+        withinTolerance = new Trigger(()-> (velocityRequest.Velocity - motor.getVelocity().getValueAsDouble())* this.unitConversionFactor < 100 * 0.05 * this.unitConversionFactor );
 
 
         table = inst.getTable("Shooter " + miniConfig.name);
@@ -86,7 +86,7 @@ public class IndividualShooter {
         dutyCyclePub.set(motor.getDutyCycle().getValueAsDouble());
         setPointHub.set(motor.getClosedLoopReference().getValueAsDouble() * unitConversionFactor);
         velocityPub.set(motor.getVelocity().getValueAsDouble() * unitConversionFactor);
-        atSetpointPub.set(atSetpoint.getAsBoolean());
+        atSetpointPub.set(withinTolerance.getAsBoolean());
     }
 
     public record ShooterMiniConfig(InvertedValue isInverted, double kp, double kv, double ks, double ka, String name, int id) {}
