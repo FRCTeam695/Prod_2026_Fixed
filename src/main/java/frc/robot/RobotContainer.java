@@ -82,7 +82,7 @@ public class RobotContainer {
     driver.back().onTrue(swerve.resetGyro());
 
     driver.leftTrigger(0.5).whileTrue(
-        pivot.setPositionDegrees(pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)
+        pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees).until(pivot.atSetpoint)
         .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
@@ -90,7 +90,7 @@ public class RobotContainer {
           )
         )
     );
-    driver.b().onTrue(pivot.setPositionDegrees(pivot.pivotRetractedPositionDegrees));
+    driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
 
     driver.rightTrigger().whileTrue(
       tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5).withTimeout(3)
@@ -104,7 +104,7 @@ public class RobotContainer {
     );
 
     driver.rightBumper().onTrue(
-      pivot.homePivot()
+      pivot.homePivotToRetracted()
     );
   }
 
