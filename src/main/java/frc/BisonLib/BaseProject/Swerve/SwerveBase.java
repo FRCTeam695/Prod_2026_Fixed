@@ -869,8 +869,11 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
        SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
 
+        
+
         m_field.setRobotPose(getSavedPose());
         SwerveModuleState[] modStates = getModuleStates();
+
 
         SmartDashboard.putNumber("Module 1 Angle deg", modStates[0].angle.getDegrees());
         SmartDashboard.putNumber("Module 2 Angle deg", modStates[1].angle.getDegrees());
