@@ -31,8 +31,6 @@ public class Hood extends SubsystemBase {
     /** actuator base length (mm) */
     private final double ACTLEN = 167.9;
 
-    /** extended full actuator length (mm) */
-    private double C_ActExtended; 
 
     private final double ACT_TO_MM = 100;
 
@@ -43,8 +41,6 @@ public class Hood extends SubsystemBase {
     public Hood() {
         r_actuator = new VictorSP(0);
         l_actuator = new VictorSP(1);
-
-        updateActuatorLength();
     }
 
     /** Expects a position between 0.0 and 1.0 */
@@ -77,10 +73,6 @@ public class Hood extends SubsystemBase {
         return run(() -> setPosition(degToActUnit(deg)));
     }
 
-    /** Updates total len of actuator + extension length in mm */
-    public void updateActuatorLength() {
-        C_ActExtended = ACTLEN + r_analog.get() * ACT_TO_MM;
-    }
 
     public double actUnitToDeg(double actUnit){
         double C = ACTLEN + (actUnit * ACT_TO_MM);
@@ -126,7 +118,6 @@ public double degToActUnit(double deg) {
 
     @Override
     public void periodic() {
-        updateActuatorLength(); //mm
         r_currentRot.set(r_analog.get());
         l_currentRot.set(l_analog.get());
         currentHoodDeg.set(actUnitToDeg(r_analog.get()));
