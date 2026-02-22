@@ -8,6 +8,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -55,6 +56,27 @@ public class RebuiltSwerve extends SwerveBase{
             }
         ).andThen(
         run(()->{
+            // Pose2d virtualPose = hubPose.get();
+            // Pose2d robotPose = getSavedPose();
+            // ChassisSpeeds currentSpeeds = getLatestChassisSpeed();
+
+            // double dx = virtualPose.getX() - robotPose.getX();
+            // double dy = virtualPose.getY() - robotPose.getY();
+            // double norm = Math.hypot(dx, dy);
+            // double theta = Math.toDegrees(Math.atan2(dy, dx));
+
+            // double feedForward = (currentSpeeds.vxMetersPerSecond * dy - currentSpeeds.vyMetersPerSecond * dx)/ (norm * norm);
+
+            // ChassisSpeeds speeds = wantedSpeeds.get();
+            // double pidOutput = turnController.calculate(robotPose.getRotation().getDegrees(), new State(
+            //     theta, currentSpeeds.omegaRadiansPerSecond
+            // ));
+
+            // getAngularComponentFromRotationOverride(theta); // this line is currently just for logging purposes
+
+            // speeds.omegaRadiansPerSecond = feedForward + Math.toRadians(turnController.getSetpoint().velocity) + pidOutput;
+            // drive(speeds, true, true);
+
             Pose2d virtualPose = hubPose.get();
             Pose2d robotPose = getSavedPose();
             ChassisSpeeds currentSpeeds = getLatestChassisSpeed();
@@ -62,19 +84,25 @@ public class RebuiltSwerve extends SwerveBase{
             double dx = virtualPose.getX() - robotPose.getX();
             double dy = virtualPose.getY() - robotPose.getY();
             double norm = Math.hypot(dx, dy);
-            double theta = Math.toDegrees(Math.atan2(dy, dx));
+            double theta = Math.toDegrees(Math.atan2(dx, dy));
 
-            double feedForward = (currentSpeeds.vxMetersPerSecond * dy - currentSpeeds.vyMetersPerSecond * dx)/ (norm * norm);
+            SmartDashboard.putNumber("turn to hub dx", dx);
+            SmartDashboard.putNumber("turn to pose dy", dy);
+
+            double feedForward = (currentSpeeds.vyMetersPerSecond * dx - currentSpeeds.vxMetersPerSecond * dy)/ (norm * norm);
 
             ChassisSpeeds speeds = wantedSpeeds.get();
-            double pidOutput = turnController.calculate(robotPose.getRotation().getDegrees(), new State(
-                theta, currentSpeeds.omegaRadiansPerSecond
-            ));
+            // double pidOutput = turnController.calculate(robotPose.getRotation().getDegrees(), new State(
+            //     theta, currentSpeeds.omegaRadiansPerSecond
+            // ));
 
             getAngularComponentFromRotationOverride(theta); // this line is currently just for logging purposes
 
-            speeds.omegaRadiansPerSecond = feedForward + Math.toRadians(turnController.getSetpoint().velocity) + pidOutput;
+            speeds.omegaRadiansPerSecond = getSavedPose().getRotation().getDegrees() + feedForward;
+            //+ Math.toRadians(turnController.getSetpoint().velocity);
+            //+ pidOutput;
             drive(speeds, true, true);
+
         }));
     }
 

@@ -24,7 +24,7 @@ public class Constants {
 
     public static final double g = 9.81;
     public static final double BUMP_THRESHOLD = 1.0;
-    
+
     public static final class Swerve {
         
     public static final SwerveConfig prod_2026_Config =
@@ -136,7 +136,7 @@ public class Constants {
         
 
         // CHOOSE WHICH ROBOT YOU'RE USING
-        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("Prod_2026");
+        public static final SwerveConfig CHOSEN_CONSTANTS = ROBOT_MAP.get("QC");
 
         // miscellaneous constants
         public static final double MAX_SPEED_METERS_PER_SECONDS_TELEOP = CHOSEN_CONSTANTS.maxSpeedMetersPerSec;
