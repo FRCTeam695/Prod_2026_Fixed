@@ -35,9 +35,24 @@ public class TripleShooter extends SubsystemBase{
         );
     }
 
+    public Command setVelocityBangBangMPS(DoubleSupplier velocityMPS){
+        return 
+            run(()-> {
+                shooterLeft.setTorqueCurrentBangBang(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterMiddle.setTorqueCurrentBangBang(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterRight.setTorqueCurrentBangBang(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+            }
+        );
+    }
+
     public Command setVelocityMPSWithCondition(DoubleSupplier velocityMPS, Trigger condition){
-        return runOnce(
+        return 
+        runOnce(
             ()-> {
+                shooterLeft.configForVelocityControl();
+                shooterMiddle.configForVelocityControl();
+                shooterRight.configForVelocityControl();
+
                 shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
                 shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
                 shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);

@@ -49,7 +49,7 @@ public class IntakePivot extends SubsystemBase {
     private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));;
 
     public final double pivotRetractedPositionDegrees = 110.16;
-    public final double pivotExtendedPositionDegrees = 5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
+    public final double pivotExtendedPositionDegrees = 1.005;//5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
     public final double pivotAgitatePositionDegrees = 50;
 
     public final Trigger withinTolerance;
@@ -156,6 +156,17 @@ public class IntakePivot extends SubsystemBase {
                     () -> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > agitateDegreeError
                 )))
                 .repeatedly();        
+        }
+
+        public Command slowRaise(){
+            return run(()-> {
+                pivot.setControl(dutyCycleSetter.withOutput(0.05));
+            }).until(
+                ()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 23
+            )
+            .andThen(
+                setPositionDegrees(()-> 25)
+            );
         }
 
         public Command goToPositionDegreesWithCondition(double degrees, Trigger condition){

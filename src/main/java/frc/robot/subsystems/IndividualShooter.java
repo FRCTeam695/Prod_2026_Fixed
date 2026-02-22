@@ -5,6 +5,7 @@ import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -25,6 +26,7 @@ public class IndividualShooter {
 
     private final DutyCycleOut dutyCycleRequest = new DutyCycleOut(0.0);
     private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0);
+    private final VelocityTorqueCurrentFOC torqueRequest = new VelocityTorqueCurrentFOC(0.0);
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable table;
@@ -34,14 +36,18 @@ public class IndividualShooter {
     private final BooleanPublisher atSetpointPub;
     public final Trigger withinTolerance;
     private final double unitConversionFactor;
+    private final ShooterMiniConfig myConfig;
 
     public IndividualShooter(ShooterMiniConfig miniConfig, double unitConversionFactor){
         //12/20*pi*1.475/39.37
         motor = new TalonFX(miniConfig.id, "rio");
-        configureMotor(miniConfig.isInverted, miniConfig.kp, miniConfig.kv, miniConfig.ks, miniConfig.ka);
+        myConfig = miniConfig;
+        configForBangBang();
         motor.getClosedLoopReference().setUpdateFrequency(200);
+
+
         this.unitConversionFactor = unitConversionFactor;
-        withinTolerance = new Trigger(()-> (velocityRequest.Velocity - motor.getVelocity().getValueAsDouble())* this.unitConversionFactor < 100 * 0.05 * this.unitConversionFactor );
+        withinTolerance = new Trigger(()-> (velocityRequest.Velocity - motor.getVelocity().getValueAsDouble())* this.unitConversionFactor < 100 * 0.02 * this.unitConversionFactor );
 
 
         table = inst.getTable("Shooter " + miniConfig.name);
@@ -51,11 +57,11 @@ public class IndividualShooter {
         atSetpointPub = table.getBooleanTopic("Shooter " + miniConfig.name + " At Setpoint").publish(PubSubOption.periodic(0.02));
     }
 
-    public void configureMotor(InvertedValue isInverted, double kp, double kv, double ks, double ka){
+    public void configForVelocityControl(){
         TalonFXConfiguration config = new TalonFXConfiguration()
             .withMotorOutput(
                 new MotorOutputConfigs()
-                    .withInverted(isInverted)
+                    .withInverted(myConfig.isInverted)
                     .withNeutralMode(NeutralModeValue.Brake)
             )
             .withCurrentLimits(
@@ -67,10 +73,10 @@ public class IndividualShooter {
             )
             .withSlot0(
                 new Slot0Configs()
-                    .withKP(kp)
-                    .withKV(kv)
-                    .withKS(ks)
-                    .withKA(ka)
+                    .withKP(myConfig.kp)
+                    .withKV(myConfig.kv)
+                    .withKS(myConfig.ks)
+                    .withKA(myConfig.ka)
             );
         motor.getConfigurator().apply(config);
     }
@@ -81,6 +87,36 @@ public class IndividualShooter {
 
     public void setVelocityRPS(double rps){
         motor.setControl(velocityRequest.withVelocity(rps));
+    }
+
+    public void setTorqueCurrentBangBang(double rps){
+        motor.setControl(torqueRequest.withVelocity(40));
+    }
+
+    public void setDutyBangBang(double rps){
+        motor.setControl(dutyCycleRequest.withOutput(rps));
+    }
+
+    public void configForBangBang(){
+        TalonFXConfiguration config = new TalonFXConfiguration()
+            .withCurrentLimits(
+                new CurrentLimitsConfigs()
+                    // .withStatorCurrentLimit(Amps.of(120))
+                    // .withStatorCurrentLimitEnable(true)
+                    .withSupplyCurrentLimit(Amps.of(40))
+                    .withSupplyCurrentLimitEnable(true)
+            ).withMotorOutput(
+                new MotorOutputConfigs()
+                    .withInverted(myConfig.isInverted)
+                    .withNeutralMode(NeutralModeValue.Coast)
+            );
+        config.Slot0.kP = 999999.0;
+        config.TorqueCurrent.PeakForwardTorqueCurrent = 40.0;
+        config.TorqueCurrent.PeakReverseTorqueCurrent = 0.0;
+        config.MotorOutput.PeakForwardDutyCycle = 1.0;
+        config.MotorOutput.PeakReverseDutyCycle = 0.0;
+
+        motor.getConfigurator().apply(config);
     }
 
     public void sendSendables(){

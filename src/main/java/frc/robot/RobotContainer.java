@@ -33,7 +33,7 @@ public class RobotContainer {
 
   private SendableChooser<Command> autoChooser = new SendableChooser<>();
   SOTMSetpointGenerator shooterInterpolationMap;
-  public int[] reefTags = {6,7,8,9,10,11,17,18,19,20,21,22};
+  public int[] reefTags = {1,2,3,4,5,6,7,8,9,10,11,17,18,19,20,21,22,24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
 
   private final TalonFXModule[] modules = new TalonFXModule[]
   {
@@ -81,47 +81,45 @@ public class RobotContainer {
 
 
   private void configureBindings() {
-    driver.back().onTrue(swerve.resetGyro());
+    driver.back().onTrue(swerve.backwardsResetGyro());
 
     driver.leftTrigger(0.5).whileTrue(
-        //parallel(
           pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
           .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setVelocityRPS(()-> 50)
+            intakeRollers.setVelocityRPS(()-> 70)
           )
-          )//,
-
-          // run(
-          //   ()-> swerve.teleopDefaultCommand(
-          //     ()-> new ChassisSpeeds(0.5, 0, 0), 
-          //     true
-          //   ),
-          //   swerve
-          // )
-        //)
+          )
     );
     
 
     driver.rightTrigger().whileTrue(
-      tripleShooter.setVelocityMPSWithCondition(()-> tripleShooter.kMaxSpeedMPS * 0.5, tripleShooter.allShootersWithinTolerance)
+      deadline(
+        tripleShooter.setVelocityMPSWithCondition(()-> tripleShooter.kMaxSpeedMPS * 0.6, tripleShooter.allShootersWithinTolerance),
+        hood.setActuatorDeg(55.)
+      )
       .andThen(
         parallel(
           kicker.setDutyCycle(()-> 1),
-          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.5),
-          feeder.setVelocityMPS(()-> -2)
+          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.6),
+          feeder.setVelocityMPS(()-> -2),
+          pivot.slowRaise(),
+          hood.setActuatorDeg(55.)
         )
       )
     );
 
     driver.rightBumper().onTrue(
       pivot.homePivotToRetracted()
+
     );
 
-    driver.a().onTrue(hood.setActuatorDeg(65));
-    driver.b().onTrue(hood.setActuatorDeg(55));
-    driver.y().onTrue(hood.setActuatorDeg(45.0));
+    driver.a().whileTrue(
+      tripleShooter.setVelocityBangBangMPS(()-> tripleShooter.kMaxSpeedMPS * 0.4
+      )
+    );
+
   }
 
 
@@ -145,6 +143,8 @@ public class RobotContainer {
     intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
     tripleShooter.setDefaultCommand(tripleShooter.setVelocityMPS(()-> 0));
+    pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
+    hood.setDefaultCommand(hood.setActuatorDeg(55.));
   }
 
   public Command getAutonomousCommand() {
