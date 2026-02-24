@@ -165,7 +165,7 @@ public class IntakePivot extends SubsystemBase {
                 ()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 23
             )
             .andThen(
-                setPositionDegrees(()-> 25)
+                setPositionDegrees(()-> 27)
             );
         }
 

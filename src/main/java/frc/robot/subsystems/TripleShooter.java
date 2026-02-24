@@ -17,13 +17,14 @@ public class TripleShooter extends SubsystemBase{
     public final double kShooterRotationsToMeters = 2 * Math.PI * Units.inchesToMeters(2);
     public final double kMaxSpeedMPS = kShooterRotationsToMeters * 100;
     public final Trigger allShootersWithinTolerance;
-
     public TripleShooter(ShooterMiniConfig configLeft, ShooterMiniConfig configMiddle, ShooterMiniConfig configRight){
         shooterLeft = new IndividualShooter(configLeft, kShooterRotationsToMeters);
         shooterMiddle = new IndividualShooter(configMiddle, kShooterRotationsToMeters);
         shooterRight = new IndividualShooter(configRight, kShooterRotationsToMeters);
         allShootersWithinTolerance = shooterLeft.withinTolerance.and(shooterMiddle.withinTolerance).and(shooterRight.withinTolerance);
+
     }
+
 
     public Command setVelocityMPS(DoubleSupplier velocityMPS){
         return run(
@@ -35,12 +36,12 @@ public class TripleShooter extends SubsystemBase{
         );
     }
 
-    public Command setVelocityBangBangMPS(DoubleSupplier velocityMPS){
+    public Command setVelocityTorqueCurrentMPS(DoubleSupplier velocityMPS){
         return 
             run(()-> {
-                shooterLeft.setTorqueCurrentBangBang(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterMiddle.setTorqueCurrentBangBang(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterRight.setTorqueCurrentBangBang(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterLeft.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterMiddle.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterRight.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
             }
         );
     }

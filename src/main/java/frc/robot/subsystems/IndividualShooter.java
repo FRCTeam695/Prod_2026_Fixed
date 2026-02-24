@@ -37,17 +37,21 @@ public class IndividualShooter {
     public final Trigger withinTolerance;
     private final double unitConversionFactor;
     private final ShooterMiniConfig myConfig;
+    private double setpoint;
 
     public IndividualShooter(ShooterMiniConfig miniConfig, double unitConversionFactor){
         //12/20*pi*1.475/39.37
         motor = new TalonFX(miniConfig.id, "rio");
         myConfig = miniConfig;
-        configForBangBang();
+        //configForBangBang();
+        configForVelocityControl();
         motor.getClosedLoopReference().setUpdateFrequency(200);
 
 
         this.unitConversionFactor = unitConversionFactor;
-        withinTolerance = new Trigger(()-> (velocityRequest.Velocity - motor.getVelocity().getValueAsDouble())* this.unitConversionFactor < 100 * 0.02 * this.unitConversionFactor );
+
+        // within 5% tolerance
+        withinTolerance = new Trigger(()-> Math.abs(setpoint - motor.getVelocity().getValueAsDouble()) < 5);
 
 
         table = inst.getTable("Shooter " + miniConfig.name);
@@ -62,7 +66,7 @@ public class IndividualShooter {
             .withMotorOutput(
                 new MotorOutputConfigs()
                     .withInverted(myConfig.isInverted)
-                    .withNeutralMode(NeutralModeValue.Brake)
+                    .withNeutralMode(NeutralModeValue.Coast)
             )
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
@@ -86,23 +90,21 @@ public class IndividualShooter {
     }
 
     public void setVelocityRPS(double rps){
+        setpoint = rps;
         motor.setControl(velocityRequest.withVelocity(rps));
     }
 
-    public void setTorqueCurrentBangBang(double rps){
-        motor.setControl(torqueRequest.withVelocity(40));
-    }
-
-    public void setDutyBangBang(double rps){
-        motor.setControl(dutyCycleRequest.withOutput(rps));
+    public void setTorqueCurrent(double rps){
+        setpoint = rps;
+        motor.setControl(torqueRequest.withVelocity(rps));
     }
 
     public void configForBangBang(){
         TalonFXConfiguration config = new TalonFXConfiguration()
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
-                    // .withStatorCurrentLimit(Amps.of(120))
-                    // .withStatorCurrentLimitEnable(true)
+                    .withStatorCurrentLimit(Amps.of(120))
+                    .withStatorCurrentLimitEnable(true)
                     .withSupplyCurrentLimit(Amps.of(40))
                     .withSupplyCurrentLimitEnable(true)
             ).withMotorOutput(

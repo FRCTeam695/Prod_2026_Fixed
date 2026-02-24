@@ -8,6 +8,7 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,6 +30,10 @@ public class RobotContainer {
   private final TripleShooter tripleShooter;
   private final IntakePivot pivot;
   private final Hood hood;
+
+
+  public final InterpolatingDoubleTreeMap distanceToShotSpeedTable;
+
 
 
   private SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -53,20 +58,21 @@ public class RobotContainer {
     intakeRollers = new IntakeRollers();
     kicker = new Kicker();
     tripleShooter = new TripleShooter(
-                                new ShooterMiniConfig(InvertedValue.Clockwise_Positive, 0.14362, 0.115, 0.11821, 0.012983, "left", 54),
-                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.060303, 0.1145, 0.12779, 0.012318,"middle", 55),
-                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.076057, 0.116, 0.14611, 0.013726,"right", 52)
+                                new ShooterMiniConfig(InvertedValue.Clockwise_Positive, 9.5, 0.0, 2.7, 0.0, "left", 54), //2.7, 9
+                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 9.3, 0.0, 3.5, 0.0,"middle", 55),
+                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 10.2, 0.0, 2.0, 0.0,"right", 52)
                               );
     pivot = new IntakePivot();
     hood = new Hood();
 
+    distanceToShotSpeedTable = new InterpolatingDoubleTreeMap();
+    distanceToShotSpeedTable.put(0.0, 0.0);
 
     SmartDashboard.putData("Swerve Subsystem", swerve);
     shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
 
 
     configureBindings();
-    configureDefaultCommands();
     configureDefaultCommands();
 
       
@@ -94,18 +100,25 @@ public class RobotContainer {
     );
     
 
+    //2.52, 4.03 is limelight pose for this shot
+    // 0.97, 4.13
+    // 2.14, 4.09
     driver.rightTrigger().whileTrue(
       deadline(
-        tripleShooter.setVelocityMPSWithCondition(()-> tripleShooter.kMaxSpeedMPS * 0.6, tripleShooter.allShootersWithinTolerance),
-        hood.setActuatorDeg(55.)
+        //tripleShooter.setVelocityMPSWithCondition(()-> tripleShooter.kMaxSpeedMPS * 0.6, tripleShooter.allShootersWithinTolerance)
+        tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * 0.60).until(tripleShooter.allShootersWithinTolerance)
+        //hood.setActuatorDeg(70.)
+      )
+      .andThen(
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
       )
       .andThen(
         parallel(
-          kicker.setDutyCycle(()-> 1),
-          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.6),
-          feeder.setVelocityMPS(()-> -2),
-          pivot.slowRaise(),
-          hood.setActuatorDeg(55.)
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+          tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * 0.60),
+          feeder.setVelocityMPS(()-> -1.0),
+          pivot.slowRaise()
+          //hood.setActuatorDeg(70.)
         )
       )
     );
@@ -115,10 +128,12 @@ public class RobotContainer {
 
     );
 
-    driver.a().whileTrue(
-      tripleShooter.setVelocityBangBangMPS(()-> tripleShooter.kMaxSpeedMPS * 0.4
-      )
-    );
+    // driver.a().whileTrue(
+    //   tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * -driver.getLeftY())
+    //   // kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation * -driver.getLeftY())
+    // );
+    driver.b().whileTrue(hood.setActuatorDeg(74));
+    driver.a().whileTrue(hood.setActuatorDeg(66));
 
   }
 
@@ -142,9 +157,9 @@ public class RobotContainer {
     feeder.setDefaultCommand(feeder.openLoopSet(()-> 0));
     intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
-    tripleShooter.setDefaultCommand(tripleShooter.setVelocityMPS(()-> 0));
+    tripleShooter.setDefaultCommand(tripleShooter.setVelocityTorqueCurrentMPS(()-> 0));
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
-    hood.setDefaultCommand(hood.setActuatorDeg(55.));
+    hood.setDefaultCommand(hood.setActuatorDeg(65.17));
   }
 
   public Command getAutonomousCommand() {
