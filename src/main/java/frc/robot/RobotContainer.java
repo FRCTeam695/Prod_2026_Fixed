@@ -8,6 +8,8 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -17,18 +19,11 @@ import static edu.wpi.first.wpilibj2.command.Commands.*;
 import com.ctre.phoenix6.signals.InvertedValue;
 
 import frc.robot.subsystems.*;
-import frc.robot.subsystems.IndividualShooter.ShooterMiniConfig;
 
 
 public class RobotContainer {
 
   private final RebuiltSwerve swerve;
-  private final Feeder feeder;
-  private final IntakeRollers intakeRollers;
-  private final Kicker kicker;
-  private final TripleShooter tripleShooter;
-  private final IntakePivot pivot;
-  private final Hood hood;
 
 
   private SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -49,17 +44,6 @@ public class RobotContainer {
 
   public RobotContainer() {
     swerve = new RebuiltSwerve(camNames, modules, reefTags);
-    feeder = new Feeder();
-    intakeRollers = new IntakeRollers();
-    kicker = new Kicker();
-    tripleShooter = new TripleShooter(
-                                new ShooterMiniConfig(InvertedValue.Clockwise_Positive, 0.14362, 0.115, 0.11821, 0.012983, "left", 54),
-                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.060303, 0.1145, 0.12779, 0.012318,"middle", 55),
-                                new ShooterMiniConfig(InvertedValue.CounterClockwise_Positive, 0.076057, 0.116, 0.14611, 0.013726,"right", 52)
-                              );
-    pivot = new IntakePivot();
-    hood = new Hood();
-
 
     SmartDashboard.putData("Swerve Subsystem", swerve);
     shooterInterpolationMap = new SOTMSetpointGenerator("simulated_optimal_trajectories.csv", swerve::getSavedPose, swerve::getLatestChassisSpeed);
@@ -81,44 +65,9 @@ public class RobotContainer {
 
 
   private void configureBindings() {
-    driver.back().onTrue(swerve.backwardsResetGyro());
+    driver.back().onTrue(swerve.resetGyro());
 
-    driver.leftTrigger(0.5).whileTrue(
-          pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
-          .andThen(
-          parallel(
-            pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setVelocityRPS(()-> 70)
-          )
-          )
-    );
-    
-
-    driver.rightTrigger().whileTrue(
-      deadline(
-        tripleShooter.setVelocityMPSWithCondition(()-> tripleShooter.kMaxSpeedMPS * 0.6, tripleShooter.allShootersWithinTolerance),
-        hood.setActuatorDeg(55.)
-      )
-      .andThen(
-        parallel(
-          kicker.setDutyCycle(()-> 1),
-          tripleShooter.setVelocityMPS(()-> tripleShooter.kMaxSpeedMPS * 0.6),
-          feeder.setVelocityMPS(()-> -2),
-          pivot.slowRaise(),
-          hood.setActuatorDeg(55.)
-        )
-      )
-    );
-
-    driver.rightBumper().onTrue(
-      pivot.homePivotToRetracted()
-
-    );
-
-    driver.a().whileTrue(
-      tripleShooter.setVelocityBangBangMPS(()-> tripleShooter.kMaxSpeedMPS * 0.4
-      )
-    );
+    driver.a().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, () -> new Pose2d(3.0, 1.5, new Rotation2d(0))));
 
   }
 
@@ -139,12 +88,7 @@ public class RobotContainer {
               swerve
           ).withName("Swerve Drive Command")
       );
-    feeder.setDefaultCommand(feeder.openLoopSet(()-> 0));
-    intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
-    kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
-    tripleShooter.setDefaultCommand(tripleShooter.setVelocityMPS(()-> 0));
-    pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
-    hood.setDefaultCommand(hood.setActuatorDeg(55.));
+   
   }
 
   public Command getAutonomousCommand() {
