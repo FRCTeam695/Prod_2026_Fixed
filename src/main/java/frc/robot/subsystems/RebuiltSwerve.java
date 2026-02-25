@@ -26,7 +26,7 @@ public class RebuiltSwerve extends SwerveBase{
     
     private final ProfiledPIDController turnController = new ProfiledPIDController(0.075, 0, 0, new TrapezoidProfile.Constraints(700, 1000));
 
-    private final PIDController controller = new PIDController(0, 0, 0);
+    private final PIDController controller = new PIDController(0.06, 0, 0);
 
     public final Trigger onBump;
     
@@ -85,7 +85,18 @@ public class RebuiltSwerve extends SwerveBase{
 
             getAngularComponentFromRotationOverride(theta); // this line is currently just for logging purposes
 
-            speeds.omegaRadiansPerSecond = -feedForward + Math.toRadians(pidOutput);
+            speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta) + 
+            pidOutput;
+
+            SmartDashboard.putNumber("error total", controller.getAccumulatedError());
+
+            SmartDashboard.putNumber("error deriv", controller.getErrorDerivative());
+
+            SmartDashboard.putNumber("error", controller.getError());
+
+            SmartDashboard.putNumber("feedforward", -feedForward);
+
+            SmartDashboard.putNumber("theta", theta);
 
             SmartDashboard.putNumber("setpoint angle from turn controller", controller.getSetpoint());
 
@@ -95,7 +106,9 @@ public class RebuiltSwerve extends SwerveBase{
 
             drive(speeds, true, true);
 
+
         }));
+    
     }
 
      public boolean isOnBumpWithAngle() {
