@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -12,12 +13,20 @@ import frc.BisonLib.BaseProject.Swerve.SwerveConfig;
 
 public class Constants {
     public static final class FieldConstants{
-        public static final class Red{
-            public static final Pose2d hub = new Pose2d();
+        public static final double FIELD_WIDTH = 8.069;
+        public static final double HUB_WIDTH = Units.inchesToMeters(47.0);
+        public static final class Blue{
+            public static final Pose2d hub = new Pose2d(
+                4.0218614 + HUB_WIDTH / 2.0,
+                 FIELD_WIDTH/2.0, 
+                 new Rotation2d());
         }
         
-        public static final class Blue{
-            public static final Pose2d hub = new Pose2d();
+        public static final class Red{
+            public static final Pose2d hub = new Pose2d(
+                11.3118646 + HUB_WIDTH / 2.0,
+                 FIELD_WIDTH/2.0, 
+                 new Rotation2d());
         }
     }
 

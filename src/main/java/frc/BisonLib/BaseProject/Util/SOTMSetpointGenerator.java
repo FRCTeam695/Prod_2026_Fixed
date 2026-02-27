@@ -1,163 +1,100 @@
 package frc.BisonLib.BaseProject.Util;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Supplier;
 
 
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolatingFunction;
-import org.apache.commons.math3.analysis.interpolation.BicubicInterpolator;
 
-public class SOTMSetpointGenerator {
-    private BicubicInterpolatingFunction rpmSpline;
-    private BicubicInterpolatingFunction angleSpline;
-    private BicubicInterpolatingFunction timeSpline;
+public class SOTMSetpointGenerator extends SubsystemBase{
 
+    private InterpolatingDoubleTreeMap rpmMap;
+    private InterpolatingDoubleTreeMap angleMap;
+    private InterpolatingDoubleTreeMap feederMap;
+    private InterpolatingDoubleTreeMap timeMap;
 
     private Supplier<Pose2d> robotPoseSupplier;
-    private Supplier<ChassisSpeeds> robotChassisSpeedsSupplier;
+    private ShooterSetpoint cachedSetpoint;
 
-    public SOTMSetpointGenerator(String csvFileName, Supplier<Pose2d> robotPoseSupplier, Supplier<ChassisSpeeds> robotChassisSpeedsSupplier) {
-        loadCSV(csvFileName);
+    public SOTMSetpointGenerator(Supplier<Pose2d> robotPoseSupplier) {
         this.robotPoseSupplier = robotPoseSupplier;
-        this.robotChassisSpeedsSupplier = robotChassisSpeedsSupplier;
+
+        rpmMap = new InterpolatingDoubleTreeMap();
+        angleMap = new InterpolatingDoubleTreeMap();
+        timeMap = new InterpolatingDoubleTreeMap();
+        feederMap = new InterpolatingDoubleTreeMap();
+
+        // 0.97, 4.13
+        // 2.14, 4.09 :ll poses
+
+        /*
+         * This is a new thread for Feb 24th shot testing videos.  Shot settings include:
+            d, a, s, f, q
+            d = distance from face of hub to front of aluminum frame (meters)
+            a = shooter hood angle (degrees)
+            s = shooter speed (percent)
+            f = feed rate (meters per second)
+            q = quantity of balls shot (each)
+
+            far: 2.6, 60, 65, 0.5, 26/30 (4 didn't leave the intake)
+            close: 1.5, 65.17, 60, 1, 27/30 (3 stayed in hopper)
+         */
+        addDatapointToTable(
+            Constants.FieldConstants.Blue.hub.getTranslation().getDistance(new Translation2d(0.2, 3.935)), 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.68,
+            59,
+            -0.5, 
+            1.36);
+        addDatapointToTable(
+            Constants.FieldConstants.Blue.hub.getTranslation().getDistance(new Translation2d(0.90, 4.00)), 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.63,
+            60,
+            -0.5, 
+            1.36);
+        addDatapointToTable(
+            Constants.FieldConstants.Blue.hub.getTranslation().getDistance(new Translation2d(2.125, 3.98)), 
+            19.1511488163, 
+            65.17,
+            -1.0, 
+            1.3);
+        addDatapointToTable(
+            Constants.FieldConstants.Blue.hub.getTranslation().getDistance(new Translation2d(3.73, 4.11)), 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60,
+            71,
+            -1.0, 
+            1.36);
     }
 
-    private void loadCSV(String fileName) {
-        File file = new File(Filesystem.getDeployDirectory(), fileName);
-        List<Double> distList = new ArrayList<>();
-        List<Double> velList = new ArrayList<>();
-        List<Double> timeList = new ArrayList<>();
-        List<Double[]> dataRows = new ArrayList<>();
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line = br.readLine(); // Skip header: distance, robot_vel, angle, rpm, cost
-            
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                double d = Double.parseDouble(values[0]);
-                double v = Double.parseDouble(values[1]);
-                double angle = Double.parseDouble(values[2]);
-                double rpm = Double.parseDouble(values[3]);
-                double time = Double.parseDouble(values[4]);
-
-                if (!distList.contains(d)) distList.add(d);
-                if (!velList.contains(v)) velList.add(v);
-                if (!timeList.contains(time)) timeList.add(time);
-                
-                dataRows.add(new Double[]{d, v, angle, rpm, time});
-            }
-
-            // Apache requires sorted, unique arrays for the grid axes
-            double[] xArr = distList.stream().sorted().mapToDouble(Double::doubleValue).toArray();
-            double[] yArr = velList.stream().sorted().mapToDouble(Double::doubleValue).toArray();
-
-            double[][] angleGrid = new double[xArr.length][yArr.length];
-            double[][] rpmGrid = new double[xArr.length][yArr.length];
-            double[][] timeGrid = new double[xArr.length][yArr.length];
-
-            // Map the flat list into the 2D grid
-            for (Double[] row : dataRows) {
-                int xIdx = binarySearch(xArr, row[0]);
-                int yIdx = binarySearch(yArr, row[1]);
-                angleGrid[xIdx][yIdx] = row[2];
-                rpmGrid[xIdx][yIdx] = row[3];
-                timeGrid[xIdx][yIdx] = row[4];
-            }
-
-            BicubicInterpolator interpolator = new BicubicInterpolator();
-            this.angleSpline = interpolator.interpolate(xArr, yArr, angleGrid);
-            this.rpmSpline = interpolator.interpolate(xArr, yArr, rpmGrid);
-            this.timeSpline = interpolator.interpolate(xArr, yArr, timeGrid);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void addDatapointToTable(double distance, double shotSpeed, double hoodAngle, double feederSpeed, double shotTime){
+        rpmMap.put(distance, shotSpeed);
+        angleMap.put(distance, hoodAngle);
+        feederMap.put(distance, feederSpeed);
+        timeMap.put(distance, shotTime);
     }
 
-    public ShooterSetpoint getSetpoint() {
-        final Transform2d robotToShooter = new Transform2d(0.254, 0.0, new Rotation2d());
-
-        ChassisSpeeds chassisSpeeds = robotChassisSpeedsSupplier.get();
+    private ShooterSetpoint getSetpoint() {
         Pose2d robotPose = robotPoseSupplier.get();
-
- 
-        // accounts for extra shooter vel if we are spinning
-        double shooterVx = chassisSpeeds.vxMetersPerSecond - 
-                          (chassisSpeeds.omegaRadiansPerSecond * robotToShooter.getY());
-        double shooterVy = chassisSpeeds.vyMetersPerSecond + 
-                          (chassisSpeeds.omegaRadiansPerSecond * robotToShooter.getX());
-
-        Translation2d shooterVelocity = new Translation2d(shooterVx, shooterVy);
-
-        // phase delay compensation
-        Translation2d phaseDelayComp = shooterVelocity.times(0.03); // 30ms latency
-        Pose2d shooterPose = robotPose.transformBy(robotToShooter)
-                                      .plus(new Transform2d(phaseDelayComp.getX(), phaseDelayComp.getY(), new Rotation2d()));
 
         Pose2d hub = isRedAlliance() ? Constants.FieldConstants.Red.hub : Constants.FieldConstants.Blue.hub;
         
-        Translation2d shooterToHub = hub.getTranslation().minus(shooterPose.getTranslation());
+        double dist = robotPose.getTranslation().getDistance(hub.getTranslation());
 
-        //seed ToF
-        Rotation2d angleToHub = shooterToHub.getAngle();
-        double virtualVr = (shooterVelocity.getX() * angleToHub.getCos()) + 
-                           (shooterVelocity.getY() * angleToHub.getSin());
-
-        double tof = timeSpline.value(shooterToHub.getNorm(), virtualVr); 
-        double virtualDist = shooterToHub.getNorm();
-        
-        Translation2d ghostFieldPos = hub.getTranslation(); 
-
-        for (int i = 0; i < 20; i++) {
-            // calculate virtual hub pos
-            ghostFieldPos = hub.getTranslation().minus(shooterVelocity.times(tof));
-            
-            // recalculate geometry to this new ghost point
-            Translation2d ghostVector = ghostFieldPos.minus(shooterPose.getTranslation());
-            virtualDist = ghostVector.getNorm();
-            Rotation2d targetAngle = ghostVector.getAngle();
-
-            // project velocity onto the new angle
-            virtualVr = (shooterVelocity.getX() * targetAngle.getCos()) + 
-                        (shooterVelocity.getY() * targetAngle.getSin());
-            
-            double newtof = timeSpline.value(virtualDist, virtualVr);
-            
-            if(Math.abs(tof - newtof) / newtof < 0.01){ // <1% error then we can stop
-                tof = newtof;
-                break;
-            }
-            tof = newtof;
-        }
-
-
+        SmartDashboard.putNumber("Dist", dist);
         return new ShooterSetpoint(
-            angleSpline.value(virtualDist, virtualVr),
-            rpmSpline.value(virtualDist, virtualVr),
-            ghostFieldPos
+            angleMap.get(dist),
+            rpmMap.get(dist),
+            feederMap.get(dist),
+            hub.getTranslation()
         );
     }
 
-
-    private int binarySearch(double[] arr, double target) {
-        int idx = java.util.Arrays.binarySearch(arr, target);
-        return idx < 0 ? -(idx + 1) : idx;
-    }
 
 
     public boolean isRedAlliance(){
@@ -169,8 +106,28 @@ public class SOTMSetpointGenerator {
         return false;
     }
 
+    public ShooterSetpoint getCachedSetpoint(){
+        if(cachedSetpoint != null){
+            SmartDashboard.putBoolean("updating cached setpoint", false);
+            return cachedSetpoint;
+        }
+        SmartDashboard.putBoolean("updating cached setpoint", true);
+        cachedSetpoint = getSetpoint();
+        return cachedSetpoint;
+    }
+
+    public void clearCachedSetpoint(){
+        if( cachedSetpoint != null){
+            SmartDashboard.putNumber("Cached angle", cachedSetpoint.angle);
+            SmartDashboard.putNumber("Cached rpm", cachedSetpoint.rpm);
+            SmartDashboard.putNumber("Cached feed speed", cachedSetpoint.feedSpeed);
+            SmartDashboard.putString("Cached Virtual Target", cachedSetpoint.virtualTarget.toString());
+        }
+        cachedSetpoint = null;
+    }
+
 
     
 
-    public record ShooterSetpoint(double angle, double rpm, Translation2d virtualTarget) {}
+    public record ShooterSetpoint(double angle, double rpm, double feedSpeed, Translation2d virtualTarget) {}
 }

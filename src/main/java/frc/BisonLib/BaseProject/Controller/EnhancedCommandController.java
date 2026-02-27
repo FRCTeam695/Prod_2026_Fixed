@@ -189,7 +189,7 @@ public class EnhancedCommandController extends CommandXboxController{
      * @return the squared right stick values
      */
     public double getControllableRightStick(){
-        double original = super.getRightX() * 0.75;
+        double original = super.getRightX() * 0.6;
         return original;
     }
 

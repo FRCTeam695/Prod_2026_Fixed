@@ -24,8 +24,8 @@ public class IntakeRollers extends SubsystemBase {
     private NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private NetworkTable table = inst.getTable("Intake_Roller");
 
-    private final DoublePublisher currentVelocityMPSPub = table.getDoubleTopic("Current Velocity MPS").publish(PubSubOption.periodic(0.02));
-    private final DoublePublisher setpointVelocityMPSPub = table.getDoubleTopic("Setpoint Velocity MPS").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher currentVelocityMPSPub = table.getDoubleTopic("Current Velocity RPS").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher setpointVelocityMPSPub = table.getDoubleTopic("Setpoint Velocity RPS").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
 
 

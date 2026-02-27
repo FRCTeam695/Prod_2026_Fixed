@@ -90,8 +90,8 @@ public class SwerveBase extends SubsystemBase {
     private final Object gyroLock = new Object();
 
     private Pose2d currentRobotPose = new Pose2d();
-    private SwerveModulePosition[] currentModulePositions = new SwerveModulePosition[4];
-    private SwerveModuleState[] currentModuleStates = new SwerveModuleState[4];
+    private SwerveModulePosition[] currentModulePositions = new SwerveModulePosition[] {new SwerveModulePosition(), new SwerveModulePosition(), new SwerveModulePosition(), new SwerveModulePosition()};
+    private SwerveModuleState[] currentModuleStates = new SwerveModuleState[] {new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState(), new SwerveModuleState()};
 
     protected String[] camNames;
  
@@ -110,6 +110,7 @@ public class SwerveBase extends SubsystemBase {
     String gameData = DriverStation.getGameSpecificMessage();
 
 
+    
     Map<String, int[]> tagDictionary;
 
     public void addTagToDictionary(String tagSetName, int[] tagSet){
@@ -128,7 +129,7 @@ public class SwerveBase extends SubsystemBase {
         //vision Tag definitions
         this.validTagIDs = validTagIDs;
         tagDictionary = new HashMap<String, int[]>();
-        addTagToDictionary("tagSet1", new int[] {7});
+        addTagToDictionary("tagSet1", new int[] {26, 25, 24, 23, 22, 21, 20, 19});
         addTagToDictionary("tagSet2", new int[] {1});
 
 
@@ -188,6 +189,7 @@ public class SwerveBase extends SubsystemBase {
 
         SmartDashboard.putData("field", m_field);
         SmartDashboard.putData("Robot angle PID controller", thetaController);
+        setValidTagIDs("tagSet1");
     }
 
     public void setValidTagIDs(String tagSetName) {

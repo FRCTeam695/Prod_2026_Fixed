@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -39,6 +40,7 @@ public class TripleShooter extends SubsystemBase{
     public Command setVelocityTorqueCurrentMPS(DoubleSupplier velocityMPS){
         return 
             run(()-> {
+                SmartDashboard.putNumber("Commanded Vel MPS shooter", velocityMPS.getAsDouble());
                 shooterLeft.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
                 shooterMiddle.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
                 shooterRight.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);

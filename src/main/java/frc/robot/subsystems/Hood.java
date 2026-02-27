@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import java.util.function.DoubleSupplier;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -69,8 +71,10 @@ public class Hood extends SubsystemBase {
     }
 
     /**  */
-    public Command setActuatorDeg(double deg) {
-        return run(() -> setPosition(degToActUnit(deg)));
+    public Command setActuatorDeg(DoubleSupplier deg) {
+        return run(
+            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 45, 72.1)))
+        );
     }
 
 

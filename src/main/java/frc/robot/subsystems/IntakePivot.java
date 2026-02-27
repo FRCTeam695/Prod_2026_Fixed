@@ -72,8 +72,8 @@ public class IntakePivot extends SubsystemBase {
             dutyCycleSetter = new DutyCycleOut(0);
     
             // ALL NEEDS TO CHANGE BACK TO RETRACTED, THIS CODE STARTS AND HOMES THE INTAKE DEPLOYED FOR TESTING CONVNIENCE
-            pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees));
-            motionMagicSetter.withPosition(pivotExtendedPositionDegrees);
+            pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees));
+            motionMagicSetter.withPosition(pivotRetractedPositionDegrees);
 
             withinTolerance = new Trigger(
                 ()-> Math.abs(Units.rotationsToDegrees(motionMagicSetter.Position - pivot.getPosition().getValueAsDouble())) < pivotTolerance
@@ -210,6 +210,25 @@ public class IntakePivot extends SubsystemBase {
         .andThen(
             runOnce(
                 () -> pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees))
+        ))
+        .andThen(
+            run ( () -> pivot.setControl(dutyCycleSetter.withOutput(0)))
+        ); // make the StatorCurrentLimit (15) into a constant
+    }
+
+    public Command homePivotToExtended(){
+        return
+        (run ( () -> {
+
+            pivot.setControl(dutyCycleSetter.withOutput(-0.05).withIgnoreSoftwareLimits(true));
+        }))
+        .until(
+            () -> 
+            pivot.getStatorCurrent().getValueAsDouble() > 15
+        )
+        .andThen(
+            runOnce(
+                () -> pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees))
         ))
         .andThen(
             run ( () -> pivot.setControl(dutyCycleSetter.withOutput(0)))
