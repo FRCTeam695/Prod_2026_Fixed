@@ -845,6 +845,10 @@ public class SwerveBase extends SubsystemBase {
         return pose;
     }
 
+    public double getRobotRotationError(){
+        return robotRotationError;
+    }
+
 
     @Override
     public void periodic() {

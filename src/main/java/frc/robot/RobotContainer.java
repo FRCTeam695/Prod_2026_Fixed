@@ -69,6 +69,7 @@ public class RobotContainer {
 
     driver.a().whileTrue(swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, () -> new Pose2d(3.0, 1.5, new Rotation2d(0))));
 
+    driver.b().whileTrue(swerve.turnToBestAngle(driver::getRequestedChassisSpeeds));
   }
 
 

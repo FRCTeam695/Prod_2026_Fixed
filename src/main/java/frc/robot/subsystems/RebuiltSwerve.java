@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.swerve.utility.WheelForceCalculator.Feedforwards;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -24,13 +25,16 @@ public class RebuiltSwerve extends SwerveBase{
 
     public final double BUMP_THRESHOLD = 1.0;
     
-    private final ProfiledPIDController turnController = new ProfiledPIDController(0.075, 0, 0, new TrapezoidProfile.Constraints(700, 1000));
+    private final PIDController turnToHubController = new PIDController(0.06, 0, 0);
 
-    private final PIDController controller = new PIDController(0.06, 0, 0);
+    private final PIDController turnToAngleController = new PIDController(0.06, 0, 0);
+
 
     public final Trigger onBump;
     
     protected final Field2d m_field = new Field2d();
+
+    public double bestAngle = 0;
     
     // bump constants
     private final double blueLowerX = 0;
@@ -45,9 +49,9 @@ public class RebuiltSwerve extends SwerveBase{
 
     public RebuiltSwerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
-        turnController.enableContinuousInput(-180, 180);
+        turnToAngleController.enableContinuousInput(-180, 180);
 
-        controller.enableContinuousInput(-180, 180);
+        turnToHubController.enableContinuousInput(-180, 180);
 
         onBump = new Trigger(
             () -> (isOnBumpWithAngle() && isOnBumpWithLocation())
@@ -60,7 +64,7 @@ public class RebuiltSwerve extends SwerveBase{
         return 
         runOnce(
             ()-> {
-                controller.reset();
+                turnToHubController.reset();
             }
         ).andThen(
         run(()->{
@@ -81,24 +85,24 @@ public class RebuiltSwerve extends SwerveBase{
 
             ChassisSpeeds speeds = wantedSpeeds.get();
 
-            double pidOutput = controller.calculate(robotPose.getRotation().getDegrees(), theta);
+            double pidOutput = turnToHubController.calculate(robotPose.getRotation().getDegrees(), theta);
 
             getAngularComponentFromRotationOverride(theta); // this line is currently just for logging purposes
 
             speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta) + 
             pidOutput;
 
-            SmartDashboard.putNumber("error total", controller.getAccumulatedError());
+            SmartDashboard.putNumber("error total", turnToHubController.getAccumulatedError());
 
-            SmartDashboard.putNumber("error deriv", controller.getErrorDerivative());
+            SmartDashboard.putNumber("error deriv", turnToHubController.getErrorDerivative());
 
-            SmartDashboard.putNumber("error", controller.getError());
+            SmartDashboard.putNumber("error", turnToHubController.getError());
 
             SmartDashboard.putNumber("feedforward", -feedForward);
 
             SmartDashboard.putNumber("theta", theta);
 
-            SmartDashboard.putNumber("setpoint angle from turn controller", controller.getSetpoint());
+            SmartDashboard.putNumber("setpoint angle from turn controller", turnToHubController.getSetpoint());
 
             SmartDashboard.putNumber("pid output", Math.toRadians(pidOutput));
 
@@ -136,49 +140,56 @@ public class RebuiltSwerve extends SwerveBase{
 
     }
 
-    public double calculateBumpRotationSetpointDegrees() {
+    public double calculateBestAngle() {
         
-        double r = getSavedPose().getRotation().getDegrees() + 180;
+        double r = getSavedPose().getRotation().getDegrees();
 
-        double bestAngle = 0;
+        double smallestError = Double.POSITIVE_INFINITY;
 
-        // if between 0 and 90, turnm to 45
-        // if between 91 and 180, turn to 135
-        // if between 181 and 270, turn to 225
-        // if betwenen 271 and 360, turn to 315
+        double bestAngleInDegrees = 45;
 
-        if (r > 0 && r < 90) {
-            bestAngle = 45;
-        } else if (r > 91 && r < 180) {
-            bestAngle = 135;
-        } else if (r > 181 && r < 270) {
-            bestAngle = 225;
-        } else if (r > 271 && r < 360) {
-            bestAngle = 315;
+        for (double i = 0; i < 4; i++) {
+            double wantedAngle = i * 90 + 45;
+            double error = Math.abs(MathUtil.inputModulus(wantedAngle - r, -180, 180));
+            if (error < smallestError) {
+                smallestError = error;
+                bestAngleInDegrees = wantedAngle;
+            }
         }
-
-        return bestAngle;
+        
+        return bestAngleInDegrees;
     }
 
-    public Command turnOnBump(Supplier<ChassisSpeeds> speedSupplier){
-        return new ConditionalCommand(
-            rotateToAngle(
-                () -> calculateBumpRotationSetpointDegrees(), speedSupplier
-            ).until(
-                atRotationSetpoint
-            ), 
-            null, 
-            onBump
-        );
+    public Command turnToBestAngle(Supplier<ChassisSpeeds> speedSupplier){
+        return 
+        runOnce(
+            ()-> {
+                turnToAngleController.reset();
+            }
+        ).andThen(
+        run(()->{
+
+            ChassisSpeeds speeds = speedSupplier.get();
+
+            double pidOutput = turnToAngleController.calculate(getSavedPose().getRotation().getDegrees(), calculateBestAngle());
+
+            speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(calculateBestAngle()) + pidOutput;
+            
+            drive(speeds, true, true);
+        }));
+
     }
 
     @Override
     public void periodic() {
+        super.periodic();
         SmartDashboard.putData("Field", m_field);
 
          m_field.getObject("robot pose").setPose(getSavedPose());
         SmartDashboard.putString("robot pose", getSavedPose().toString());
 
         SmartDashboard.putNumber("robot rotation", getSavedPose().getRotation().getDegrees());
+
+        SmartDashboard.putNumber("best angle", calculateBestAngle());
     }
 }
