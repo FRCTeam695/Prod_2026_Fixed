@@ -14,28 +14,43 @@ import frc.BisonLib.BaseProject.Swerve.SwerveConfig;
 public class Constants {
     public static final class FieldConstants{
         public static final double FIELD_WIDTH = 8.069;
+        public static final double FIELD_LENGTH = 16.541;
         public static final double HUB_WIDTH = Units.inchesToMeters(47.0);
         public static final class Blue{
-            public static final Pose2d hub = new Pose2d(
+            public static final Pose2d HUB = new Pose2d(
                 4.0218614 + HUB_WIDTH / 2.0,
                  FIELD_WIDTH/2.0, 
                  new Rotation2d());
+                
+            public static final Translation2d LEFT_STOCKPILE = new Translation2d(0.90, FIELD_WIDTH/2 + FIELD_WIDTH/4);
+            public static final Translation2d RIGHT_STOCKPILE = new Translation2d(0.90, FIELD_WIDTH/2 - FIELD_WIDTH/4);
+
         }
         
         public static final class Red{
-            public static final Pose2d hub = new Pose2d(
+            public static final Pose2d HUB = new Pose2d(
                 11.3118646 + HUB_WIDTH / 2.0,
                  FIELD_WIDTH/2.0, 
                  new Rotation2d());
+            
+            public static final Translation2d LEFT_STOCKPILE = new Translation2d(FIELD_LENGTH - 0.90, FIELD_WIDTH/2 + FIELD_WIDTH/4);
+            public static final Translation2d RIGHT_STOCKPILE = new Translation2d(FIELD_LENGTH - 0.90, FIELD_WIDTH/2 - FIELD_WIDTH/4);
+            
         }
     }
 
+    public static final class Shooter{
+        public static final double STOCKPILE_SPEED_PERCENT = 0.6;
+    }
 
-    public static final double g = 9.81;
-    public static final double BUMP_THRESHOLD = 1.0;
+
+    public static final class Intake{
+        public static final double INTAKE_SPEED = 0.7;
+    }
+
     public static final class Swerve {
         
-    public static final SwerveConfig prod_2026_Config =
+        public static final SwerveConfig prod_2026_Config =
             new SwerveConfig(
             // module offsets
                 0.268798828125 + 0.5, // front right
@@ -156,7 +171,7 @@ public class Constants {
         public static final double TURN_WHEEL_KP = CHOSEN_CONSTANTS.turnWheelKP;
         public static final double TURN_WHEEL_KS = CHOSEN_CONSTANTS.turnWheelKS;
         public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
-        public static final double ROBOT_ROTATION_KP = 0.0065;
+        public static final double ROBOT_ROTATION_KP = 0.008;
         public static final double MAX_WHEEL_ROTATIONAL_SPEED = CHOSEN_CONSTANTS.maxWheelRotationalSpeed;
         public static final double GYRO_DRIFT_COMPENSATION = CHOSEN_CONSTANTS.gyroDriftCompensation;
         public static final double SKEW_COMPENSATION_RATE = -0.08;

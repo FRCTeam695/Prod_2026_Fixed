@@ -1,3 +1,4 @@
+
 // Copyright (c) FIRST and other WPILib contributors.
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
@@ -8,6 +9,10 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -62,13 +67,55 @@ public class RobotContainer {
     hood = new Hood();
 
     SmartDashboard.putData("Swerve Subsystem", swerve);
-    shotCalculator = new SOTMSetpointGenerator(swerve::getSavedPose);
+    shotCalculator = new SOTMSetpointGenerator(swerve::getSavedPose, swerve::getLatestChassisSpeed);
 
 
     configureBindings();
     configureDefaultCommands();
 
       
+    autoChooser.addOption("oupost to depot", 
+          swerve.resetGyroWithAllianceFlip(90)
+          .andThen
+          (
+            parallel
+            (
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
+              swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 0.01) // find this pose (outpost intake pose)
+            )
+          )
+          .andThen
+          (
+            new WaitCommand(0.3) // tune this number
+          )
+          .andThen
+          (
+            swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 2) //find this pose (intermediate pose)
+            .andThen
+            (
+              swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 2) //find this pose (intermediate pose)
+            )
+          )
+          .andThen
+          (
+            swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 0.01) // find this pose (prepare depot intake pose)
+          )
+          .andThen
+          (
+            parallel
+            (
+              run
+              (
+                ()-> swerve.driveRobotRelative(new ChassisSpeeds(1.5, 0, 0), true),
+                swerve
+              ),
+              intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
+            ).withTimeout(1.5)
+          )
+    );
+    autoChooser.addOption("depot to outpost", new WaitCommand(0));
+    autoChooser.addOption("depot", new WaitCommand(0));
+    autoChooser.addOption("outpost", new WaitCommand(0));
     SmartDashboard.putData(autoChooser);
 
     DataLogManager.start();
@@ -82,24 +129,30 @@ public class RobotContainer {
   private void configureBindings() {
     driver.back().onTrue(swerve.backwardsResetGyro());
 
+    /*
+     * Intake while held
+     */
     driver.leftTrigger(0.5).whileTrue(
           pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
           .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setDutyCycle(()-> 0.7)
+            intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
           )
           )
     );
     
 
-    // 0.97, 4.13
-    // 2.14, 4.09 :ll poses
+    /*
+     * Auto shoot while held
+     */
     driver.rightTrigger().whileTrue(
-      parallel(
-        tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
-        swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-      ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+      swerve.setHubTagsValid().andThen(
+        parallel(
+          tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
+          swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+      )
       .andThen(
           kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
       )
@@ -113,43 +166,75 @@ public class RobotContainer {
         )
       )
     );
+    driver.rightTrigger().onFalse(swerve.setAllTagsValid());
 
-    // driver.rightTrigger().whileTrue(
-    //   parallel(
-    //     tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * 0.6)
-    //   ).until(tripleShooter.allShootersWithinTolerance)
-    //   .andThen(
-    //       kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
-    //   )
-    //   .andThen(
-    //     parallel(
-    //       kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-    //       tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * 0.6),
-    //       feeder.setVelocityMPS(()-> -1.0),
-    //       pivot.slowRaise()
-    //     )
-    //   )
-    // );
-
-    driver.rightBumper().onTrue(
-      pivot.homePivotToRetracted()
-
+    /*
+     * stockpile while held
+     */
+    driver.rightBumper().and(driver.leftBumper().negate()).whileTrue(
+      (
+        parallel(
+          tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
+          swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
+        ).until(tripleShooter.allShootersWithinTolerance)
+        .andThen(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+        )
+        .andThen(
+          parallel(
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
+            feeder.setVelocityMPS(()-> -2.0),
+            pivot.slowRaise()
+          )
+        )
+      ).alongWith(
+        hood.setActuatorDeg(()-> 65.0)
+      )
     );
 
-    driver.a().whileTrue(
+    /*
+     * home the pivot while held
+     */
+    driver.povUp().onTrue(
+      pivot.homePivotToRetracted()
+    );
 
+    /*
+     * home pivot but going down
+     */
+    driver.povDown().onTrue(
+      pivot.homePivotToExtended()
+    );
+
+    /*
+     * dump balls if they are stuck in the vertical column
+     */
+    driver.a().whileTrue(
       parallel(
         tripleShooter.setDutyCycle(()-> 0.4),
         kicker.setDutyCycle(()-> 1)
       )
     );
 
+    /*
+     * retract pivot
+     */
     driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
 
-    driver.y().onTrue(pivot.homePivotToExtended());
+    /*
+     * auto rotate and set speed limit so that we dont get beached on fuel/bump
+     */
+    driver.leftBumper().and(driver.rightBumper().negate()).whileTrue(
+      swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
+    );
 
-    driver.leftBumper().whileTrue(
-      swerve.turnOnBump(driver::getRequestedChassisSpeeds)
+    /*
+     * x lock wheels
+     */
+    driver.leftBumper().and(driver.rightBumper()).whileTrue(
+      swerve.xLockWheels()
     );
 
   }

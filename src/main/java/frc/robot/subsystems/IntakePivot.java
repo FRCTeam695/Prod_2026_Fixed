@@ -71,7 +71,6 @@ public class IntakePivot extends SubsystemBase {
             motionMagicSetter = new MotionMagicVoltage(0).withSlot(0);
             dutyCycleSetter = new DutyCycleOut(0);
     
-            // ALL NEEDS TO CHANGE BACK TO RETRACTED, THIS CODE STARTS AND HOMES THE INTAKE DEPLOYED FOR TESTING CONVNIENCE
             pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees));
             motionMagicSetter.withPosition(pivotRetractedPositionDegrees);
 

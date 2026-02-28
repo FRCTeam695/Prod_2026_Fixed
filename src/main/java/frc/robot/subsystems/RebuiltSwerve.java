@@ -2,65 +2,35 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import edu.wpi.first.math.MathUtil;
 
-import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.BisonLib.BaseProject.Swerve.SwerveBase;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
+import frc.robot.Constants;
 
 
 public class RebuiltSwerve extends SwerveBase{
 
     public final double BUMP_THRESHOLD = 1.0;
-    
-    private final ProfiledPIDController turnController = new ProfiledPIDController(0.075, 0, 0, new TrapezoidProfile.Constraints(700, 1000));
-
-    private final PIDController controller = new PIDController(0.06, 0, 0);
-
-    public final Trigger onBump;
-    
+        
     protected final Field2d m_field = new Field2d();
     
-    // bump constants
-    private final double blueLowerX = 0;
-    private final double blueUpperX = 0;
-    private final double blueLowerY = 0;
-    private final double blueUpperY = 0;
 
-    private final double redLowerX = 0;
-    private final double redUpperX = 0;
-    private final double redLowerY = 0;
-    private final double redUpperY = 0;
 
     public RebuiltSwerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
-        turnController.enableContinuousInput(-180, 180);
-
-        controller.enableContinuousInput(-180, 180);
-
-        onBump = new Trigger(
-            () -> (isOnBumpWithAngle() && isOnBumpWithLocation())
-        );
-
     }
 
-
+    
     public Command rotateTowardsVirtualHub(Supplier<ChassisSpeeds> wantedSpeeds, Supplier<Translation2d> hubPose){
         return 
-        runOnce(
-            ()-> {
-                controller.reset();
-            }
-        ).andThen(
         run(()->{
             Pose2d virtualPose = new Pose2d(hubPose.get(), new Rotation2d());
             Pose2d robotPose = getSavedPose();
@@ -79,95 +49,109 @@ public class RebuiltSwerve extends SwerveBase{
 
             ChassisSpeeds speeds = wantedSpeeds.get();
 
-            double pidOutput = controller.calculate(robotPose.getRotation().getDegrees(), theta);
+            speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta);
 
-            getAngularComponentFromRotationOverride(theta); // this line is currently just for logging purposes
-
-            speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta) + 
-            pidOutput;
-
-            SmartDashboard.putNumber("error total", controller.getAccumulatedError());
-
-            SmartDashboard.putNumber("error deriv", controller.getErrorDerivative());
-
-            SmartDashboard.putNumber("error", controller.getError());
-
-            SmartDashboard.putNumber("feedforward", -feedForward);
-
-            SmartDashboard.putNumber("theta", theta);
-
-            SmartDashboard.putNumber("setpoint angle from turn controller", controller.getSetpoint());
-
-            SmartDashboard.putNumber("pid output", Math.toRadians(pidOutput));
-
-            SmartDashboard.putNumber("angular speeds that are being fed into robot", speeds.omegaRadiansPerSecond);
-
-            drive(speeds, true, true);
+            drive(speeds, true);
 
 
-        }));
+        });
     
     }
 
-     public boolean isOnBumpWithAngle() {
-        double pitch = Math.abs(pigeon.getPitch().getValueAsDouble());
-        double roll = Math.abs(pigeon.getRoll().getValueAsDouble());
 
-        //System.out.println("pitch = " + pitch);
-        //System.out.println("roll = " + roll);
+    public Command 
+    safeTraverseBump(Supplier<ChassisSpeeds> speedSupplier){
+        return 
 
-        return pitch > BUMP_THRESHOLD || roll > BUMP_THRESHOLD;
+        run(()->{
+
+            double r = getSavedPose().getRotation().getDegrees();
+
+            double smallestError = Double.POSITIVE_INFINITY;
+
+            double bestAngleInDegrees = 45;
+
+            for (double i = 0; i < 4; i++) {
+                double wantedAngle = i * 90 + 45;
+                double error = Math.abs(MathUtil.inputModulus(wantedAngle - r, -180, 180));
+                if (error < smallestError) {
+                    smallestError = error;
+                    bestAngleInDegrees = wantedAngle;
+                }
+            }
+
+            ChassisSpeeds speeds = speedSupplier.get();
+
+            if (Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond) > 0.02){
+                speeds = speeds.times(2/Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond));
+            }
+
+            speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(bestAngleInDegrees);
+            
+            drive(speeds, true);
+        });
+
+
     }
 
-    public boolean isOnBumpWithLocation() {
-       
-        Pose2d robotPose = getSavedPose();
-        double x = robotPose.getX();
-        double y = robotPose.getY();
-        
-        if (( x > blueLowerX && x < blueUpperX && y > blueLowerY && y < blueUpperY ) 
-        || (x > redLowerX && x < redUpperX && y > redLowerY && y < redUpperY)) {
-            return true;
-        } else {
-            return false;
-        }
+    public Command driveToPose(Pose2d targetPose, double distanceEnd){
 
-    }
-
-    public double calculateBumpRotationSetpointDegrees() {
-        
-        Rotation2d r = getSavedPose().getRotation();
-        double r1 = Math.abs(r.minus(Rotation2d.fromDegrees(45)).getDegrees());
-        double smallestDiff = r1;
-        double r2 = Math.abs(r.minus(Rotation2d.fromDegrees(135)).getDegrees());
-        double r3 = Math.abs(r.minus(Rotation2d.fromDegrees(-135)).getDegrees());
-        double r4 = Math.abs(r.minus(Rotation2d.fromDegrees(-45)).getDegrees());
-
-        double bestAngle = 45;
-        if (r2 < smallestDiff) {
-            r2 = smallestDiff;
-            bestAngle = 135;
-        };
-        if (r3 < smallestDiff) {
-            r3 = smallestDiff;
-            bestAngle = -135;
-        };
-        if (r4 < smallestDiff) {
-            r4 = smallestDiff;
-            bestAngle = -45;
-        };
-        
-        SmartDashboard.putNumber("smallest diff", smallestDiff);
-        SmartDashboard.putNumber("best angle", bestAngle);
-
-        return bestAngle;
-    }
-
-    public Command turnOnBump(Supplier<ChassisSpeeds> speedSupplier){
         return
-            rotateToAngle(
-                () -> calculateBumpRotationSetpointDegrees(), speedSupplier
-            );
+            
+            run(
+            ()->{
+
+                System.out.println("driving to pose");
+
+                double kp_attract = 3.5;
+
+                SmartDashboard.putBoolean("reached destination", false);
+ 
+                m_field.getObject("targetPose").setPose(targetPose);
+                SmartDashboard.putString("targetPose", targetPose.toString());
+
+                // the current field relative robot pose
+                Pose2d robotPose = getSavedPose();
+
+                double dx = targetPose.getX() - robotPose.getX();
+                double dy = targetPose.getY() - robotPose.getY();
+
+                // converting the errors to components of a unit vector
+                double distance = Math.hypot(dx, dy);
+                double unitX = dx / distance;
+                double unitY = dy / distance;
+
+                SmartDashboard.putNumber("alignment dx", dx);
+                SmartDashboard.putNumber("alignment dy", dy);
+
+                double speed = MathUtil.clamp(kp_attract * distance, 
+                    -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, 
+                    Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+
+                // makes robot go straight by applying calculated velocity to unit vector
+                double attractY = unitY * speed;
+                double attractX = unitX * speed;
+           
+                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
+                SmartDashboard.putNumber("distance to target", distance);
+                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                
+                ChassisSpeeds speeds =
+                    new ChassisSpeeds(
+                        MathUtil.clamp(attractX, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                        MathUtil.clamp(attractY, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                    getAngularComponentFromRotationOverride(targetPose.getRotation().getDegrees())
+                );
+                SmartDashboard.putString("align speeds", speeds.toString());
+
+                drive(speeds, false);
+            }
+            ).until(() -> getDistanceToTranslation(targetPose.getTranslation()) < distanceEnd)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }));
     }
 
     @Override

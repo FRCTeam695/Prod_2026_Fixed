@@ -1,5 +1,6 @@
 package frc.BisonLib.BaseProject.Swerve;
 
+import java.net.ContentHandler;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,7 +57,7 @@ public class SwerveBase extends SubsystemBase {
 
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
-    private final PIDController thetaController = new PIDController(0.003, 0, 0.0);
+    private final PIDController thetaController = new PIDController(Constants.Swerve.ROBOT_ROTATION_KP, 0, 0.0);
     private final BaseStatusSignal[] allOdomSignals;
 
     protected double max_accel = 0;
@@ -78,7 +79,7 @@ public class SwerveBase extends SubsystemBase {
     protected double limelightUpdateCounter = 0;
 
 
-    public final Trigger atRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 1);
+    public final Trigger atRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 1.2);
     public final Trigger almostAtRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 20);
 
 
@@ -129,8 +130,15 @@ public class SwerveBase extends SubsystemBase {
         //vision Tag definitions
         this.validTagIDs = validTagIDs;
         tagDictionary = new HashMap<String, int[]>();
-        addTagToDictionary("tagSet1", new int[] {26, 25, 24, 23, 22, 21, 20, 19});
-        addTagToDictionary("tagSet2", new int[] {1});
+        addTagToDictionary("allTags", new int[] {
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 ,18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
+        );
+        addTagToDictionary("hubTags", new int[] {
+            // blue tags
+            19, 20, 21, 24, 25, 26, 18, 27, 
+            // red tags
+            3, 4, 5, 8, 9, 10, 11, 2
+        });
 
 
         pigeon = new Pigeon2(8, "drivetrain");
@@ -189,7 +197,7 @@ public class SwerveBase extends SubsystemBase {
 
         SmartDashboard.putData("field", m_field);
         SmartDashboard.putData("Robot angle PID controller", thetaController);
-        setValidTagIDs("tagSet1");
+        setValidTagIDs("allTags");
     }
 
     public void setValidTagIDs(String tagSetName) {
@@ -204,12 +212,12 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putString(" Valid Tag Set Name ", tagSetName);
     }
 
-    public Command setTagSet1() {
-        return runOnce(() -> setValidTagIDs("tagSet1"));
+    public Command setAllTagsValid() {
+        return runOnce(() -> setValidTagIDs("allTags"));
     }
 
-    public Command setTagSet2() {
-        return runOnce(() -> setValidTagIDs("tagSet2"));
+    public Command setHubTagsValid() {
+        return runOnce(() -> setValidTagIDs("hubTags"));
     }
 
     public void playSong(){
@@ -476,12 +484,12 @@ public class SwerveBase extends SubsystemBase {
      * @return A command that "zeroes" our gyro
      */
     public Command resetGyro() {
-        return resetGyro(180);
+        return resetGyroWithAllianceFlip(180);
     }
 
     
     public Command backwardsResetGyro(){
-        return resetGyro(0);
+        return resetGyroWithAllianceFlip(0);
     }
 
 
@@ -496,11 +504,11 @@ public class SwerveBase extends SubsystemBase {
                 );
                 SmartDashboard.putString("align speeds", speeds.toString());
 
-                drive(speeds, true, false);
+                drive(speeds, false);
         });
     }
 
-    public Command resetGyro(double angle){
+    public Command resetGyroWithAllianceFlip(double angle){
         return runOnce(
             ()-> 
                 {
@@ -571,8 +579,29 @@ public class SwerveBase extends SubsystemBase {
             ()-> {
                     ChassisSpeeds speeds = speedSupplier.get();
                     speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(angleDegrees.getAsDouble());
-                    drive(speeds, true, true);
+                    drive(speeds, true);
                  }
+        );
+    }
+
+    //Jarvis, activate swerve wheels in an x-position for max defense against bumping while shooting in place.
+    public Command xLockWheels(){
+        return run(  
+            ()->{
+                modules[0].setDesiredState( 
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+                );
+                modules[1].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+                );
+                modules[2].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(-45))
+                );
+                modules[3].setDesiredState(
+                    new SwerveModuleState(0.0, Rotation2d.fromDegrees(45))
+                );
+            }
+
         );
     }
 
@@ -582,7 +611,7 @@ public class SwerveBase extends SubsystemBase {
      * 
      * @param chassisSpeeds The chassis speeds the robot should travel at
      */
-    protected void driveRobotRelative(ChassisSpeeds chassisSpeeds, boolean useMaxSpeed) {
+    public void driveRobotRelative(ChassisSpeeds chassisSpeeds, boolean useMaxSpeed) {
         var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
         if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
         else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
@@ -607,7 +636,7 @@ public class SwerveBase extends SubsystemBase {
      * Drives the robot in teleop, we don't want it fighting the auton swerve commands
      */
     public void teleopDefaultCommand(Supplier<ChassisSpeeds> speedsSupplier, boolean fieldOriented){
-        drive(speedsSupplier.get(), true, true);
+        drive(speedsSupplier.get(), true);
     } //590, 736
     
     /**
@@ -617,7 +646,7 @@ public class SwerveBase extends SubsystemBase {
      * @param commandedSpeeds the commanded chassis speeds from the joysticks
      * @param fieldOriented A boolean that specifies if the robot should be driven in fieldOriented mode or not
      */
-    public void drive(ChassisSpeeds commandedSpeeds, boolean fieldOriented, boolean useMaxSpeed){
+    public void drive(ChassisSpeeds commandedSpeeds, boolean useMaxSpeed){
 
         ChassisSpeeds currentFieldRelSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
 
