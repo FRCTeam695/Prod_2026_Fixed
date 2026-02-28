@@ -171,7 +171,7 @@ public class RobotContainer {
     /*
      * stockpile while held
      */
-    driver.rightBumper().and(driver.leftBumper().negate()).whileTrue(
+    driver.rightBumper().whileTrue(
       (
         parallel(
           tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
@@ -190,7 +190,7 @@ public class RobotContainer {
           )
         )
       ).alongWith(
-        hood.setActuatorDeg(()-> 65.0)
+        hood.setActuatorDeg(()-> 55.0)
       )
     );
 
@@ -226,14 +226,14 @@ public class RobotContainer {
     /*
      * auto rotate and set speed limit so that we dont get beached on fuel/bump
      */
-    driver.leftBumper().and(driver.rightBumper().negate()).whileTrue(
+    driver.leftBumper().whileTrue(
       swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
     );
 
     /*
      * x lock wheels
      */
-    driver.leftBumper().and(driver.rightBumper()).whileTrue(
+    driver.y().whileTrue(
       swerve.xLockWheels()
     );
 
