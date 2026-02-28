@@ -82,8 +82,8 @@ public class RebuiltSwerve extends SwerveBase{
 
             ChassisSpeeds speeds = speedSupplier.get();
 
-            if (Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond) > 0.02){
-                speeds = speeds.times(2/Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond));
+            if (Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond) > Constants.Swerve.MAX_SPEED_MPS_ON_BUMP){
+                speeds = speeds.times(Constants.Swerve.MAX_SPEED_MPS_ON_BUMP/Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond));
             }
 
             speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(bestAngleInDegrees);

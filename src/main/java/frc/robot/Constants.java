@@ -40,7 +40,7 @@ public class Constants {
     }
 
     public static final class Shooter{
-        public static final double STOCKPILE_SPEED_PERCENT = 0.6;
+        public static final double STOCKPILE_SPEED_PERCENT = 0.65;
     }
 
 
@@ -185,6 +185,7 @@ public class Constants {
         public static final double MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ = 20;
         public static final double SUPPLY_CURRENT_LIMIT = CHOSEN_CONSTANTS.supplyCurrentLimit;
         public static final double STATOR_CURRENT_LIMIT = CHOSEN_CONSTANTS.statorCurrentLimit;
+        public static final double MAX_SPEED_MPS_ON_BUMP = 2;
 
         // configs for drive wheel (closed-loop velocity control)
         public static final double DRIVE_WHEEL_KP = CHOSEN_CONSTANTS.driveWheelKP;

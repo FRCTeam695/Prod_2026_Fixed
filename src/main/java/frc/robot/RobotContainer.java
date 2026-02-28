@@ -190,7 +190,7 @@ public class RobotContainer {
           )
         )
       ).alongWith(
-        hood.setActuatorDeg(()-> 55.0)
+        hood.setActuatorDeg(()-> 50.0)
       )
     );
 
