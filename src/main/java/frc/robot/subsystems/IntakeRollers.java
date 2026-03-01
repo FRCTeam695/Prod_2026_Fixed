@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -31,6 +32,7 @@ public class IntakeRollers extends SubsystemBase {
 
     private final VelocityVoltage velocity = new VelocityVoltage(0);
     public final double kMaxVelocity = 100;
+    private final VelocityTorqueCurrentFOC torqueRequest = new VelocityTorqueCurrentFOC(0);
 
     public IntakeRollers() {
         roller = new TalonFX(53);
@@ -42,7 +44,7 @@ public class IntakeRollers extends SubsystemBase {
             .withMotorOutput(
                new MotorOutputConfigs()
                .withInverted(InvertedValue.Clockwise_Positive)
-               .withNeutralMode(NeutralModeValue.Brake)
+               .withNeutralMode(NeutralModeValue.Coast)
             )
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
@@ -53,11 +55,11 @@ public class IntakeRollers extends SubsystemBase {
             )
             .withSlot0(
                 new Slot0Configs()
-                    .withKP(0)
+                    .withKP(9)
                     .withKI(0)
                     .withKD(0)
-                    .withKV(0.12)
-                    .withKS(0.18)
+                    // .withKV(0.12)
+                    // .withKS(0.18)
             );
         roller.getConfigurator().apply(config);
     }
@@ -68,6 +70,10 @@ public class IntakeRollers extends SubsystemBase {
 
     public Command setDutyCycle(DoubleSupplier percent) {
         return run(() -> roller.set(percent.getAsDouble()));
+    }
+
+    public Command setTorqueCurrent(DoubleSupplier rps){
+        return run(()->roller.setControl(torqueRequest.withVelocity(rps.getAsDouble())));
     }
 
     @Override

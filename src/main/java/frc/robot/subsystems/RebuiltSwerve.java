@@ -28,6 +28,13 @@ public class RebuiltSwerve extends SwerveBase{
         super(camNames, modules, reefTags);
     }
 
+    public Pose2d optionalFlipPose(Pose2d pose){
+        if(isRedAlliance()){
+            return new Pose2d(Constants.FieldConstants.FIELD_LENGTH - pose.getX(), Constants.FieldConstants.FIELD_WIDTH - pose.getY(), Rotation2d.fromDegrees(pose.getRotation().getDegrees() + 180));
+        }
+        return pose;
+    }
+
     
     public Command rotateTowardsVirtualHub(Supplier<ChassisSpeeds> wantedSpeeds, Supplier<Translation2d> hubPose){
         return 
@@ -82,10 +89,6 @@ public class RebuiltSwerve extends SwerveBase{
 
             ChassisSpeeds speeds = speedSupplier.get();
 
-            if (Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond) > Constants.Swerve.MAX_SPEED_MPS_ON_BUMP){
-                speeds = speeds.times(Constants.Swerve.MAX_SPEED_MPS_ON_BUMP/Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond));
-            }
-
             speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(bestAngleInDegrees);
             
             drive(speeds, true);
@@ -94,12 +97,13 @@ public class RebuiltSwerve extends SwerveBase{
 
     }
 
-    public Command driveToPose(Pose2d targetPose, double distanceEnd){
+    public Command driveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd){
 
         return
             
             run(
             ()->{
+                Pose2d targetPose = targetPoseSupplier.get();
 
                 double kp_attract = 2.5;
 
@@ -145,7 +149,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 drive(speeds, false);
             }
-            ).until(() -> getDistanceToTranslation(targetPose.getTranslation()) < distanceEnd)
+            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
                 SmartDashboard.putBoolean("reached destination", true);
                 this.stopModules();

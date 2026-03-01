@@ -73,7 +73,7 @@ public class Constants {
             false, 
             0.01, 
             0,
-            200, 100, 
+            90, 100, 
             // tune velocity pid and ff
             0.0, 0, 0, 
             0.3,0.115,

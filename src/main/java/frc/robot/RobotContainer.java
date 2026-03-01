@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
@@ -74,73 +75,26 @@ public class RobotContainer {
     configureBindings();
     configureDefaultCommands();
 
-      
-    autoChooser.addOption("oupost to depot", 
-          swerve.resetGyroWithAllianceFlip(90)
-          .andThen
-          (
-            parallel
-            (
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
-              swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 0.01) // find this pose (outpost intake pose)
-            )
-          )
-          .andThen
-          (
-            new WaitCommand(0.3) // tune this number
-          )
-          .andThen
-          (
-            swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 2) //find this pose (intermediate pose)
-            .andThen
-            (
-              swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 2) //find this pose (intermediate pose)
-            )
-          )
-          .andThen
-          (
-            swerve.driveToPose(new Pose2d(0, 0, new Rotation2d()), 0.01) // find this pose (prepare depot intake pose)
-          )
-          .andThen
-          (
-            parallel
-            (
-              run
-              (
-                ()-> swerve.driveRobotRelative(new ChassisSpeeds(1.5, 0, 0), true),
-                swerve
-              ),
-              intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
-            ).withTimeout(1.5)
-          )
-    );
-
-    autoChooser.addOption("depot to outpost", new WaitCommand(0));
-
     autoChooser.addOption("outpost", 
-          swerve.resetGyroWithAllianceFlip(90)
+          swerve.resetGyroWithAllianceFlip(-90)
           .andThen
           (
-            race
+            deadline
             (
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
-              swerve.driveToPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(90)), 0.01)
-            ).withTimeout(3)
+              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180))), 0.01),
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
+            ).withTimeout(3) // find this pose (outpost intake pose)
           )
           .andThen
           (
-            parallel(
-              run
-              (
-                ()-> swerve.driveRobotRelative(new ChassisSpeeds(1.5, 0, 0), true),
-                swerve
-              ),
-              intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
-            ).withTimeout(1.5)
+            runOnce(() -> {swerve.stopModules();}).andThen(new WaitCommand(3)) // tune this number
+          ).
+          andThen(
+            swerve.driveToPose( ()-> swerve.optionalFlipPose(new Pose2d(1.5, 0.64, Rotation2d.fromDegrees(180))), 0.5)
           ).andThen
           (
             deadline(
-              swerve.driveToPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65)), 0.01),
+              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65))), 0.01),
               tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
             )
           ).andThen(
@@ -150,30 +104,59 @@ public class RobotContainer {
     );
 
     autoChooser.addOption("depot", 
-          swerve.resetGyroWithAllianceFlip(-90)
+          swerve.resetGyroWithAllianceFlip(90)
           .andThen
           (
-            race
+            deadline
             (
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
-              swerve.driveToPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180)), 0.01)
-            ).withTimeout(3) // find this pose (outpost intake pose)
+              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(1.019,6.3, Rotation2d.fromDegrees(180))), 0.01),
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
+            ) 
+          )
+          .
+          andThen(
+            deadline(
+              run
+              (
+                ()-> swerve.driveRobotRelative(new ChassisSpeeds(0.75, 0, 0), true),
+                swerve
+              ).withTimeout(1.0)
+              .andThen(
+                run
+              (
+                ()-> swerve.driveRobotRelative(new ChassisSpeeds(-0.75, 0, 0), true),
+                swerve
+              ).withTimeout(0.75)
+              ).andThen(
+                swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(0.844,5.3, Rotation2d.fromDegrees(180))), 0.01)
+              ).andThen(
+                 run
+              (
+                ()-> swerve.driveRobotRelative(new ChassisSpeeds(0.75, 0, 0), true),
+                swerve
+              ).withTimeout(1.0))
+              .andThen(
+                 run
+              (
+                ()-> swerve.driveRobotRelative(new ChassisSpeeds(-0.75, 0, 0), true),
+                swerve
+              ).withTimeout(1.0))
+              ,
+              intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
+              
+          )
           )
           .andThen
           (
-            new WaitCommand(3) // tune this number
-          ).
-          andThen(
-            swerve.driveToPose(new Pose2d(1.5, 0.64, Rotation2d.fromDegrees(180)), 0.5)
-          ).andThen
-          (
             deadline(
-              swerve.driveToPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65)), 0.01),
+              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.18,Constants.FieldConstants.FIELD_WIDTH  - 2.36, Rotation2d.fromDegrees(-34.65))), 0.01),
               tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
             )
           ).andThen(
             autoShoot()
           ));
+
+
     SmartDashboard.putData(autoChooser);
 
     DataLogManager.start();
@@ -185,6 +168,14 @@ public class RobotContainer {
 
 
   private void configureBindings() {
+    driver.povLeft().and(()-> DriverStation.isDisabled()).onTrue(
+       swerve.resetGyroWithAllianceFlip(90)
+    );
+
+    driver.povRight().and(()-> DriverStation.isDisabled()).onTrue(
+       swerve.resetGyroWithAllianceFlip(-90)
+    );
+
     driver.back().onTrue(swerve.backwardsResetGyro());
 
     /*
@@ -225,12 +216,12 @@ public class RobotContainer {
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
-            feeder.setVelocityMPS(()-> -2.0),
+            feeder.setVelocityMPS(()-> -1.0),
             pivot.slowRaise()
           )
         )
       ).alongWith(
-        hood.setActuatorDeg(()-> 50.0)
+        hood.setActuatorDeg(()-> 45.0)
       )
     );
 
@@ -253,8 +244,8 @@ public class RobotContainer {
      */
     driver.a().whileTrue(
       parallel(
-        tripleShooter.setDutyCycle(()-> 0.4),
-        kicker.setDutyCycle(()-> 1)
+        tripleShooter.setDutyCycle(()-> -0.4),
+        kicker.setDutyCycle(()-> -1)
       )
     );
 
@@ -277,7 +268,6 @@ public class RobotContainer {
       swerve.xLockWheels()
     );
 
-    driver.y().whileTrue(swerve.driveToPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(180)), 0.01));
   }
 
    public Command autoShoot(){
