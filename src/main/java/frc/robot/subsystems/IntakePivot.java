@@ -132,40 +132,19 @@ public class IntakePivot extends SubsystemBase {
             pivot.getConfigurator().apply(config);
         }
 
-        /*
-         * Moves the intake up until it can't move anymore.
-         * Moves the intake down a specified degree amount to allow fuel to wiggle.
-         * Repeats.
-         */
-        public Command agitateWithDutyCycleAndDegreeError(){
-            return (
-                run(()->{
-                    pivot.set(0.1);
-                })
-                .until(
-                    statorOverThreshold.or(velocityAtZero)
-                )
-                .andThen(new ConditionalCommand(
-                    // if intake has enough room to move backwards, send it back by agitateDegreeError
-                    goToPositionDegreesWithCondition(pivot.getPosition().getValueAsDouble() - agitateDegreeError, withinTolerance),
-
-                    // if intake doesn't have enough room to move backwards by agitateDegreeError, return to extended position
-                    goToPositionDegreesWithCondition(pivotExtendedPositionDegrees, withinTolerance),
-                    
-                    () -> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > agitateDegreeError
-                )))
-                .repeatedly();        
-        }
-
         public Command slowRaise(){
             return run(()-> {
-                pivot.setControl(dutyCycleSetter.withOutput(0.05));
+                pivot.setControl(dutyCycleSetter.withOutput(0.1));
             }).until(
-                ()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 23
+                ()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 31
             )
             .andThen(
-                setPositionDegrees(()-> 27)
-            );
+                setPositionDegrees(()-> 34.5)
+            ).until(withinTolerance)
+            .andThen((
+                setPositionDegrees(()->25).until(withinTolerance)
+                ).andThen(setPositionDegrees(()->34.5).until(withinTolerance)
+            ).repeatedly());
         }
 
         public Command goToPositionDegreesWithCondition(double degrees, Trigger condition){
@@ -178,7 +157,6 @@ public class IntakePivot extends SubsystemBase {
                 }).until(condition)
             );
         }
-
 
         public Command setPositionDegrees(DoubleSupplier angleDegrees) {
             return run(
@@ -232,12 +210,6 @@ public class IntakePivot extends SubsystemBase {
         .andThen(
             run ( () -> pivot.setControl(dutyCycleSetter.withOutput(0)))
         ); // make the StatorCurrentLimit (15) into a constant
-    }
-
-    public Command setPivotStartingPositionToExtended(){
-        return runOnce( () -> {
-            pivot.setPosition(Units.degreesToRotations(pivotExtendedPositionDegrees));
-         });
     }
    
     @Override

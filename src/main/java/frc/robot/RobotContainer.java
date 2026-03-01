@@ -9,9 +9,12 @@ import frc.BisonLib.BaseProject.Controller.EnhancedCommandController;
 import frc.BisonLib.BaseProject.Swerve.Modules.TalonFXModule;
 import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -113,9 +116,38 @@ public class RobotContainer {
             ).withTimeout(1.5)
           )
     );
+
     autoChooser.addOption("depot to outpost", new WaitCommand(0));
+
+    autoChooser.addOption("outpost", 
+          swerve.resetGyroWithAllianceFlip(-90)
+          .andThen
+          (
+            race
+            (
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
+              swerve.driveToPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180)), 0.01)
+            ).withTimeout(3) // find this pose (outpost intake pose)
+          )
+          .andThen
+          (
+            new WaitCommand(3) // tune this number
+          ).
+          andThen(
+            swerve.driveToPose(new Pose2d(1.5, 0.64, Rotation2d.fromDegrees(180)), 0.5)
+          ).andThen
+          (
+            deadline(
+              swerve.driveToPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65)), 0.01),
+              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
+            )
+          ).andThen(
+            autoShoot()
+          )
+  
+    );
+
     autoChooser.addOption("depot", new WaitCommand(0));
-    autoChooser.addOption("outpost", new WaitCommand(0));
     SmartDashboard.putData(autoChooser);
 
     DataLogManager.start();
@@ -141,30 +173,12 @@ public class RobotContainer {
           )
           )
     );
-    
 
     /*
      * Auto shoot while held
      */
     driver.rightTrigger().whileTrue(
-      swerve.setHubTagsValid().andThen(
-        parallel(
-          tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
-          swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
-      )
-      .andThen(
-          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
-      )
-      .andThen(
-        parallel(
-          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-          tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
-          feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
-          pivot.slowRaise(),
-          swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-        )
-      )
+      autoShoot()
     );
     driver.rightTrigger().onFalse(swerve.setAllTagsValid());
 
@@ -209,7 +223,7 @@ public class RobotContainer {
     );
 
     /*
-     * dump balls if they are stuck in the vertical column
+    
      */
     driver.a().whileTrue(
       parallel(
@@ -233,12 +247,36 @@ public class RobotContainer {
     /*
      * x lock wheels
      */
-    driver.y().whileTrue(
+    driver.x().whileTrue(
       swerve.xLockWheels()
     );
 
+    driver.y().whileTrue(swerve.driveToPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(180)), 0.01));
   }
 
+   public Command autoShoot(){
+      return (
+        swerve.setHubTagsValid()
+        .andThen(
+          parallel(
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+        )
+        .andThen(
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+        )
+        .andThen(
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.slowRaise(),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+          )
+        )
+      );
+    }
 
 
   public void configureDefaultCommands(){
@@ -265,7 +303,7 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
-    return autoChooser.getSelected();
+    return new PrintCommand("hi").andThen(autoChooser.getSelected());
   }
 
 }

@@ -20,8 +20,8 @@ public class Hood extends SubsystemBase {
     private final VictorSP l_actuator;
 
     /** gets actuator position from 0 to 1*/
-    private static final AnalogPotentiometer r_analog = new AnalogPotentiometer(0);
-    private static final AnalogPotentiometer l_analog = new AnalogPotentiometer(1);
+    private static final AnalogPotentiometer r_analog = new AnalogPotentiometer(1);
+    private static final AnalogPotentiometer l_analog = new AnalogPotentiometer(0);
 
     // Constants
     /** pivot arm length (mm) */
@@ -41,18 +41,19 @@ public class Hood extends SubsystemBase {
     private final double kP = 12.5;
 
     public Hood() {
-        r_actuator = new VictorSP(0);
-        l_actuator = new VictorSP(1);
+        r_actuator = new VictorSP(1);
+        l_actuator = new VictorSP(0);
     }
 
     /** Expects a position between 0.0 and 1.0 */
     private void setPosition(double unclampedTargetPos) {
 
-        double targetPos = MathUtil.clamp(unclampedTargetPos, 0, 1);
+        double targetPos = Math.round(100.0 * MathUtil.clamp(unclampedTargetPos, 0, 1))/100.0;
         SmartDashboard.putNumber("target position", targetPos);
-        double currentPos = r_analog.get(); //absolute position encoder
+        double currentPos = Math.round(r_analog.get() * 100.0) / 100.0; //absolute position encoder
+
         double targetDiff = targetPos - currentPos;
-        double actDiff = r_analog.get() - l_analog.get();
+        double actDiff = Math.round(100.0 * (r_analog.get() - l_analog.get()))/100.0;
 
         // manual PID
         double r_vel = MathUtil.clamp((targetDiff * kP) + kS * Math.signum(targetDiff), -1, 1);

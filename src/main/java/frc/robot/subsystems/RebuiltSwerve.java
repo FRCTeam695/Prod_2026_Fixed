@@ -101,9 +101,7 @@ public class RebuiltSwerve extends SwerveBase{
             run(
             ()->{
 
-                System.out.println("driving to pose");
-
-                double kp_attract = 3.5;
+                double kp_attract = 2.5;
 
                 SmartDashboard.putBoolean("reached destination", false);
  
