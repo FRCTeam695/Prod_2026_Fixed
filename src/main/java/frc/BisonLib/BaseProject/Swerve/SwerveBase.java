@@ -46,6 +46,8 @@ public class SwerveBase extends SubsystemBase {
     protected final Field2d m_field = new Field2d();
     private final SwerveDrivePoseEstimator odometry;
 
+    private double distanceToTarget;
+
     // NEVER DIRECTLY CALL ANY GYRO METHODS, ALWAYS USE THE SYNCHRONIZED GYRO LOCK!!
     //private final AHRS gyro = new AHRS(AHRS.NavXComType.kMXP_SPI, Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
     public final Pigeon2 pigeon;
@@ -572,6 +574,82 @@ public class SwerveBase extends SubsystemBase {
     //             SmartDashboard.putNumber("Average Calculated Wheel Circumference", avg_calculated_wheel_circumference);
     //         }));
     // }
+
+    
+    public Command driveToPose(Pose2d targetPose, double distanceEnd){
+        return
+            runOnce( () -> {
+            }).andThen(run(
+            ()->{
+                
+                SmartDashboard.putBoolean("reached destination", false);
+ 
+                m_field.getObject("targetPose").setPose(targetPose);
+                SmartDashboard.putString("targetPose", targetPose.toString());
+
+                // the current field relative robot pose
+                Pose2d robotPose = getSavedPose();
+
+                double dx = targetPose.getX() - robotPose.getX();
+                double dy = targetPose.getY() - robotPose.getY();
+
+                // converting the errors to components of a unit vector
+                distanceToTarget = Math.hypot(dx, dy);
+                SmartDashboard.putNumber("Distance To Target", distanceToTarget);
+                double unitX = dx / distanceToTarget;
+                double unitY = dy / distanceToTarget;
+
+                SmartDashboard.putNumber("alignment dx", dx);
+                SmartDashboard.putNumber("alignment dy", dy);
+
+                ChassisSpeeds robotSpeed = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), robotPose.getRotation());
+                // projecting the current velocity vector onto the ideal distance vector to only get velocity towards target
+                double currentVelocityTowardsTarget = (robotSpeed.vxMetersPerSecond*dx + robotSpeed.vyMetersPerSecond*dy)/distanceToTarget;
+
+                SmartDashboard.putNumber("current velocity towards target", currentVelocityTowardsTarget);
+
+                double distanceNeededToBrakeAtThisSpeed = Math.pow(currentVelocityTowardsTarget, 2)/(2*Constants.Swerve.MAX_ACCEL_METERS_PER_SECOND_SQ_AUTOALIGN);
+                SmartDashboard.putNumber("distance needed to brake", distanceNeededToBrakeAtThisSpeed);
+                
+
+                double speed;
+                // if(distanceToTarget > distanceNeededToBrakeAtThisSpeed && !trapezoidalOn){
+                    speed = MathUtil.clamp(6 * distanceToTarget, 
+                    -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, 
+                    Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
+                // }
+                // else{
+//                     trapezoidalOn = true;
+
+//                     currentState = new TrapezoidProfile.State(distanceToTarget, -currentVelocityTowardsTarget);
+
+//                     goalState = new TrapezoidProfile.State(0, 0);
+
+//                     outputSetpoint = profile.calculate(0.02, currentState, goalState);
+    
+// ;                   speed = outputSetpoint.velocity * -1;
+
+                SmartDashboard.putNumber("Trapezoidal Commanded Speed", speed);
+                    
+                 
+                double attractX = speed * unitX;
+                double attractY = speed * unitY;
+                
+                ChassisSpeeds speeds = new ChassisSpeeds(
+                    MathUtil.clamp(attractX, -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND), 
+                    MathUtil.clamp(attractY, -Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND), 
+                    getAngularComponentFromRotationOverride(targetPose.getRotation().getDegrees()));
+           
+                drive(speeds, true, false);
+                SmartDashboard.putBoolean("reached destination", false);
+            })
+            ).until(() -> getDistanceToTranslation(targetPose.getTranslation()) < distanceEnd)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }))
+        ;
+    }
 
 
     public Command requireSubsystem(){

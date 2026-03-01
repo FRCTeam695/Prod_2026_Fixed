@@ -37,7 +37,7 @@ public class RobotContainer {
   public final VisionManager VisionManager;
 
   private final String[] limelightCameraNames = {"limelight-left", "limelight-right"};
-  private final String[] photonVisionCameraNames= {"intake"};
+  private final String[] photonVisionCameraNames= {"fisheye"};
 
   //public final SwerveBase SwerveSubsystem;
   public IntegerSubscriber scoringHeight;
@@ -103,10 +103,7 @@ public class RobotContainer {
     driver.back().onTrue(Swerve.resetGyro());
 
      driver.leftTrigger().whileTrue(
-      Swerve.driveToBestFuel( () -> Swerve.getMostEfficientFuelToDriveTo(
-        () -> VisionManager.getFuelList()
-        )
-      )
+      Swerve.driveToClosestFuel(VisionManager::getClosestFuelFieldRelative, driver::getRequestedChassisSpeeds)
     );
 
     driver.rightTrigger().whileTrue(

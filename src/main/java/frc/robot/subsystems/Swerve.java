@@ -201,6 +201,27 @@ public class Swerve extends SwerveBase {
             });
      }
 
+     public Command driveToClosestFuel(Supplier<Optional<Translation2d>> closestFuelSupplier, Supplier<ChassisSpeeds> wantedSpeedSupplier){
+        return
+            run(() -> {
+                Optional<Translation2d> closestFuelOptional = closestFuelSupplier.get();
+                if(closestFuelOptional.isPresent()){
+                    Translation2d closestFuel= closestFuelOptional.get();
+                    Translation2d robotTranslation = getSavedPose().getTranslation();
+
+                    double dx = closestFuel.getX() - robotTranslation.getX();
+                    double dy = closestFuel.getY() - robotTranslation.getY();
+                    double theta = Math.atan2(dy,dx);
+
+                    Pose2d fuelPose = new Pose2d(closestFuel, new Rotation2d(theta));
+                    driveToPose(fuelPose, .01);
+                } else{
+                    drive(wantedSpeedSupplier.get(), true, false);
+                }
+
+            });
+     }
+
      public Command turnTowardsClosestFuel(Supplier<Optional<Translation2d>> closestFuelSupplier, Supplier<ChassisSpeeds> wantedSpeedSupplier){
         return 
             run(() -> {
