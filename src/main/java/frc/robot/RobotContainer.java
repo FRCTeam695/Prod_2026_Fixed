@@ -11,10 +11,8 @@ import frc.BisonLib.BaseProject.Util.SOTMSetpointGenerator;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -120,6 +118,38 @@ public class RobotContainer {
     autoChooser.addOption("depot to outpost", new WaitCommand(0));
 
     autoChooser.addOption("outpost", 
+          swerve.resetGyroWithAllianceFlip(90)
+          .andThen
+          (
+            race
+            (
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
+              swerve.driveToPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(90)), 0.01)
+            ).withTimeout(3)
+          )
+          .andThen
+          (
+            parallel(
+              run
+              (
+                ()-> swerve.driveRobotRelative(new ChassisSpeeds(1.5, 0, 0), true),
+                swerve
+              ),
+              intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
+            ).withTimeout(1.5)
+          ).andThen
+          (
+            deadline(
+              swerve.driveToPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65)), 0.01),
+              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
+            )
+          ).andThen(
+            autoShoot()
+          )
+  
+    );
+
+    autoChooser.addOption("depot", 
           swerve.resetGyroWithAllianceFlip(-90)
           .andThen
           (
@@ -143,11 +173,7 @@ public class RobotContainer {
             )
           ).andThen(
             autoShoot()
-          )
-  
-    );
-
-    autoChooser.addOption("depot", new WaitCommand(0));
+          ));
     SmartDashboard.putData(autoChooser);
 
     DataLogManager.start();
