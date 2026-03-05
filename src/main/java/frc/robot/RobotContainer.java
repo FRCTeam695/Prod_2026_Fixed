@@ -186,7 +186,8 @@ public class RobotContainer {
           .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
+            intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED),
+            feeder.setVelocityMPS(()-> -0.25)
           )
           )
     );
