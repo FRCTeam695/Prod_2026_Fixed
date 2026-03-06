@@ -35,6 +35,12 @@ public class RebuiltSwerve extends SwerveBase{
         return pose;
     }
 
+    public Pose2d getOutpostPose(){
+        if(isRedAlliance()){
+           return optionalFlipPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180)));
+        }
+        return new Pose2d(0.655 - 0.075 ,0.64, Rotation2d.fromDegrees(180));
+    }
     
     public Command rotateTowardsVirtualHub(Supplier<ChassisSpeeds> wantedSpeeds, Supplier<Translation2d> hubPose){
         return 

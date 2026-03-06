@@ -81,7 +81,7 @@ public class RobotContainer {
           (
             deadline
             (
-              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180))), 0.01),
+              swerve.driveToPose(()-> swerve.getOutpostPose(), 0.01),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
             ).withTimeout(3) // find this pose (outpost intake pose)
           )
