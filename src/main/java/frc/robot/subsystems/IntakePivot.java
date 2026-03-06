@@ -157,6 +157,7 @@ public class IntakePivot extends SubsystemBase {
                 }).until(condition)
             );
         }
+        
 
         public Command setPositionDegrees(DoubleSupplier angleDegrees) {
             return run(

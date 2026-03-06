@@ -216,8 +216,8 @@ public class TalonFXModule{
     
     public void driveWithVoltage(double volts){
         driveMotor.setVoltage(volts);
-        SmartDashboard.putNumber("Swerve/Module " + (this.index + 1) + "/Supply Voltage Draw", driveMotor.getSupplyVoltage().getValueAsDouble());
-        SmartDashboard.putNumber("Swerve/Module " + (this.index + 1) + "/Voltage Draw", driveMotor.getMotorVoltage().getValueAsDouble());
+        // SmartDashboard.putNumber("Swerve/Module " + (this.index + 1) + "/Supply Voltage Draw", driveMotor.getSupplyVoltage().getValueAsDouble());
+        // SmartDashboard.putNumber("Swerve/Module " + (this.index + 1) + "/Voltage Draw", driveMotor.getMotorVoltage().getValueAsDouble());
     }
 
     public void setTurnMotor(double v){
@@ -285,8 +285,8 @@ public class TalonFXModule{
         
         // Module optimization (don't turn more than 90 degrees)
         var delta = desiredState.angle.minus(latestAngle);
-        SmartDashboard.putNumber("Unoptimized Angle " + this.index + 1, desiredState.angle.getDegrees());
-        SmartDashboard.putNumber("Module Angle Delta " + this.index+1, delta.getDegrees());
+        // SmartDashboard.putNumber("Unoptimized Angle " + this.index + 1, desiredState.angle.getDegrees());
+        // SmartDashboard.putNumber("Module Angle Delta " + this.index+1, delta.getDegrees());
         if (Math.abs(delta.getDegrees()) > 90.0) {
           desiredState = new SwerveModuleState(
               -desiredState.speedMetersPerSecond, desiredState.angle.rotateBy(Rotation2d.kPi));

@@ -68,7 +68,7 @@ public class RobotContainer {
     pivot = new IntakePivot();
     hood = new Hood();
 
-    SmartDashboard.putData("Swerve Subsystem", swerve);
+    // SmartDashboard.putData("Swerve Subsystem", swerve);
     shotCalculator = new SOTMSetpointGenerator(swerve::getSavedPose, swerve::getLatestChassisSpeed);
 
 
@@ -159,6 +159,7 @@ public class RobotContainer {
 
     SmartDashboard.putData(autoChooser);
 
+    DataLogManager.start("", "", 0.125);
     DataLogManager.start();
   }
 
@@ -186,8 +187,7 @@ public class RobotContainer {
           .andThen(
           parallel(
             pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED),
-            feeder.setVelocityMPS(()-> -0.25)
+            intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
           )
           )
     );
@@ -267,6 +267,10 @@ public class RobotContainer {
      */
     driver.x().whileTrue(
       swerve.xLockWheels()
+    );
+
+    driver.y().whileTrue(
+      intakeRollers.setDutyCycle(()-> 0.2)
     );
 
   }

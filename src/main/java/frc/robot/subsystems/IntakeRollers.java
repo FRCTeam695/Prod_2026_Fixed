@@ -28,6 +28,10 @@ public class IntakeRollers extends SubsystemBase {
     private final DoublePublisher currentVelocityMPSPub = table.getDoubleTopic("Current Velocity RPS").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher setpointVelocityMPSPub = table.getDoubleTopic("Setpoint Velocity RPS").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher tempPub = table.getDoubleTopic("Temperature").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher voltagePub = table.getDoubleTopic("Applied Voltage").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher statorCurrentPub = table.getDoubleTopic("Stator Current").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher supplyCurrentPub = table.getDoubleTopic("Supply Current").publish(PubSubOption.periodic(0.02));
 
 
     private final VelocityVoltage velocity = new VelocityVoltage(0);
@@ -45,23 +49,26 @@ public class IntakeRollers extends SubsystemBase {
                new MotorOutputConfigs()
                .withInverted(InvertedValue.Clockwise_Positive)
                .withNeutralMode(NeutralModeValue.Coast)
+                .withPeakForwardDutyCycle(1)
+                .withPeakReverseDutyCycle(-1)
             )
             .withCurrentLimits(
                 new CurrentLimitsConfigs()
                 .withStatorCurrentLimit(Amps.of(80))
                 .withStatorCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(Amps.of(30))
+                .withSupplyCurrentLimit(Amps.of(60))
                 .withSupplyCurrentLimitEnable(true)
             )
             .withSlot0(
                 new Slot0Configs()
-                    .withKP(9)
-                    .withKI(0)
-                    .withKD(0)
-                    // .withKV(0.12)
-                    // .withKS(0.18)
+                    .withKP(0.5)
+                    // .withKI(0)
+                    // .withKD(0)
+                    .withKV(0.12)
+                    .withKS(0.18)
             );
         roller.getConfigurator().apply(config);
+        roller.getDeviceTemp().setUpdateFrequency(8);
     }
 
     public Command setVelocityRPS(DoubleSupplier targetVelocityRPS) {
@@ -81,5 +88,9 @@ public class IntakeRollers extends SubsystemBase {
         currentVelocityMPSPub.set(roller.getVelocity().getValueAsDouble());
         setpointVelocityMPSPub.set(roller.getClosedLoopReference().getValueAsDouble());
         dutyCyclePub.set(roller.getDutyCycle().getValueAsDouble());
+        tempPub.set(roller.getDeviceTemp().getValueAsDouble());
+        voltagePub.set(roller.getMotorVoltage().getValueAsDouble());
+        statorCurrentPub.set(roller.getStatorCurrent().getValueAsDouble());
+        supplyCurrentPub.set(roller.getSupplyCurrent().getValueAsDouble());
     }
 }

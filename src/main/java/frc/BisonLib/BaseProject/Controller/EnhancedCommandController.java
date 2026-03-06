@@ -54,10 +54,10 @@ public class EnhancedCommandController extends CommandXboxController{
         var alliance = DriverStation.getAlliance();
               if (alliance.isPresent()) {
                 boolean temp = (alliance.get() == DriverStation.Alliance.Red) ? true : false;
-                SmartDashboard.putBoolean("Alliance", temp);
+                // SmartDashboard.putBoolean("Alliance", temp);
                 return temp;
               }
-        SmartDashboard.putBoolean("Alliance", false);
+        // SmartDashboard.putBoolean("Alliance", false);
         return false;
     }
 

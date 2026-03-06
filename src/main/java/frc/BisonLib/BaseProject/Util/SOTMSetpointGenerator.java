@@ -256,10 +256,10 @@ public class SOTMSetpointGenerator extends SubsystemBase{
 
     public ShotParameters getCachedSetpoint(){
         if(cachedSetpoint != null){
-            SmartDashboard.putBoolean("updating cached setpoint", false);
+            // SmartDashboard.putBoolean("updating cached setpoint", false);
             return cachedSetpoint;
         }
-        SmartDashboard.putBoolean("updating cached setpoint", true);
+        // SmartDashboard.putBoolean("updating cached setpoint", true);
         cachedSetpoint = getTOFSetpoint();
         return cachedSetpoint;
     }
