@@ -159,8 +159,6 @@ public class RobotContainer {
 
     SmartDashboard.putData(autoChooser);
 
-    DataLogManager.start("", "", 0.125);
-    DataLogManager.start();
   }
 
   public Runnable getOdometryUpdater(){
