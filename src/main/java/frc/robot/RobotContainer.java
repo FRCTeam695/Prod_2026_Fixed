@@ -148,7 +148,7 @@ public class RobotContainer {
           .andThen
           (
             deadline(
-              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.18,Constants.FieldConstants.FIELD_WIDTH  - 2.36, Rotation2d.fromDegrees(-34.65))), 0.01),
+              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.13,Constants.FieldConstants.FIELD_WIDTH  - 2.36 - 0.15, Rotation2d.fromDegrees(-34.65))), 0.01),
               tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
             )
           ).andThen(
