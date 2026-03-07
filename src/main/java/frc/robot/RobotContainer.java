@@ -256,7 +256,8 @@ public class RobotContainer {
      * auto rotate and set speed limit so that we dont get beached on fuel/bump
      */
     driver.leftBumper().whileTrue(
-      swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
+      // swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
+      run(()-> hood.setDuty(-0.5), hood)
     );
 
     /*

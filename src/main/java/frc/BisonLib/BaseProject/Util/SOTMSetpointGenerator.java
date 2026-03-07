@@ -261,7 +261,7 @@ public class SOTMSetpointGenerator extends SubsystemBase{
             return cachedSetpoint;
         }
         // SmartDashboard.putBoolean("updating cached setpoint", true);
-        cachedSetpoint = getTOFSetpoint();
+        cachedSetpoint = getSetpoint();
         return cachedSetpoint;
     }
 
