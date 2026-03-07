@@ -110,6 +110,26 @@ public double degToActUnit(double deg) {
         return runOnce(() -> setDuty(0));
     }
 
+    public Command stockpileCommand(){
+
+        return(
+            run(()-> {
+        double targetPos = 50.0;
+
+        double currentPosRight = Math.round(r_analog.get() * 100.0) / 100.0; //absolute position encoder
+        double currentPosLeft = Math.round(l_analog.get() * 100.0) / 100.0;
+        double targetDiffRight = degToActUnit(MathUtil.clamp(targetPos, 45, 72.1)) - currentPosRight;
+        double targetDiffLeft = degToActUnit(MathUtil.clamp(targetPos, 45, 72.1)) - currentPosLeft;
+
+        double r_vel = MathUtil.clamp((targetDiffRight * kP) + kS * Math.signum(targetDiffRight), -1, 1);
+        double l_vel = MathUtil.clamp((targetDiffLeft * kP) + kS * Math.signum(targetDiffLeft), -1, 1);
+
+        r_actuator.set(r_vel);
+        l_actuator.set(l_vel);
+            }));
+    
+    }
+
     // Networktables
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable hoodTable = inst.getTable("Hood");

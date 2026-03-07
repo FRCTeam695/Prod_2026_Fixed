@@ -24,7 +24,6 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.util.*;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
@@ -58,7 +57,6 @@ public class IntakePivot extends SubsystemBase {
 
     private final double pivotTolerance = 5;
     private final double typicalCurrentLimit = 50;
-    private final double agitateDegreeError = 10;
     private final double statorAmpLimit = 20;
 
 

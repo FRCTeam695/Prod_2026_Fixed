@@ -24,6 +24,7 @@ public class TripleShooter extends SubsystemBase{
         shooterRight = new IndividualShooter(configRight, kShooterRotationsToMeters);
         allShootersWithinTolerance = shooterLeft.withinTolerance.and(shooterMiddle.withinTolerance).and(shooterRight.withinTolerance);
 
+
     }
 
 

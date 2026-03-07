@@ -86,6 +86,7 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         timeMap.put(distance, shotTime);
     }
 
+    @SuppressWarnings("unused")
     private ShotParameters getSetpoint() {
         Pose2d robotPose = robotPoseSupplier.get();
 
