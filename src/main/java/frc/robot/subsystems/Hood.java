@@ -52,8 +52,8 @@ public class Hood extends SubsystemBase {
     private final double b_r = 7.86623; // right actuator, actuator extension in mm when encoder reads fully retracted
     private final double b_l = 7.61208; // left actuator, actuator extension in mm when encoder reads fully retracted
 
-    // private ShuffleboardTab tab = Shuffleboard.getTab("Hood");
-    // private GenericEntry setpointError = tab.add("Setpoint Error", 0).getEntry();
+    private ShuffleboardTab tab = Shuffleboard.getTab("Hood");
+    private GenericEntry setpointError = tab.add("Setpoint Error", 0).getEntry();
 
     public Hood() {
         r_actuator = new VictorSP(1);
@@ -95,7 +95,7 @@ public class Hood extends SubsystemBase {
     /**  */
     public Command setActuatorDeg(DoubleSupplier deg) {
         return run(
-            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 45, 72.1)))
+            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble() + setpointError.getDouble(0.0), 45, 72.1)))
         );
     }
 
