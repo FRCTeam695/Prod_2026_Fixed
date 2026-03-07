@@ -136,7 +136,12 @@ public double degToActUnit(double deg) {
     private final DoublePublisher r_currentRot = hoodTable.getDoubleTopic("Right current Position (Rot)").publish();
     private final DoublePublisher l_currentRot = hoodTable.getDoubleTopic("Left current Position (Rot)").publish();
 
-    private final DoublePublisher currentHoodDeg = hoodTable.getDoubleTopic("Current deg on hood").publish();
+    private final DoublePublisher currentHoodDegRight = hoodTable.getDoubleTopic("Right current deg on hood").publish();
+    private final DoublePublisher currentHoodDegLeft = hoodTable.getDoubleTopic("Left current deg on hood").publish();
+
+
+
+
     private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
     private final DoublePublisher r_voltageApplied = hoodTable.getDoubleTopic("Voltage applied r").publish();
     private final DoublePublisher l_voltageApplied = hoodTable.getDoubleTopic("Voltage applied l").publish();
@@ -145,7 +150,10 @@ public double degToActUnit(double deg) {
     public void periodic() {
         r_currentRot.set(r_analog.get());
         l_currentRot.set(l_analog.get());
-        currentHoodDeg.set(actUnitToDeg(r_analog.get()));
+
+        currentHoodDegRight.set(actUnitToDeg(r_analog.get()));
+        currentHoodDegLeft.set(actUnitToDeg(l_analog.get()));
+        
         r_voltageApplied.set(r_actuator.getVoltage());
         l_voltageApplied.set(l_actuator.getVoltage());
         SmartDashboard.putNumber("Actuator duty cycle", r_actuator.get());

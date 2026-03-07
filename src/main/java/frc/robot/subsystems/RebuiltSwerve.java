@@ -55,6 +55,9 @@ public class RebuiltSwerve extends SwerveBase{
             double dx = virtualPose.getX() - robotPose.getX();
             double dy = virtualPose.getY() - robotPose.getY();
             double norm = Math.hypot(dx, dy);
+
+            SmartDashboard.putNumber("distance to hub", norm);
+
             double theta = Math.toDegrees(Math.atan2(dy, dx));
 
             double feedForward = (currentSpeeds.vyMetersPerSecond * dx - currentSpeeds.vxMetersPerSecond * dy)
