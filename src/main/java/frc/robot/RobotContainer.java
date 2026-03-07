@@ -14,7 +14,6 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -251,25 +250,31 @@ public class RobotContainer {
     /*
      * retract pivot
      */
-    driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
+    // driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
+
+    driver.b().whileTrue(
+      hood.setActuatorDeg(()-> 70.0)
+    );
 
     /*
      * auto rotate and set speed limit so that we dont get beached on fuel/bump
      */
     driver.leftBumper().whileTrue(
-      swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
+      hood.setActuatorDeg(()-> 45.0)
+      //swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
     );
 
-    /*
-     * x lock wheels
-     */
+
     driver.x().whileTrue(
-      swerve.xLockWheels()
+        hood.setActuatorDeg(()-> 55.0)
+        // swerve.xLockWheels()
     );
 
     driver.y().whileTrue(
-      intakeRollers.setDutyCycle(()-> 0.2)
+      hood.setActuatorDeg(()-> 65.0)
     );
+
+
 
   }
 
@@ -318,7 +323,7 @@ public class RobotContainer {
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
     tripleShooter.setDefaultCommand(tripleShooter.setVelocityTorqueCurrentMPS(()-> 0));
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
-    hood.setDefaultCommand(hood.setActuatorDeg(()-> shotCalculator.getCachedSetpoint().angle()));
+    // hood.setDefaultCommand(hood.setActuatorDeg(()-> shotCalculator.getCachedSetpoint().angle()));
   }
 
   public Command getAutonomousCommand() {
