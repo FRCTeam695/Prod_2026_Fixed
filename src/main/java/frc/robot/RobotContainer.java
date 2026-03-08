@@ -198,31 +198,31 @@ public class RobotContainer {
     );
     driver.rightTrigger().onFalse(swerve.setAllTagsValid());
 
-    /*
-     * stockpile while held
-     */
-    driver.rightBumper().whileTrue(
-      (
-        parallel(
-          tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
-          swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
-        ).until(tripleShooter.allShootersWithinTolerance)
-        .andThen(
-            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
-        )
-        .andThen(
-          parallel(
-            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
-            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-            tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
-            feeder.setVelocityMPS(()-> -1.0),
-            pivot.slowRaise()
-          )
-        )
-      ).alongWith(
-        hood.stockpileCommand()
-      )
-    );
+    // /*
+    //  * stockpile while held
+    //  */
+    // driver.rightBumper().whileTrue(
+    //   (
+    //     parallel(
+    //       tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
+    //       swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
+    //     ).until(tripleShooter.allShootersWithinTolerance)
+    //     .andThen(
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+    //     )
+    //     .andThen(
+    //       parallel(
+    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> tripleShooter.kMaxSpeedMPS * Constants.Shooter.STOCKPILE_SPEED_PERCENT),
+    //         feeder.setVelocityMPS(()-> -1.0),
+    //         pivot.slowRaise()
+    //       )
+    //     )
+    //   ).alongWith(
+    //     hood.stockpileCommand()
+    //   )
+    // );
 
     /*
      * home the pivot while held
@@ -272,6 +272,12 @@ public class RobotContainer {
       run(()-> hood.setDuty(-0.5), hood)
     );
 
+    // STOCKPILE COMMAND IS USUALLY RIGHT BUMPER, PUT BACK WHEN DONE TESTING
+
+    driver.rightBumper().whileTrue(
+      swerve.driveAndRotateToDriveDirection(driver::getRequestedChassisSpeeds, false)
+    );
+    
   }
 
    public Command autoShoot(){

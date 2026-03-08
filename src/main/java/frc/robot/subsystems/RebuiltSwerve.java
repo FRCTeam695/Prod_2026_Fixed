@@ -165,6 +165,29 @@ public class RebuiltSwerve extends SwerveBase{
             }));
     }
 
+    public Command driveAndRotateToDriveDirection(Supplier<ChassisSpeeds> commandedSpeeds, boolean useMaxSpeed){
+        return(
+            run(()->{
+
+                double v_X = commandedSpeeds.get().vxMetersPerSecond;
+                double v_y = commandedSpeeds.get().vyMetersPerSecond;
+                
+                double commanded_theta = Math.atan2(v_y, v_X);
+
+                SmartDashboard.putNumber("commanded angle (target angle)", commanded_theta);
+
+                double error = commanded_theta - getSavedPose().getRotation().getDegrees();
+
+                SmartDashboard.putNumber("rotation error", error);
+
+                ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(v_X, v_y, getAngularComponentFromRotationOverride(commanded_theta));
+
+                drive(adjustedSpeeds, useMaxSpeed);
+
+            })
+        );
+    }
+
     @Override
     public void periodic() {
         super.periodic();
