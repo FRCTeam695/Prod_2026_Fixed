@@ -177,17 +177,31 @@ public class RobotContainer {
 
     driver.back().onTrue(swerve.backwardsResetGyro());
 
-    /*
-     * Intake while held
-     */
-    driver.leftTrigger(0.5).whileTrue(
-          pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
+    driver.leftTrigger().onTrue(
+        pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
           .andThen(
-          parallel(
-            pivot.setDutyCycle(()-> -0.1),
-            intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+            parallel(
+              pivot.setDutyCycle(()-> -0.1),
+              intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+            )
           )
-          )
+    );
+
+    driver.leftTrigger().whileTrue(
+      swerve.snakeDrive(driver::getRequestedChassisSpeeds)
+    );
+
+    driver.leftBumper().whileTrue(
+      run
+          (
+            ()-> 
+              swerve.teleopDefaultCommand(
+                driver::getRequestedChassisSpeeds,
+                true
+              )
+              ,
+              swerve
+          ).withName("Swerve Drive Command")
     );
 
     /*
@@ -196,7 +210,22 @@ public class RobotContainer {
     driver.rightTrigger().whileTrue(
       autoShoot()
     );
-    driver.rightTrigger().onFalse(swerve.setAllTagsValid());
+
+    driver.rightTrigger().onFalse(
+      swerve.setAllTagsValid()
+      .andThen(
+        parallel(
+          tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
+          kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
+        )
+        .andThen(
+          parallel(
+            tripleShooter.setDutyCycle(()-> -0.4),
+            kicker.setDutyCycle(()-> -1)
+          ).withTimeout(1.0)
+        )
+      )
+    );
 
     /*
      * stockpile while held
@@ -221,6 +250,19 @@ public class RobotContainer {
         )
       ).alongWith(
         hood.stockpileCommand()
+      )
+    );
+
+    driver.rightBumper().onFalse(
+      parallel(
+        tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
+        kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
+      )
+      .andThen(
+        parallel(
+          tripleShooter.setDutyCycle(()-> -0.4),
+          kicker.setDutyCycle(()-> -1)
+        ).withTimeout(1.0)
       )
     );
 
@@ -252,26 +294,6 @@ public class RobotContainer {
      * retract pivot
      */
     driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
-
-    /*
-     * auto rotate and set speed limit so that we dont get beached on fuel/bump
-     */
-    driver.leftBumper().whileTrue(
-      // swerve.safeTraverseBump(driver::getRequestedChassisSpeeds)
-      run(()-> hood.setDuty(-0.5), hood)
-    );
-
-    /*
-     * x lock wheels
-     */
-    driver.x().whileTrue(
-      swerve.xLockWheels()
-    );
-
-    driver.y().whileTrue(
-      run(()-> hood.setDuty(-0.5), hood)
-    );
-
   }
 
    public Command autoShoot(){
@@ -317,7 +339,7 @@ public class RobotContainer {
     feeder.setDefaultCommand(feeder.openLoopSet(()-> 0));
     intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
-    tripleShooter.setDefaultCommand(tripleShooter.setVelocityTorqueCurrentMPS(()-> 0));
+    tripleShooter.setDefaultCommand(tripleShooter.setVelocityMPS(()-> 0));
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
     hood.setDefaultCommand(hood.setActuatorDeg(()-> shotCalculator.getCachedSetpoint().angle()));
   }

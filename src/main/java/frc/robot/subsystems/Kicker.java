@@ -50,6 +50,7 @@ public class Kicker extends SubsystemBase {
     private final DoublePublisher velocityPub = feederTable.getDoubleTopic("Kicker Current Velocity (Meters Per Sec)").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher outputVoltagePub = feederTable.getDoubleTopic("Kicker Output Voltage (Volts)").publish(PubSubOption.periodic(0.02));
     public final Trigger velAboveThreshold;
+    public final Trigger isStopped;
 
     public Kicker() {
         motor = new TalonFX(51);
@@ -82,6 +83,7 @@ public class Kicker extends SubsystemBase {
         motor.getConfigurator().apply(slot0Configs, 0.050);
 
         velAboveThreshold = new Trigger(()-> motor.getVelocity().getValueAsDouble() * surfaceMetersPerMotorRotation > 3.5);
+        isStopped = new Trigger(()-> Math.abs(motor.getVelocity().getValueAsDouble()) < 0.1);
     }
 
     public void runBangBang(double targetRPM) {

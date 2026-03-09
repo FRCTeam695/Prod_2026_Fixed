@@ -1,6 +1,5 @@
 package frc.BisonLib.BaseProject.Swerve;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -798,10 +797,6 @@ public class SwerveBase extends SubsystemBase {
         if(reSeedGyro){
             seedCameraHeading();
         }
-        int inc = 0;
-        double avgLLx = 0;
-        double avgLLy = 0;
-        double avgLLomega = 0;
         for(String cam : camNames){  
             LimelightHelpers.SetRobotOrientation(cam, getSavedPose().getRotation().getDegrees(), 0, pigeon.getPitch().getValueAsDouble(), 0, pigeon.getRoll().getValueAsDouble(), 0);
             LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
@@ -810,10 +805,6 @@ public class SwerveBase extends SubsystemBase {
             // Only update pose if it is valid and if we arent spinning too fast
             if(mt2_estimate != null && mt2_estimate.tagCount != 0){//remove rotation speed limit
                 ++inc;
-                // SmartDashboard.putNumber(inc + " Average Tag Distance", mt2_estimate.avgTagDist);
-                avgLLx += mt2_estimate.pose.getX();
-                avgLLy += mt2_estimate.pose.getY();
-                avgLLomega += mt2_estimate.pose.getRotation().getDegrees();
                 // Finally, we actually add the measurement to our odometry
                 odometryLock.writeLock().lock();
                 try{
@@ -837,9 +828,6 @@ public class SwerveBase extends SubsystemBase {
                 m_field.getObject(cam).setPose(mt2_estimate.pose);
                 // SmartDashboard.putString("mt2 pose", mt2_estimate.pose.toString());
             }
-            avgLLx /= inc;
-            avgLLy /= inc;
-            avgLLomega /= inc;
 
             // SmartDashboard.putString("Logged Pose", new Pose2d(avgLLx, avgLLy, Rotation2d.fromDegrees(avgLLomega)).toString());
         }  
@@ -878,43 +866,14 @@ public class SwerveBase extends SubsystemBase {
 
     @Override
     public void periodic() {
-        // SmartDashboard.putNumber("average odometry loop time", avgLoopTIme);
-        // SmartDashboard.putNumber("failed odometry updates", failedOdometryUpdates);
-        // SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
-        // SmartDashboard.putString("Robot Pose", getSavedPose().toString());
-        // SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);s
+        SmartDashboard.putNumber("average odometry loop time", avgLoopTIme);
+        SmartDashboard.putNumber("failed odometry updates", failedOdometryUpdates);
+        SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
+        SmartDashboard.putString("Robot Pose", getSavedPose().toString());
+        SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);
 
-        // limelightUpdateCounter++;
-        // if(limelightUpdateCounter > 25){
-        //     updateOdometryWithVision(true);
-        //     limelightUpdateCounter = 0;
-        // }
-        // else{
-            updateOdometryWithVision(false);
-        //}
 
-    //    SmartDashboard.putNumber("Pigeon Yaw", pigeon.getYaw().getValueAsDouble());
-    //    SmartDashboard.putNumber("Accum Gyro Yaw", pigeon.getAccumGyroZ().getValueAsDouble());
-    // //    SmartDashboard.putNumber("NavX temperature", gyro.getTempC());
-    //     SmartDashboard.putNumber("Robot Rotation", getSavedPose().getRotation().getDegrees());
-    //    SmartDashboard.putNumber("Gyro Heading", getGyroHeading().getDegrees());
-
+        updateOdometryWithVision(false);
         m_field.setRobotPose(getSavedPose());
-        SwerveModuleState[] modStates = getModuleStates();
-
-        // SmartDashboard.putNumber("Module 1 Angle deg", modStates[0].angle.getDegrees());
-        // SmartDashboard.putNumber("Module 2 Angle deg", modStates[1].angle.getDegrees());
-        // SmartDashboard.putNumber("Module 3 Angle deg", modStates[2].angle.getDegrees());
-        // SmartDashboard.putNumber("Module 4 Angle deg", modStates[3].angle.getDegrees());        
-        
-        // SmartDashboard.putBoolean("Robot Rotation at Setpoint", atRotationSetpoint.getAsBoolean());
-
-        if (currentModuleStates[0] != null) {
-            ChassisSpeeds currentFieldRelativeSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
-            double currentvx = currentFieldRelativeSpeeds.vxMetersPerSecond;
-            double currentvy = currentFieldRelativeSpeeds.vyMetersPerSecond;
-            // SmartDashboard.putNumber("Currentvx", currentvx);
-            // SmartDashboard.putNumber("Currentvy", currentvy);
-        }
     }
 }
