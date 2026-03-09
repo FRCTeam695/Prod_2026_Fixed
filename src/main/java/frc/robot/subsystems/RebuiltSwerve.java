@@ -165,7 +165,7 @@ public class RebuiltSwerve extends SwerveBase{
             }));
     }
 
-    public Command driveAndRotateToDriveDirection(Supplier<ChassisSpeeds> commandedSpeeds, boolean useMaxSpeed){
+    public Command snakeDrive(Supplier<ChassisSpeeds> commandedSpeeds, boolean useMaxSpeed){
         return(
             run(()->{
 
