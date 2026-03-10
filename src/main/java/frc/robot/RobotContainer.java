@@ -75,6 +75,8 @@ public class RobotContainer {
     configureBindings();
     configureDefaultCommands();
 
+    autoChooser.addOption("Citrus Sweep", new WaitCommand(0));
+
     autoChooser.addOption("outpost", 
           swerve.resetGyroWithAllianceFlip(-90)
           .andThen
@@ -188,7 +190,7 @@ public class RobotContainer {
     );
 
     driver.leftTrigger().whileTrue(
-      swerve.snakeDrive(driver::getRequestedChassisSpeeds)
+      swerve.pacmanDrive(driver::getRequestedChassisSpeeds)
     );
 
     driver.leftBumper().whileTrue(
@@ -249,7 +251,7 @@ public class RobotContainer {
           )
         )
       ).alongWith(
-        hood.stockpileCommand()
+        hood.setActuatorDeg(()-> 54)
       )
     );
 
@@ -294,6 +296,14 @@ public class RobotContainer {
      * retract pivot
      */
     driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
+
+    driver.y().whileTrue(
+      parallel(
+        kicker.setDutyCycle(()-> 1),
+        tripleShooter.setDutyCycle(()-> 0.4),
+        feeder.openLoopSet(()-> -1)
+      )
+    );
   }
 
    public Command autoShoot(){

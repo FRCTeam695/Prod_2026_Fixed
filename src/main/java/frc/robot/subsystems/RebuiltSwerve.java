@@ -106,7 +106,7 @@ public class RebuiltSwerve extends SwerveBase{
 
     }
 
-    public Command snakeDrive(Supplier<ChassisSpeeds> commandedSpeeds){
+    public Command pacmanDrive(Supplier<ChassisSpeeds> commandedSpeeds){
         return(
             run(()->{
 

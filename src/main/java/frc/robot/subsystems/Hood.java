@@ -6,22 +6,17 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.AnalogPotentiometer;
-import edu.wpi.first.wpilibj.motorcontrol.VictorSP;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Hood extends SubsystemBase {
 
-    /** Actuonix L16 100mm extension length 35mm/s */
-    private final VictorSP r_actuator;
-    /** Actuonix L16 100mm extension length 35mm/s */
-    private final VictorSP l_actuator;
+    private final Servo r_actuator;
+    private final Servo l_actuator;
 
-    /** gets actuator position from 0 to 1*/
-    private static final AnalogPotentiometer r_analog = new AnalogPotentiometer(1);
-    private static final AnalogPotentiometer l_analog = new AnalogPotentiometer(0);
+    private final double min_servo = 0.25; // 0 mm extended
+    private final double max_servo = 0.75; // 100 mm extended
 
     // Constants
     /** pivot arm length (mm) */
@@ -36,45 +31,28 @@ public class Hood extends SubsystemBase {
 
     private final double ACT_TO_MM = 100;
 
-    // Maybe kS will differ slightly on different actuators
-    private final double kS = 0.18;
-    private final double kP = 12.5;
-
     public Hood() {
-        r_actuator = new VictorSP(1);
-        l_actuator = new VictorSP(0);
+        r_actuator = new Servo(1);
+        l_actuator = new Servo(0);
     }
 
     /** Expects a position between 0.0 and 1.0 */
     private void setPosition(double unclampedTargetPos) {
+        // networktables
+        targetPosDeg.set(actUnitToDeg(unclampedTargetPos));
 
-        double targetPos = Math.round(100.0 * MathUtil.clamp(unclampedTargetPos, 0, 1))/100.0;
-        SmartDashboard.putNumber("target position", targetPos);
-        double currentPos = Math.round(r_analog.get() * 100.0) / 100.0; //absolute position encoder
+        unclampedTargetPos = min_servo + unclampedTargetPos * (max_servo - min_servo); //change position into servo units
 
-        double targetDiff = targetPos - currentPos;
-        double actDiff = Math.round(100.0 * (r_analog.get() - l_analog.get()))/100.0;
-
-        // manual PID
-        double r_vel = MathUtil.clamp((targetDiff * kP) + kS * Math.signum(targetDiff), -1, 1);
-        double l_vel = MathUtil.clamp((actDiff * kP) + kS * Math.signum(actDiff), -1, 1);
-
-        SmartDashboard.putNumber("R_VEL", r_vel);
-        SmartDashboard.putNumber("L_VEL", l_vel)
-;
         
         // actuator moves at set velocity
-        r_actuator.set(r_vel);
-        l_actuator.set(l_vel);
-
-        // networktables
-        targetPosDeg.set(actUnitToDeg(targetPos));
+        r_actuator.set(unclampedTargetPos);
+        l_actuator.set(unclampedTargetPos);
     }
 
     /**  */
     public Command setActuatorDeg(DoubleSupplier deg) {
         return run(
-            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 45, 72.1)))
+            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 52, 72.1)))
         );
     }
 
@@ -90,44 +68,15 @@ public class Hood extends SubsystemBase {
     }
 
 
-public double degToActUnit(double deg) {
-    double theta2 = Math.toRadians(90.0 - deg);
-    double phi = theta2 + Math.toRadians(36.0);
-    double cSquared = Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) 
-                    - (2 * A_HOODLEN * B_HYPOT * Math.cos(phi));
-    
-    double c = Math.sqrt(cSquared);
+    public double degToActUnit(double deg) {
+        double theta2 = Math.toRadians(90.0 - deg);
+        double phi = theta2 + Math.toRadians(36.0);
+        double cSquared = Math.pow(A_HOODLEN, 2) + Math.pow(B_HYPOT, 2) 
+                        - (2 * A_HOODLEN * B_HYPOT * Math.cos(phi));
+        
+        double c = Math.sqrt(cSquared);
 
-    return (c - ACTLEN) / ACT_TO_MM;
-}
-
-    public void setDuty(double duty) {
-        r_actuator.set(duty);
-        l_actuator.set(duty);
-    }
-
-    public Command stop(){
-        return runOnce(() -> setDuty(0));
-    }
-
-    public Command stockpileCommand(){
-
-        return(
-            run(()-> {
-        double targetPos = 50.0;
-
-        double currentPosRight = Math.round(r_analog.get() * 100.0) / 100.0; //absolute position encoder
-        double currentPosLeft = Math.round(l_analog.get() * 100.0) / 100.0;
-        double targetDiffRight = degToActUnit(MathUtil.clamp(targetPos, 45, 72.1)) - currentPosRight;
-        double targetDiffLeft = degToActUnit(MathUtil.clamp(targetPos, 45, 72.1)) - currentPosLeft;
-
-        double r_vel = MathUtil.clamp((targetDiffRight * kP) + kS * Math.signum(targetDiffRight), -1, 1);
-        double l_vel = MathUtil.clamp((targetDiffLeft * kP) + kS * Math.signum(targetDiffLeft), -1, 1);
-
-        r_actuator.set(r_vel);
-        l_actuator.set(l_vel);
-            }));
-    
+        return (c - ACTLEN) / ACT_TO_MM;
     }
 
     // Networktables
@@ -139,23 +88,16 @@ public double degToActUnit(double deg) {
     private final DoublePublisher currentHoodDegRight = hoodTable.getDoubleTopic("Right current deg on hood").publish();
     private final DoublePublisher currentHoodDegLeft = hoodTable.getDoubleTopic("Left current deg on hood").publish();
 
-
-
-
     private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
-    private final DoublePublisher r_voltageApplied = hoodTable.getDoubleTopic("Voltage applied r").publish();
-    private final DoublePublisher l_voltageApplied = hoodTable.getDoubleTopic("Voltage applied l").publish();
 
     @Override
     public void periodic() {
-        r_currentRot.set(r_analog.get());
-        l_currentRot.set(l_analog.get());
+        double rPos = r_actuator.get();
+        double lPos = l_actuator.get();
+        r_currentRot.set(rPos);
+        l_currentRot.set(lPos);
 
-        currentHoodDegRight.set(actUnitToDeg(r_analog.get()));
-        currentHoodDegLeft.set(actUnitToDeg(l_analog.get()));
-        
-        r_voltageApplied.set(r_actuator.getVoltage());
-        l_voltageApplied.set(l_actuator.getVoltage());
-        SmartDashboard.putNumber("Actuator duty cycle", r_actuator.get());
+        currentHoodDegRight.set(actUnitToDeg(rPos));
+        currentHoodDegLeft.set(actUnitToDeg(lPos));
     }
 }

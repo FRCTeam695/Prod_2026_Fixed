@@ -127,6 +127,7 @@ public class IntakePivot extends SubsystemBase {
                     .withForwardSoftLimitEnable(true)
                     .withReverseSoftLimitEnable(true)
                 );
+                
             pivot.getConfigurator().apply(config);
         }
 
