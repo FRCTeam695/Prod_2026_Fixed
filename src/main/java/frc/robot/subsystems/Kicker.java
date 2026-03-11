@@ -49,6 +49,8 @@ public class Kicker extends SubsystemBase {
     private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Kicker Set Point (Meters Per Sec)").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher velocityPub = feederTable.getDoubleTopic("Kicker Current Velocity (Meters Per Sec)").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher outputVoltagePub = feederTable.getDoubleTopic("Kicker Output Voltage (Volts)").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher statorCurrentPub = feederTable.getDoubleTopic("Stator Current (Amps)").publish(PubSubOption.periodic(0.02));
+
     public final Trigger velAboveThreshold;
     public final Trigger isStopped;
 
@@ -64,6 +66,7 @@ public class Kicker extends SubsystemBase {
                         .withSupplyCurrentLimit(40)
                         .withSupplyCurrentLimitEnable(true)
                         .withStatorCurrentLimitEnable(true));
+        motor.getSupplyCurrent().setUpdateFrequency(100);
 
         motor.getConfigurator().apply(config);
         SmartDashboard.putData(this);
@@ -82,7 +85,7 @@ public class Kicker extends SubsystemBase {
         slot0Configs.kS = 4.5; //V
         motor.getConfigurator().apply(slot0Configs, 0.050);
 
-        velAboveThreshold = new Trigger(()-> motor.getVelocity().getValueAsDouble() * surfaceMetersPerMotorRotation > 3.5);
+        velAboveThreshold = new Trigger(()-> motor.getVelocity().getValueAsDouble() * surfaceMetersPerMotorRotation > 2.5);
         isStopped = new Trigger(()-> Math.abs(motor.getVelocity().getValueAsDouble()) < 0.1);
     }
 
@@ -145,5 +148,6 @@ public class Kicker extends SubsystemBase {
         setPointPub.set(surfaceMetersFromMotorRotations(motor.getClosedLoopReference().getValueAsDouble()));
         velocityPub.set(surfaceMetersFromMotorRotations(motor.getVelocity().getValueAsDouble()));
         outputVoltagePub.set(motor.getMotorVoltage().getValueAsDouble());
+        statorCurrentPub.set(motor.getStatorCurrent().getValueAsDouble());
     }
 }

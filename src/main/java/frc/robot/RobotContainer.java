@@ -97,7 +97,7 @@ public class RobotContainer {
           (
             deadline(
               swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65))), 0.01),
-              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
+              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
             )
           ).andThen(
             autoShoot()
@@ -152,7 +152,7 @@ public class RobotContainer {
           (
             deadline(
               swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.13 - Units.inchesToMeters(0),Constants.FieldConstants.FIELD_WIDTH  - 2.36 - 0.15, Rotation2d.fromDegrees(-34.65))), 0.01),
-              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm())
+              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
             )
           ).andThen(
             autoShoot()
@@ -191,6 +191,13 @@ public class RobotContainer {
 
     driver.leftTrigger().whileTrue(
       swerve.pacmanDrive(driver::getRequestedChassisSpeeds)
+    );
+
+    driver.leftTrigger().onFalse(
+      parallel(
+        pivot.setDutyCycle(()-> 0),
+        intakeRollers.setVelocityRPS(()-> 0)
+      )
     );
 
     driver.leftBumper().whileTrue(
@@ -304,6 +311,22 @@ public class RobotContainer {
         feeder.openLoopSet(()-> -1)
       )
     );
+
+    driver.x().whileTrue(
+      (
+        tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60).until(tripleShooter.allShootersWithinTolerance)
+      ).andThen(
+          parallel(
+            (
+              kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+            ).andThen(
+              feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100)
+            ),
+
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60)
+          )
+      )
+    );
   }
 
    public Command autoShoot(){
@@ -311,7 +334,7 @@ public class RobotContainer {
         swerve.setHubTagsValid()
         .andThen(
           parallel(
-            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
         ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
         )
@@ -321,7 +344,7 @@ public class RobotContainer {
         .andThen(
           parallel(
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().rpm()),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
             feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
             pivot.slowRaise(),
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
@@ -349,9 +372,9 @@ public class RobotContainer {
     feeder.setDefaultCommand(feeder.openLoopSet(()-> 0));
     intakeRollers.setDefaultCommand(intakeRollers.setDutyCycle(()-> 0));
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
-    tripleShooter.setDefaultCommand(tripleShooter.setVelocityMPS(()-> 0));
+    tripleShooter.setDefaultCommand(tripleShooter.setDutyCycle(()-> 0));
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
-    hood.setDefaultCommand(hood.setActuatorDeg(()-> shotCalculator.getCachedSetpoint().angle()));
+    hood.setDefaultCommand(hood.setActuatorDeg(()-> 71));
   }
 
   public Command getAutonomousCommand() {

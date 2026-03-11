@@ -86,7 +86,6 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         timeMap.put(distance, shotTime);
     }
 
-    @SuppressWarnings("unused")
     private ShotParameters getSetpoint() {
         Pose2d robotPose = robotPoseSupplier.get();
 
@@ -268,7 +267,7 @@ public class SOTMSetpointGenerator extends SubsystemBase{
     public void clearCachedSetpoint(){
         if( cachedSetpoint != null){
             SmartDashboard.putNumber("Cached angle", cachedSetpoint.angle);
-            SmartDashboard.putNumber("Cached rpm", cachedSetpoint.rpm);
+            SmartDashboard.putNumber("Cached rpm", cachedSetpoint.shotVelocityMPS);
             SmartDashboard.putNumber("Cached feed speed", cachedSetpoint.feedSpeed);
             SmartDashboard.putString("Cached Virtual Target", cachedSetpoint.virtualTarget.toString());
         }
@@ -278,5 +277,5 @@ public class SOTMSetpointGenerator extends SubsystemBase{
 
     
 
-    public record ShotParameters(double angle, double rpm, double feedSpeed, Translation2d virtualTarget) {}
+    public record ShotParameters(double angle, double shotVelocityMPS, double feedSpeed, Translation2d virtualTarget) {}
 }

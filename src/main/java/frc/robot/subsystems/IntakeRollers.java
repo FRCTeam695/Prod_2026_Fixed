@@ -61,7 +61,7 @@ public class IntakeRollers extends SubsystemBase {
             )
             .withSlot0(
                 new Slot0Configs()
-                    .withKP(0.5)
+                    .withKP(0.3)
                     // .withKI(0)
                     // .withKD(0)
                     .withKV(0.12)

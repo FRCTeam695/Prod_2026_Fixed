@@ -47,7 +47,7 @@ public class IntakePivot extends SubsystemBase {
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
     private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));;
 
-    public final double pivotRetractedPositionDegrees = 110.16;
+    public final double pivotRetractedPositionDegrees = 147.2167;
     public final double pivotExtendedPositionDegrees = 1.005;//5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
     public final double pivotAgitatePositionDegrees = 50;
 

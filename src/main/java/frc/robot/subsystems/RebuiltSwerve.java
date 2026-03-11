@@ -106,16 +106,19 @@ public class RebuiltSwerve extends SwerveBase{
 
     }
 
-    public Command pacmanDrive(Supplier<ChassisSpeeds> commandedSpeeds){
+    public Command pacmanDrive(Supplier<ChassisSpeeds> commandedSpeedsSupplier){
         return(
             run(()->{
+                ChassisSpeeds commandedSpeeds = commandedSpeedsSupplier.get();
+                double vx = commandedSpeeds.vxMetersPerSecond;
+                double vy = commandedSpeeds.vyMetersPerSecond;
 
-                double v_X = commandedSpeeds.get().vxMetersPerSecond;
-                double v_y = commandedSpeeds.get().vyMetersPerSecond;
-                
-                double commanded_theta = Math.atan2(v_y, v_X);
+                double commanded_theta = getAngularComponentFromRotationOverride(Math.atan2(vy, vx));
+                if(Math.hypot(vx, vy) < 0.05){
+                    commanded_theta = commandedSpeeds.omegaRadiansPerSecond;
+                }
 
-                ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(v_X, v_y, getAngularComponentFromRotationOverride(commanded_theta));
+                ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(vx, vy, commanded_theta);
 
                 drive(adjustedSpeeds, true);
 
