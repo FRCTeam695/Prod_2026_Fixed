@@ -168,6 +168,7 @@ public class RobotContainer {
   }
 
 
+  @SuppressWarnings("static-access")
   private void configureBindings() {
     driver.povLeft().and(()-> DriverStation.isDisabled()).onTrue(
        swerve.resetGyroWithAllianceFlip(90)

@@ -114,7 +114,7 @@ public class RebuiltSwerve extends SwerveBase{
                 double vy = commandedSpeeds.vyMetersPerSecond;
 
                 double commanded_theta = getAngularComponentFromRotationOverride(Math.atan2(vy, vx));
-                if(Math.hypot(vx, vy) < 0.05){
+                if(Math.hypot(vx, vy) < 0.05 || commandedSpeeds.omegaRadiansPerSecond > 0.05){
                     commanded_theta = commandedSpeeds.omegaRadiansPerSecond;
                 }
 
