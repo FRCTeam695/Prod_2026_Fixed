@@ -75,7 +75,37 @@ public class RobotContainer {
     configureBindings();
     configureDefaultCommands();
 
-    autoChooser.addOption("Citrus Sweep", new WaitCommand(0));
+    autoChooser.addOption("Citrus Sweep Left", 
+          swerve.resetGyroWithAllianceFlip(90)
+          .andThen(
+            parallel(
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance),
+              swerve.driveToPose(() -> new Pose2d(), 0.01, 0.0), // pose = where we want to start intaking from
+              parallel(
+                kicker.setDutyCycle(()-> -0.5)
+              ).withTimeout(1)
+            )
+          )
+          .andThen(
+            deadline( // add a rotational component to this pose2d to push fuel to our side, 
+            //this is where we want to stop intaking
+              swerve.driveToPose(() -> new Pose2d(), 0.01, 0.0),
+              parallel(
+                pivot.setDutyCycle(()-> -0.1),
+                intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+              )
+            )
+          ).andThen( // pose in front of bump, pick a bigger distance end, add some feedforward so we dont slow to a stop
+              swerve.pacmanDriveToPose(() -> new Pose2d(), 0.01, 0.0)
+          ).andThen(
+              deadline(
+                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(), 0.01),
+                tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
+              )
+          ).andThen(
+            autoShoot()
+          )
+    );
 
     autoChooser.addOption("outpost", 
           swerve.resetGyroWithAllianceFlip(-90)
@@ -83,7 +113,7 @@ public class RobotContainer {
           (
             deadline
             (
-              swerve.driveToPose(()-> swerve.getOutpostPose(), 0.01),
+              swerve.driveToPose(()-> swerve.getOutpostPose(), 0.01, 0.0),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
             ).withTimeout(3) // find this pose (outpost intake pose)
           )
@@ -92,11 +122,17 @@ public class RobotContainer {
             runOnce(() -> {swerve.stopModules();}).andThen(new WaitCommand(3)) // tune this number
           ).
           andThen(
-            swerve.driveToPose( ()-> swerve.optionalFlipPose(new Pose2d(1.5, 0.64, Rotation2d.fromDegrees(180))), 0.5)
+            swerve.driveToPose( 
+              ()-> swerve.optionalFlipPose(new Pose2d(1.5, 0.64, Rotation2d.fromDegrees(180))), 
+              0.5, 
+              0.0)
           ).andThen
           (
             deadline(
-              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65))), 0.01),
+              swerve.driveToPose(
+                ()-> swerve.optionalFlipPose(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65))),
+                 0.01,
+                 0.0),
               tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
             )
           ).andThen(
@@ -111,7 +147,10 @@ public class RobotContainer {
           (
             deadline
             (
-              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(1.019,6.3, Rotation2d.fromDegrees(180))), 0.01),
+              swerve.driveToPose(
+                ()-> swerve.optionalFlipPose(new Pose2d(1.019,6.3, Rotation2d.fromDegrees(180))), 
+                0.01,
+                0.0),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
             ) 
           )
@@ -130,7 +169,10 @@ public class RobotContainer {
                 swerve
               ).withTimeout(0.75)
               ).andThen(
-                swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(0.844,5.3, Rotation2d.fromDegrees(180))), 0.01)
+                swerve.driveToPose(
+                  ()-> swerve.optionalFlipPose(new Pose2d(0.844,5.3, Rotation2d.fromDegrees(180))), 
+                  0.01,
+                  0.0)
               ).andThen(
                  run
               (
@@ -144,14 +186,19 @@ public class RobotContainer {
                 swerve
               ).withTimeout(1.0))
               ,
-              intakeRollers.setDutyCycle(()-> Constants.Intake.INTAKE_SPEED)
-              
+              parallel(
+                pivot.setDutyCycle(()-> -0.1),
+                intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+              )
           )
           )
           .andThen
           (
             deadline(
-              swerve.driveToPose(()-> swerve.optionalFlipPose(new Pose2d(2.13 - Units.inchesToMeters(0),Constants.FieldConstants.FIELD_WIDTH  - 2.36 - 0.15, Rotation2d.fromDegrees(-34.65))), 0.01),
+              swerve.driveToPose(
+                ()-> swerve.optionalFlipPose(new Pose2d(2.13 - Units.inchesToMeters(0),Constants.FieldConstants.FIELD_WIDTH  - 2.36 - 0.15, Rotation2d.fromDegrees(-34.65))), 
+                0.01,
+                0.0),
               tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
             )
           ).andThen(
@@ -190,9 +237,9 @@ public class RobotContainer {
           )
     );
 
-    driver.leftTrigger().whileTrue(
-      swerve.pacmanDrive(driver::getRequestedChassisSpeeds)
-    );
+    // driver.leftTrigger().whileTrue(
+    //   swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading)
+    // );
 
     driver.leftTrigger().onFalse(
       parallel(
@@ -321,8 +368,10 @@ public class RobotContainer {
             (
               kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
             ).andThen(
-              feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100)
-            ),
+              parallel(
+              feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
+              pivot.extendedToRetracted().andThen(pivot.setDutyCycle(()-> 0))
+            )),
 
             tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60)
           )

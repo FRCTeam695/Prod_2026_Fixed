@@ -5,6 +5,7 @@ import static edu.wpi.first.wpilibj2.command.Commands.runEnd;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
@@ -181,8 +182,14 @@ public class EnhancedCommandController extends CommandXboxController{
         return new ChassisSpeeds(Xj, Yj, Zj);
     }
 
+    public Translation2d getRightStickHeading(){
+        double x = getRightX();
+        double y = -getRightY();
 
-    /**
+        return new Translation2d(x, y);
+    }
+
+    /**,
      * Squares the rightX stick values, makes the robot accel. less for smaller joystick inputs
      * 
      * @return the squared right stick values

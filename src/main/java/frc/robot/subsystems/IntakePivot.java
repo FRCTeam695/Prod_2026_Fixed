@@ -56,7 +56,6 @@ public class IntakePivot extends SubsystemBase {
     public final Trigger velocityAtZero;
 
     private final double pivotTolerance = 5;
-    private final double typicalCurrentLimit = 50;
     private final double statorAmpLimit = 20;
 
 
@@ -95,7 +94,7 @@ public class IntakePivot extends SubsystemBase {
                 )
                 .withCurrentLimits( 
                     new CurrentLimitsConfigs()
-                    .withStatorCurrentLimit(Amps.of(typicalCurrentLimit))
+                    .withStatorCurrentLimit(Amps.of(statorAmpLimit))
                     .withStatorCurrentLimitEnable(true)
                     .withSupplyCurrentLimit(Amps.of(30)) // fix magic number
                     .withSupplyCurrentLimitEnable(true)
@@ -144,6 +143,15 @@ public class IntakePivot extends SubsystemBase {
                 setPositionDegrees(()->25).until(withinTolerance)
                 ).andThen(setPositionDegrees(()->34.5).until(withinTolerance)
             ).repeatedly());
+        }
+
+        public Command extendedToRetracted(){
+            return run(()->{
+                pivot.setControl(dutyCycleSetter.withOutput(0.07));
+            })
+            .until(
+                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > pivotRetractedPositionDegrees - 10)
+            );
         }
 
         public Command goToPositionDegreesWithCondition(double degrees, Trigger condition){

@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import edu.wpi.first.math.MathUtil;
@@ -22,6 +23,7 @@ public class RebuiltSwerve extends SwerveBase{
         
     protected final Field2d m_field = new Field2d();
     
+    private final double kp_attract = 2.5;
 
 
     public RebuiltSwerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
@@ -106,19 +108,32 @@ public class RebuiltSwerve extends SwerveBase{
 
     }
 
-    public Command pacmanDrive(Supplier<ChassisSpeeds> commandedSpeedsSupplier){
+    public Command pacmanDrive(Supplier<ChassisSpeeds> commandedSpeedsSupplier, Supplier<Translation2d> headingOverrideSupplier){
         return(
             run(()->{
                 ChassisSpeeds commandedSpeeds = commandedSpeedsSupplier.get();
                 double vx = commandedSpeeds.vxMetersPerSecond;
                 double vy = commandedSpeeds.vyMetersPerSecond;
 
-                double commanded_theta = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)));
-                if(Math.hypot(vx, vy) < 0.05 || commandedSpeeds.omegaRadiansPerSecond > 0.05){
-                    commanded_theta = commandedSpeeds.omegaRadiansPerSecond;
+                Translation2d translationOverride = headingOverrideSupplier.get();
+                
+                double rightStickMagnitude = translationOverride.getNorm();
+
+                double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX()));
+
+                double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)));
+                
+                // to make sure we don't snap back to theta=0 when not driving
+                if(Math.hypot(vx, vy) < 0.05){
+                    pacmanAngularSpeeds = commandedSpeeds.omegaRadiansPerSecond;
                 }
 
-                ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(vx, vy, commanded_theta);
+                // if there is some feedback from the right stick, snap to that angle
+                if(rightStickMagnitude >= 0.05){
+                    pacmanAngularSpeeds = getAngularComponentFromRotationOverride(headingOverride);
+                }
+
+                ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(vx, vy, pacmanAngularSpeeds);
 
                 drive(adjustedSpeeds, true);
 
@@ -127,15 +142,13 @@ public class RebuiltSwerve extends SwerveBase{
     }
 
 
-    public Command driveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd){
+    public Command driveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedForward){
 
         return
             
             run(
             ()->{
                 Pose2d targetPose = targetPoseSupplier.get();
-
-                double kp_attract = 2.5;
 
                 SmartDashboard.putBoolean("reached destination", false);
  
@@ -156,7 +169,7 @@ public class RebuiltSwerve extends SwerveBase{
                 SmartDashboard.putNumber("alignment dx", dx);
                 SmartDashboard.putNumber("alignment dy", dy);
 
-                double speed = MathUtil.clamp(kp_attract * distance, 
+                double speed = MathUtil.clamp(kp_attract * distance + feedForward, 
                     -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, 
                     Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
 
@@ -180,6 +193,134 @@ public class RebuiltSwerve extends SwerveBase{
                 drive(speeds, false);
             }
             ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }));
+    }
+
+    public Command pacmanDriveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedForward){
+        return
+            
+            run(
+            ()->{
+                Pose2d targetPose = targetPoseSupplier.get();
+
+                SmartDashboard.putBoolean("reached destination", false);
+ 
+                m_field.getObject("targetPose").setPose(targetPose);
+                SmartDashboard.putString("targetPose", targetPose.toString());
+
+                // the current field relative robot pose
+                Pose2d robotPose = getSavedPose();
+
+                double dx = targetPose.getX() - robotPose.getX();
+                double dy = targetPose.getY() - robotPose.getY();
+
+                // converting the errors to components of a unit vector
+                double distance = Math.hypot(dx, dy);
+                double unitX = dx / distance;
+                double unitY = dy / distance;
+
+                SmartDashboard.putNumber("alignment dx", dx);
+                SmartDashboard.putNumber("alignment dy", dy);
+
+                double speed = MathUtil.clamp(kp_attract * distance + feedForward, 
+                    -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, 
+                    Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+
+                // makes robot go straight by applying calculated velocity to unit vector
+                double attractY = unitY * speed;
+                double attractX = unitX * speed;
+           
+                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
+                SmartDashboard.putNumber("distance to target", distance);
+                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                
+                ChassisSpeeds speeds =
+                    new ChassisSpeeds(
+                        MathUtil.clamp(attractX, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                        MathUtil.clamp(attractY, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                    getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(dy, dx)))
+                );
+                SmartDashboard.putString("align speeds", speeds.toString());
+
+                drive(speeds, false);
+            }
+            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }));
+    }
+
+    public Command driveToPoseWhileTurningToHub(Supplier<Pose2d> drivePoseSupplier, double distanceEnd){
+
+        return 
+            
+            run(()->{
+
+                Pose2d targetDrivePose = drivePoseSupplier.get();
+                Pose2d targetTurnPose = isRedAlliance() ? Constants.FieldConstants.Red.HUB : Constants.FieldConstants.Blue.HUB;
+
+                m_field.getObject("targetPose").setPose(targetDrivePose);
+
+                // the current field relative robot pose
+                Pose2d robotPose = getSavedPose();
+
+                double dx_drive = targetDrivePose.getX() - robotPose.getX();
+                double dy_drive = targetDrivePose.getY() - robotPose.getY();
+
+                // converting the errors to components of a unit vector
+                double distance = Math.hypot(dx_drive, dy_drive);
+                double unitX = dx_drive / distance;
+                double unitY = dy_drive / distance;
+
+                double speed = MathUtil.clamp(kp_attract * distance, 
+                    -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, 
+                    Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+
+                // makes robot go straight by applying calculated velocity to unit vector
+                double attractY = unitY * speed;
+                double attractX = unitX * speed;
+            
+                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
+                SmartDashboard.putNumber("distance to target", distance);
+                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                
+                ChassisSpeeds currentSpeeds = getLatestChassisSpeed();
+
+                m_field.getObject("virtualHub").setPose(targetTurnPose);
+                SmartDashboard.putString("virtualHub", targetTurnPose.toString());
+
+                double dx_turn = targetTurnPose.getX() - robotPose.getX();
+                double dy_turn = targetTurnPose.getY() - robotPose.getY();
+
+                double norm = Math.hypot(dx_turn, dy_turn);
+
+                SmartDashboard.putNumber("distance to hub", norm);
+
+                double theta = Math.toDegrees(Math.atan2(dy_turn, dx_turn));
+
+                double feedForward = (currentSpeeds.vyMetersPerSecond * dx_turn - currentSpeeds.vxMetersPerSecond * dy_turn)
+                    / (norm * norm);
+
+                double wantedAngularSpeed = -feedForward + getAngularComponentFromRotationOverride(theta);
+                    
+                ChassisSpeeds speeds =
+                    new ChassisSpeeds(
+                        MathUtil.clamp(attractX, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                        MathUtil.clamp(attractY, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                    wantedAngularSpeed);
+
+                SmartDashboard.putString("align speeds", speeds.toString());
+
+                drive(speeds, false);
+                
+            }
+            ).until(() -> getDistanceToTranslation(drivePoseSupplier.get().getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
                 SmartDashboard.putBoolean("reached destination", true);
                 this.stopModules();

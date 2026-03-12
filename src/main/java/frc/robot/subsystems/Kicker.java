@@ -85,7 +85,7 @@ public class Kicker extends SubsystemBase {
         slot0Configs.kS = 4.5; //V
         motor.getConfigurator().apply(slot0Configs, 0.050);
 
-        velAboveThreshold = new Trigger(()-> motor.getVelocity().getValueAsDouble() * surfaceMetersPerMotorRotation > 2.5);
+        velAboveThreshold = new Trigger(()-> motor.getVelocity().getValueAsDouble() * surfaceMetersPerMotorRotation > 3.3);
         isStopped = new Trigger(()-> Math.abs(motor.getVelocity().getValueAsDouble()) < 0.1);
     }
 
