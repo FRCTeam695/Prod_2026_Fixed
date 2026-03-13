@@ -237,9 +237,9 @@ public class RobotContainer {
           )
     );
 
-    // driver.leftTrigger().whileTrue(
-    //   swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading)
-    // );
+    driver.leftTrigger().whileTrue(
+      swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading)
+    );
 
     driver.leftTrigger().onFalse(
       parallel(
