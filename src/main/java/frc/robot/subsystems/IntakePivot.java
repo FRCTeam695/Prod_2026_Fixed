@@ -147,7 +147,7 @@ public class IntakePivot extends SubsystemBase {
 
         public Command extendedToRetracted(){
             return run(()->{
-                pivot.setControl(dutyCycleSetter.withOutput(0.07));
+                pivot.setControl(dutyCycleSetter.withOutput(0.1));
             })
             .until(
                 () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > pivotRetractedPositionDegrees - 10)
@@ -172,6 +172,10 @@ public class IntakePivot extends SubsystemBase {
                     pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(angleDegrees.getAsDouble())));
                 }
             );
+        }
+
+        public Command setPositionToCurrentPosition(){
+            return setPositionDegrees(()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()));
         }
 
         public Command setDutyCycle(DoubleSupplier velocity) {

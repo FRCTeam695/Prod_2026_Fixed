@@ -370,7 +370,7 @@ public class RobotContainer {
             ).andThen(
               parallel(
               feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
-              pivot.extendedToRetracted().andThen(pivot.setDutyCycle(()-> 0))
+              pivot.extendedToRetracted().andThen(pivot.setPositionToCurrentPosition())
             )),
 
             tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60)
