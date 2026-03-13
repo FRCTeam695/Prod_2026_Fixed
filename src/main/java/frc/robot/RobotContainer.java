@@ -352,15 +352,13 @@ public class RobotContainer {
      */
     driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
 
-    driver.y().whileTrue(
-      parallel(
-        kicker.setDutyCycle(()-> 1),
-        tripleShooter.setDutyCycle(()-> 0.4),
-        feeder.openLoopSet(()-> -1)
-      )
+    driver.x().whileTrue(
+        tripleShooter.setVelocityTorqueCurrentMPS(
+            ()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()
+        )
     );
 
-    driver.x().whileTrue(
+    driver.y().whileTrue(
       (
         tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60).until(tripleShooter.allShootersWithinTolerance)
       ).andThen(
@@ -424,7 +422,7 @@ public class RobotContainer {
     kicker.setDefaultCommand(kicker.setDutyCycle(()-> 0));
     tripleShooter.setDefaultCommand(tripleShooter.setDutyCycle(()-> 0));
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
-    hood.setDefaultCommand(hood.setActuatorDeg(()-> 71));
+    hood.setDefaultCommand(hood.setActuatorDeg(()-> shotCalculator.getCachedSetpoint().angle()));
   }
 
   public Command getAutonomousCommand() {
