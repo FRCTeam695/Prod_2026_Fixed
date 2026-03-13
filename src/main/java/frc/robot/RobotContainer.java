@@ -352,13 +352,13 @@ public class RobotContainer {
      */
     driver.b().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
 
-    driver.x().whileTrue(
+    driver.y().whileTrue(
         tripleShooter.setVelocityTorqueCurrentMPS(
             ()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()
         )
     );
 
-    driver.y().whileTrue(
+    driver.x().whileTrue(
       (
         tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60).until(tripleShooter.allShootersWithinTolerance)
       ).andThen(
