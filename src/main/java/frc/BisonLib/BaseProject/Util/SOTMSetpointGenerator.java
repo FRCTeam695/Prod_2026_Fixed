@@ -54,29 +54,35 @@ public class SOTMSetpointGenerator extends SubsystemBase{
 
          // this table is furthest to closest location
         addDatapointToTable(
-            Constants.FieldConstants.Blue.HUB.getTranslation().getDistance(new Translation2d(0.2, 3.935)), 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.68,
-            59,
-            -0.5, 
+            0.921, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.5,
+            50,
+            -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable(
-            Constants.FieldConstants.Blue.HUB.getTranslation().getDistance(new Translation2d(0.90, 4.00)), 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.63,
-            60,
-            -0.5, 
-            1.36);
+            2.263, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.59,
+            72,
+            -100 * ((12/36.)*30*5)/1000, 
+            1.42);
         addDatapointToTable(
-            Constants.FieldConstants.Blue.HUB.getTranslation().getDistance(new Translation2d(2.125, 3.98)), 
-            19.1511488163, 
-            65.17,
-            -1.0, 
-            1.3);
-        addDatapointToTable(
-            Constants.FieldConstants.Blue.HUB.getTranslation().getDistance(new Translation2d(3.73, 4.11)), 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.60,
-            71,
-            -1.0, 
-            1.3);
+            3.09, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.62,
+            69,
+            -100 * ((12/36.)*30*5)/1000, 
+            1.42);
+        addDatapointToTable( 
+            4.23, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.64,
+            67,
+            -100 * ((12/36.)*30*5)/1000, 
+            1.42);
+        addDatapointToTable( 
+            5.176, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7,
+            63,
+            -100 * ((12/36.)*30*5)/1000, 
+            1.42);
     }
 
     private void addDatapointToTable(double distance, double shotSpeed, double hoodAngle, double feederSpeed, double shotTime){

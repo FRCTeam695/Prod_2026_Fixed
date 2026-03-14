@@ -47,7 +47,7 @@ public class IntakePivot extends SubsystemBase {
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
     private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));;
 
-    public final double pivotRetractedPositionDegrees = 147.2167;
+    public final double pivotRetractedPositionDegrees = 134.9;
     public final double pivotExtendedPositionDegrees = 1.005;//5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
     public final double pivotAgitatePositionDegrees = 50;
 
@@ -55,7 +55,7 @@ public class IntakePivot extends SubsystemBase {
     public final Trigger statorOverThreshold;
     public final Trigger velocityAtZero;
 
-    private final double pivotTolerance = 5;
+    private final double pivotTolerance = 10;
     private final double statorAmpLimit = 20;
 
 
@@ -131,21 +131,6 @@ public class IntakePivot extends SubsystemBase {
         }
 
         public Command slowRaise(){
-            return run(()-> {
-                pivot.setControl(dutyCycleSetter.withOutput(0.1));
-            }).until(
-                ()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 31
-            )
-            .andThen(
-                setPositionDegrees(()-> 34.5)
-            ).until(withinTolerance)
-            .andThen((
-                setPositionDegrees(()->25).until(withinTolerance)
-                ).andThen(setPositionDegrees(()->34.5).until(withinTolerance)
-            ).repeatedly());
-        }
-
-        public Command extendedToRetracted(){
             return run(()->{
                 pivot.setControl(dutyCycleSetter.withOutput(0.1));
             })
