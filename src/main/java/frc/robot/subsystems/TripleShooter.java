@@ -3,6 +3,9 @@ package frc.robot.subsystems;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -14,6 +17,9 @@ public class TripleShooter extends SubsystemBase{
     public final IndividualShooter shooterLeft;
     public final IndividualShooter shooterMiddle;
     public final IndividualShooter shooterRight;
+
+    private ShuffleboardTab shootTab = Shuffleboard.getTab("Shooter");
+    private GenericEntry rpmPercent = shootTab.add("RPM Percent Adjustment", 1.0).getEntry();
 
     public final double kShooterRotationsToMeters = 2 * Math.PI * Units.inchesToMeters(2);
     public final double kMaxSpeedMPS = kShooterRotationsToMeters * 100;
@@ -57,15 +63,15 @@ public class TripleShooter extends SubsystemBase{
                 shooterMiddle.configForVelocityControl();
                 shooterRight.configForVelocityControl();
 
-                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0) / kShooterRotationsToMeters);
+                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0) / kShooterRotationsToMeters);
+                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0) / kShooterRotationsToMeters);
             }
         ).andThen(
             run(()-> {
-                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0) / kShooterRotationsToMeters);
+                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0) / kShooterRotationsToMeters);
+                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0) / kShooterRotationsToMeters);
             }).until(condition)
         );
     }
