@@ -56,7 +56,7 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         addDatapointToTable(
             0.921, 
             2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.5,
-            72,
+        72,
             -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable(
