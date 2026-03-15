@@ -245,7 +245,7 @@ public class SwerveBase extends SubsystemBase {
     
 
     public void pathplannerDriveRobotRelative(ChassisSpeeds speeds){
-        driveRobotRelative(speeds, false);
+        driveRobotRelative(speeds);
     }
 
 
@@ -297,9 +297,8 @@ public class SwerveBase extends SubsystemBase {
     /*
      * Sets all the swerve modules to the states we want them to be in (velocity + angle)
      */
-    public void setModules(SwerveModuleState[] desiredStates, boolean useMaxSpeed) {
-        if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
-        else SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
+    public void setModules(SwerveModuleState[] desiredStates) {
+        SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
 
         for(var module : modules){
             //SmartDashboard.putString("Swerve/Module State " + module.index, desiredStates[module.index].toString());
@@ -504,7 +503,7 @@ public class SwerveBase extends SubsystemBase {
                 );
                 // SmartDashboard.putString("align speeds", speeds.toString());
 
-                drive(speeds, false);
+                drive(speeds);
         });
     }
 
@@ -579,7 +578,7 @@ public class SwerveBase extends SubsystemBase {
             ()-> {
                     ChassisSpeeds speeds = speedSupplier.get();
                     speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(angleDegrees.getAsDouble());
-                    drive(speeds, true);
+                    drive(speeds);
                  }
         );
     }
@@ -611,10 +610,9 @@ public class SwerveBase extends SubsystemBase {
      * 
      * @param chassisSpeeds The chassis speeds the robot should travel at
      */
-    public void driveRobotRelative(ChassisSpeeds chassisSpeeds, boolean useMaxSpeed) {
+    public void driveRobotRelative(ChassisSpeeds chassisSpeeds) {
         var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
-        if(useMaxSpeed) SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
-        else SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_TRACKABLE_SPEED_METERS_PER_SECOND);
+        SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
         var speeds = Constants.Swerve.kDriveKinematics.toChassisSpeeds(tmpStates);
 
         Rotation2d skewCompensationFactor = Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * Constants.Swerve.SKEW_COMPENSATION_RATE);
@@ -628,7 +626,7 @@ public class SwerveBase extends SubsystemBase {
         SwerveModuleState[] moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
 
         // set the modules to their desired speeds
-        setModules(moduleStates, useMaxSpeed);
+        setModules(moduleStates);
         
     }
 
@@ -636,7 +634,7 @@ public class SwerveBase extends SubsystemBase {
      * Drives the robot in teleop, we don't want it fighting the auton swerve commands
      */
     public void teleopDefaultCommand(Supplier<ChassisSpeeds> speedsSupplier, boolean fieldOriented){
-        drive(speedsSupplier.get(), true);
+        drive(speedsSupplier.get());
     } //590, 736
     
     /**
@@ -646,7 +644,7 @@ public class SwerveBase extends SubsystemBase {
      * @param commandedSpeeds the commanded chassis speeds from the joysticks
      * @param fieldOriented A boolean that specifies if the robot should be driven in fieldOriented mode or not
      */
-    public void drive(ChassisSpeeds commandedSpeeds, boolean useMaxSpeed){
+    public void drive(ChassisSpeeds commandedSpeeds){
 
         ChassisSpeeds currentFieldRelSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
 
@@ -755,7 +753,7 @@ public class SwerveBase extends SubsystemBase {
         // SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
         // SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
 
-        this.driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), useMaxSpeed);
+        this.driveRobotRelative(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()));
 
         //SmartDashboard.putBoolean("collision", detectCollision());
 
