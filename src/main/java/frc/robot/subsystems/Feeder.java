@@ -1,9 +1,11 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.Command;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
@@ -35,6 +37,9 @@ public class Feeder extends SubsystemBase {
     private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
 
     public static final double metersPerRotationOfMotor = ((12/36.)*30*5)/1000.;
+
+    public final Trigger feederStalled;
+    
     //1st pulley on motor = 12 teeth
     //2nd pulley on shaft = 36 teeth
     //3rd pulley on same shaft = 30 teeth
@@ -59,6 +64,12 @@ public class Feeder extends SubsystemBase {
         configurator.apply(currentLimitsConfigs);
         
         configurator.apply(slot0);
+        
+        floorFeederMotor.getStatorCurrent().setUpdateFrequency(50);
+
+        feederStalled = new Trigger(() -> 
+            (floorFeederMotor.getStatorCurrent().getValueAsDouble() > 15)
+        );
         
     }
 
@@ -91,5 +102,10 @@ public class Feeder extends SubsystemBase {
         setPointPub.set(floorFeederMotor.getClosedLoopReference(true).getValueAsDouble()*metersPerRotationOfMotor);
 
         SmartDashboard.putNumber("vel", floorFeederMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
+
+        SmartDashboard.putNumber("Feeder stator current", floorFeederMotor.getStatorCurrent().getValueAsDouble());
+
+        SmartDashboard.putBoolean("Feeder is stalled", feederStalled.getAsBoolean());
+
     }
 }

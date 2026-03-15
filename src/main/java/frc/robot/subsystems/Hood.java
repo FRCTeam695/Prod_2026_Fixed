@@ -2,6 +2,11 @@ package frc.robot.subsystems;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.configs.CANcoderConfiguration;
+import com.ctre.phoenix6.configs.MagnetSensorConfigs;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.signals.SensorDirectionValue;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -17,6 +22,10 @@ public class Hood extends SubsystemBase {
 
     private final double min_servo = 0.25; // 0 mm extended
     private final double max_servo = 0.75; // 100 mm extended
+
+    // CHANGE ID
+    private final CANcoder r_cancoder = new CANcoder(59);
+    private final CANcoder l_cancoder = new CANcoder(58);
 
     // Constants
     /** pivot arm length (mm) */
@@ -34,7 +43,48 @@ public class Hood extends SubsystemBase {
     public Hood() {
         r_actuator = new Servo(1);
         l_actuator = new Servo(0);
+
+        CANcoderConfiguration r_config = new CANcoderConfiguration()
+            .withMagnetSensor(
+                new MagnetSensorConfigs()
+                  
+                    //      Given a total range of motion less than 1 rotation, users can
+                    //  * calculate the discontinuity point using mean(lowerLimit,
+                    //  * upperLimit) + 0.5. 
+                    //  *
+
+                    .withAbsoluteSensorDiscontinuityPoint(0.5)
+                    .withMagnetOffset(0) //0.002441
+                    .withSensorDirection(SensorDirectionValue.CounterClockwise_Positive)
+                    
+        
+            );
+        
+        CANcoderConfiguration l_config = new CANcoderConfiguration()
+            .withMagnetSensor(
+                new MagnetSensorConfigs()
+     
+                    //      Given a total range of motion less than 1 rotation, users can
+                    //  * calculate the discontinuity point using mean(lowerLimit,
+                    //  * upperLimit) + 0.5. 
+                    //  *
+
+                    .withAbsoluteSensorDiscontinuityPoint(0.5)
+                    .withMagnetOffset(0) //-0.002197
+                    .withSensorDirection(SensorDirectionValue.CounterClockwise_Positive)
+            );
+
+        r_cancoder.getConfigurator().apply(r_config);
+        l_cancoder.getConfigurator().apply(l_config);
+
+
+        // set starting value for cancoder position
+        // should ideally be a constant of the retracted position in cancoder rotations
+        // r_cancoder.setPosition(0);
+        // l_cancoder.setPosition(0);
+
     }
+
 
     /** Expects a position between 0.0 and 1.0 */
     private void setPosition(double unclampedTargetPos) {
@@ -55,7 +105,6 @@ public class Hood extends SubsystemBase {
             () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 52, 72.1)))
         );
     }
-
 
     public double actUnitToDeg(double actUnit){
         double C = ACTLEN + (actUnit * ACT_TO_MM);
@@ -90,6 +139,10 @@ public class Hood extends SubsystemBase {
 
     private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
 
+    private final DoublePublisher rightCANPositionPub = hoodTable.getDoubleTopic("Right CAN position").publish();
+    private final DoublePublisher leftCANPositionPub = hoodTable.getDoubleTopic("Left CAN position").publish();
+
+
     @Override
     public void periodic() {
         double rPos = r_actuator.get();
@@ -99,5 +152,8 @@ public class Hood extends SubsystemBase {
 
         currentHoodDegRight.set(actUnitToDeg(rPos));
         currentHoodDegLeft.set(actUnitToDeg(lPos));
+
+        rightCANPositionPub.set(r_cancoder.getAbsolutePosition().getValueAsDouble());
+        leftCANPositionPub.set(l_cancoder.getAbsolutePosition().getValueAsDouble());
     }
 }

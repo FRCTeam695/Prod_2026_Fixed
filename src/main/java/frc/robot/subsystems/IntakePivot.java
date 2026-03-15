@@ -132,7 +132,7 @@ public class IntakePivot extends SubsystemBase {
 
         public Command slowRaise(){
             return run(()->{
-                pivot.setControl(dutyCycleSetter.withOutput(0.1));
+                pivot.setControl(dutyCycleSetter.withOutput(0.05));
             })
             .until(
                 () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > pivotRetractedPositionDegrees - 10)

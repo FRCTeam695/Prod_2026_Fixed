@@ -354,8 +354,13 @@ public class RobotContainer {
       pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
     );
 
-    driver.povLeft().whileTrue(
-      pivot.slowRaise()
+    driver.povLeft().onTrue(
+      //pivot.slowRaise()
+      hood.setActuatorDeg(() -> 73)
+    );
+
+    driver.povRight().onTrue(
+      hood.setActuatorDeg(() -> 51)
     );
 
     driver.y().whileTrue(
@@ -368,9 +373,11 @@ public class RobotContainer {
         swerve.setHubTagsValid()
         .andThen(
           parallel(
-            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
-            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.6)
+            // swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+        ).until(tripleShooter.allShootersWithinTolerance
+        // .and(swerve.atRotationSetpoint)
+        )
         )
         .andThen(
           kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
@@ -378,10 +385,10 @@ public class RobotContainer {
         .andThen(
           parallel(
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
-            feeder.setVelocityMPS(()-> -100 * feeder.metersPerRotationOfMotor),
-            pivot.slowRaise(),
-            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.6),
+            feeder.setVelocityMPS(()-> -100 * feeder.metersPerRotationOfMotor * 0.5),
+            pivot.slowRaise()
+            // swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
           )
         )
       );
@@ -432,7 +439,10 @@ public class RobotContainer {
     tripleShooter.setDefaultCommand(tripleShooter.setDutyCycle(()-> 0));
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
     hood.setDefaultCommand(
-      hood.setActuatorDeg(() -> shotCalculator.getCachedSetpoint().angle())
+      hood.setActuatorDeg(
+        () -> // shotCalculator.getCachedSetpoint().angle()
+        71
+      )
     );
   }
 
