@@ -23,6 +23,9 @@ public class SOTMSetpointGenerator extends SubsystemBase{
     private InterpolatingDoubleTreeMap feederMap;
     private InterpolatingDoubleTreeMap timeMap;
 
+    private InterpolatingDoubleTreeMap rpmMapStockpile;
+    private InterpolatingDoubleTreeMap angleMapStockpile;
+
     private Supplier<Pose2d> robotPoseSupplier;
     private Supplier<ChassisSpeeds> robotSpeedsSupplier;
     private ShotParameters cachedSetpoint;
@@ -35,6 +38,18 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         angleMap = new InterpolatingDoubleTreeMap();
         timeMap = new InterpolatingDoubleTreeMap();
         feederMap = new InterpolatingDoubleTreeMap();
+
+        rpmMapStockpile = new InterpolatingDoubleTreeMap();
+        angleMapStockpile = new InterpolatingDoubleTreeMap();
+
+        rpmMapStockpile.put(10.8, 0.85 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
+        angleMapStockpile.put(10.8, 52.);
+
+        rpmMapStockpile.put(7.08, 0.65 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
+        angleMapStockpile.put(7.08, 52.);
+
+        rpmMapStockpile.put(5.21,0.5 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
+        angleMapStockpile.put(5.21, 52.);
 
         // 0.97, 4.13
         // 2.14, 4.09 :ll poses
@@ -54,21 +69,21 @@ public class SOTMSetpointGenerator extends SubsystemBase{
 
          // this table is furthest to closest location
         addDatapointToTable(
-            0.921, 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.5,
-        72,
+            0.93, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.49,
+        72.5,
             -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable(
-            2.263, 
+            2.411, 
             2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.59,
             72,
             -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable(
-            3.09, 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.62,
-            69,
+            3.12, 
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.6,
+            70,
             -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable( 
@@ -78,7 +93,7 @@ public class SOTMSetpointGenerator extends SubsystemBase{
             -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable( 
-            5.176, 
+            5.613, 
             2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7,
             63,
             -100 * ((12/36.)*30*5)/1000, 
@@ -90,6 +105,21 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         angleMap.put(distance, hoodAngle);
         feederMap.put(distance, feederSpeed);
         timeMap.put(distance, shotTime);
+    }
+
+    public ShotParameters getStockpileSetpoint(){
+        Pose2d robotPose = robotPoseSupplier.get();
+
+        Translation2d closestStockpileTarget = getClosestStockpileTarget();
+        
+        double dist = robotPose.getTranslation().getDistance(closestStockpileTarget);
+
+        return new ShotParameters(
+            angleMapStockpile.get(dist), 
+            rpmMapStockpile.get(dist), 
+            feederMap.get(dist), 
+            closestStockpileTarget
+        );
     }
 
     private ShotParameters getSetpoint() {

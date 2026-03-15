@@ -131,11 +131,16 @@ public class IntakePivot extends SubsystemBase {
         }
 
         public Command slowRaise(){
-            return run(()->{
-                pivot.setControl(dutyCycleSetter.withOutput(0.05));
+            return 
+            (
+                run(()->{
+                pivot.setControl(dutyCycleSetter.withOutput(0.1));
             })
             .until(
-                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > pivotRetractedPositionDegrees - 10)
+                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 68)
+            )
+            ).andThen(
+                holdPosition()
             );
         }
 
@@ -159,8 +164,12 @@ public class IntakePivot extends SubsystemBase {
             );
         }
 
-        public Command setPositionToCurrentPosition(){
-            return setPositionDegrees(()-> Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()));
+        public Command holdPosition(){
+            return run(
+                () -> {
+                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(68)));
+                }
+            );
         }
 
         public Command setDutyCycle(DoubleSupplier velocity) {

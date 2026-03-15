@@ -106,7 +106,7 @@ public class Hood extends SubsystemBase {
     /**  */
     public Command setActuatorDeg(DoubleSupplier deg) {
         return run(
-            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 52, 72.1)))
+            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 52, 72.6)))
         );
     }
 

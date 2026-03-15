@@ -333,6 +333,7 @@ public class SwerveBase extends SubsystemBase {
         double currentRotation = getSavedPose().getRotation().getDegrees();
         double pidOutput = thetaController.calculate(currentRotation, wantedAngle);
 
+        SmartDashboard.putNumber("Wanted Robot Angle", thetaController.getSetpoint());
         robotRotationError = thetaController.getError();
         return MathUtil.clamp(
                     pidOutput / Math.toDegrees(Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND), -1, 1
@@ -642,7 +643,6 @@ public class SwerveBase extends SubsystemBase {
      * Should be called every loop
      * 
      * @param commandedSpeeds the commanded chassis speeds from the joysticks
-     * @param fieldOriented A boolean that specifies if the robot should be driven in fieldOriented mode or not
      */
     public void drive(ChassisSpeeds commandedSpeeds){
 

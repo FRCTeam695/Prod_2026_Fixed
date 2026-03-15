@@ -22,8 +22,8 @@ public class Constants {
                  FIELD_WIDTH/2.0, 
                  new Rotation2d());
                 
-            public static final Translation2d LEFT_STOCKPILE = new Translation2d(0.90, FIELD_WIDTH/2 + FIELD_WIDTH/4);
-            public static final Translation2d RIGHT_STOCKPILE = new Translation2d(0.90, FIELD_WIDTH/2 - FIELD_WIDTH/4);
+            public static final Translation2d LEFT_STOCKPILE = new Translation2d(0.90, FIELD_WIDTH/2 + FIELD_WIDTH/6);
+            public static final Translation2d RIGHT_STOCKPILE = new Translation2d(0.90, FIELD_WIDTH/2 - FIELD_WIDTH/6);
 
         }
         
@@ -33,8 +33,8 @@ public class Constants {
                  FIELD_WIDTH/2.0, 
                  new Rotation2d());
             
-            public static final Translation2d LEFT_STOCKPILE = new Translation2d(FIELD_LENGTH - 0.90, FIELD_WIDTH/2 + FIELD_WIDTH/4);
-            public static final Translation2d RIGHT_STOCKPILE = new Translation2d(FIELD_LENGTH - 0.90, FIELD_WIDTH/2 - FIELD_WIDTH/4);
+            public static final Translation2d LEFT_STOCKPILE = new Translation2d(FIELD_LENGTH - 0.90, FIELD_WIDTH/2 + FIELD_WIDTH/6);
+            public static final Translation2d RIGHT_STOCKPILE = new Translation2d(FIELD_LENGTH - 0.90, FIELD_WIDTH/2 - FIELD_WIDTH/6);
             
         }
     }
@@ -171,7 +171,7 @@ public class Constants {
         public static final double TURN_WHEEL_KP = CHOSEN_CONSTANTS.turnWheelKP;
         public static final double TURN_WHEEL_KS = CHOSEN_CONSTANTS.turnWheelKS;
         public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
-        public static final double ROBOT_ROTATION_KP = 0.006;
+        public static final double ROBOT_ROTATION_KP = 4.2;
         public static final double MAX_WHEEL_ROTATIONAL_SPEED = CHOSEN_CONSTANTS.maxWheelRotationalSpeed;
         public static final double GYRO_DRIFT_COMPENSATION = CHOSEN_CONSTANTS.gyroDriftCompensation;
         public static final double SKEW_COMPENSATION_RATE = -0.08;

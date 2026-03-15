@@ -65,6 +65,8 @@ public class RebuiltSwerve extends SwerveBase{
 
             double theta = Math.toDegrees(Math.atan2(dy, dx));
 
+            SmartDashboard.putNumber("rotation goal", theta);
+
             double feedForward = (currentSpeeds.vyMetersPerSecond * dx - currentSpeeds.vxMetersPerSecond * dy)
                  / (norm * norm);
 
@@ -121,10 +123,10 @@ public class RebuiltSwerve extends SwerveBase{
                 
                 double rightStickMagnitude = translationOverride.getNorm();
 
-                double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) - 90;
+                double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) + 90;
                 
                 double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)));
-                
+                SmartDashboard.putNumber("Initial Pacman Angular Vel", pacmanAngularSpeeds);
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){
                     pacmanAngularSpeeds = commandedSpeeds.omegaRadiansPerSecond;
