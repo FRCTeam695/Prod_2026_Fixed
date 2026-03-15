@@ -335,7 +335,9 @@ public class SwerveBase extends SubsystemBase {
         double pidOutput = thetaController.calculate(currentRotation, wantedAngle);
 
         robotRotationError = thetaController.getError();
-        return MathUtil.clamp(pidOutput, -1, 1) * Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND;
+        return MathUtil.clamp(
+                    pidOutput / Math.toDegrees(Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND), -1, 1
+                ) * Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND;
     }
 
 

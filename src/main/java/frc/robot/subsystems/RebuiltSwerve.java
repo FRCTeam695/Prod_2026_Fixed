@@ -3,7 +3,7 @@ package frc.robot.subsystems;
 import java.util.function.Supplier;
 
 import edu.wpi.first.math.MathUtil;
-
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -23,6 +23,9 @@ public class RebuiltSwerve extends SwerveBase{
     protected final Field2d m_field = new Field2d();
     
     private final double kp_attract = 2.5;
+
+    public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(800.0));
+
 
 
 
@@ -120,8 +123,8 @@ public class RebuiltSwerve extends SwerveBase{
                 double rightStickMagnitude = translationOverride.getNorm();
 
                 double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX()));
-
-                double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)));
+                
+                double pacmanAngularSpeeds = pacmanHeadingFilter.calculate(getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx))));
                 
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){
