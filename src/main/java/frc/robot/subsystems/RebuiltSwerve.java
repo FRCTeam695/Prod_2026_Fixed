@@ -123,7 +123,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) - 90;
                 
-                double pacmanAngularSpeeds = pacmanHeadingFilter.calculate(getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx))));
+                double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)));
                 
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){
@@ -134,6 +134,8 @@ public class RebuiltSwerve extends SwerveBase{
                 if(rightStickMagnitude >= 0.05){
                     pacmanAngularSpeeds = getAngularComponentFromRotationOverride(headingOverride);
                 }
+
+                // pacmanAngularSpeeds = pacmanHeadingFilter.calculate(pacmanAngularSpeeds);
 
                 ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(vx, vy, pacmanAngularSpeeds);
 
