@@ -356,11 +356,11 @@ public class RobotContainer {
 
     driver.povLeft().onTrue(
       //pivot.slowRaise()
-      hood.setActuatorDeg(() -> 73)
+      hood.setActuatorDeg(() -> 72)
     );
 
     driver.povRight().onTrue(
-      hood.setActuatorDeg(() -> 51)
+      hood.setActuatorDeg(() -> 52)
     );
 
     driver.y().whileTrue(

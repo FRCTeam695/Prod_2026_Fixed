@@ -55,7 +55,11 @@ public class Hood extends SubsystemBase {
 
                     .withAbsoluteSensorDiscontinuityPoint(0.5)
                     .withMagnetOffset(0) //0.002441
-                    .withSensorDirection(SensorDirectionValue.CounterClockwise_Positive)
+
+                    // expected = measured + offset
+                    // offset = expected - measured. in this case, expected is 0.2 as we are moving it to 72 degrees
+                    // one of the cancoders is flipped
+                    .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
                     
         
             );
@@ -128,6 +132,10 @@ public class Hood extends SubsystemBase {
         return (c - ACTLEN) / ACT_TO_MM;
     }
 
+    public double getHoodExitAngle(CANcoder cancoder){
+        return (90 - cancoder.getAbsolutePosition().getValueAsDouble() * 360);
+    }
+
     // Networktables
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable hoodTable = inst.getTable("Hood");
@@ -139,9 +147,11 @@ public class Hood extends SubsystemBase {
 
     private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
 
-    private final DoublePublisher rightCANPositionPub = hoodTable.getDoubleTopic("Right CAN position").publish();
-    private final DoublePublisher leftCANPositionPub = hoodTable.getDoubleTopic("Left CAN position").publish();
+    private final DoublePublisher rightCANPositionPub = hoodTable.getDoubleTopic("Right CAN position (Deg)").publish();
+    private final DoublePublisher leftCANPositionPub = hoodTable.getDoubleTopic("Left CAN position (Deg)").publish();
 
+    private final DoublePublisher rightExitAnglePub = hoodTable.getDoubleTopic("Right hood exit angle (deg)").publish();
+    private final DoublePublisher leftExitAnglePub = hoodTable.getDoubleTopic("Left hood exit angle (deg)").publish();
 
     @Override
     public void periodic() {
@@ -155,5 +165,9 @@ public class Hood extends SubsystemBase {
 
         rightCANPositionPub.set(r_cancoder.getAbsolutePosition().getValueAsDouble());
         leftCANPositionPub.set(l_cancoder.getAbsolutePosition().getValueAsDouble());
+
+        rightExitAnglePub.set(getHoodExitAngle(r_cancoder));
+        leftExitAnglePub.set(getHoodExitAngle(l_cancoder));
+
     }
 }
