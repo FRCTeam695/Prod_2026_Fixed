@@ -78,9 +78,9 @@ public class RobotContainer {
           (swerve.resetGyroWithAllianceFlip(90)
           .andThen(
             deadline(
-              swerve.driveToPose(() -> new Pose2d(9.828, 2.033, Rotation2d.fromDegrees(90)), 0.05, 0) //3
-                    .andThen(
-                  swerve.pacmanDriveToPose(()-> new Pose2d(8.13, 2.3, Rotation2d.fromDegrees(58)), 0.03, 0)), //3
+              swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(10.84, 2.55, Rotation2d.fromDegrees(63)), 0.05)
+              .andThen(swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(8.57, 0.514, Rotation2d.fromDegrees(63)), 0.05))
+              .andThen(swerve.driveToPose(() -> new Pose2d(8.17, 1.05, Rotation2d.fromDegrees(51.27)), 0.01, 0)), //3
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
