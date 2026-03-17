@@ -53,7 +53,7 @@ public class Hood extends SubsystemBase {
                     //  * upperLimit) + 0.5. 
                     //  *
 
-                    .withAbsoluteSensorDiscontinuityPoint(0.5)
+                    .withAbsoluteSensorDiscontinuityPoint(1)
                     .withMagnetOffset(0) //0.002441
 
                     // expected = measured + offset
