@@ -22,7 +22,7 @@ public class RebuiltSwerve extends SwerveBase{
         
     protected final Field2d m_field = new Field2d();
     
-    private final double kp_attract = 2.5;
+    private final double kp_attract = 3.3;
 
     public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(800.0));
 
@@ -148,13 +148,66 @@ public class RebuiltSwerve extends SwerveBase{
     }
 
 
-    public Command driveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedForward){
+    public Command driveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedforward){
 
         return
             
             run(
             ()->{
-                ChassisSpeeds speeds = getNextSpeedsOutput(targetPoseSupplier.get(), getSavedPose(), feedForward);
+                ChassisSpeeds speeds = getNextSpeedsOutput(targetPoseSupplier.get(), getSavedPose(), feedforward);
+
+                drive(speeds);
+            }
+            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }));
+    }
+
+    public Command driveToPoseWithSpeedLimit(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double speedlimit, double feedforward){
+        return
+            run(
+            ()->{
+                Pose2d targetPose = targetPoseSupplier.get();
+                SmartDashboard.putBoolean("reached destination", false);
+ 
+                m_field.getObject("targetPose").setPose(targetPose);
+                SmartDashboard.putString("targetPose", targetPose.toString());
+
+                // the current field relative robot pose
+                Pose2d robotPose = getSavedPose();
+
+                double dx = targetPose.getX() - robotPose.getX();
+                double dy = targetPose.getY() - robotPose.getY();
+
+                // converting the errors to components of a unit vector
+                double distance = Math.hypot(dx, dy);
+                double unitX = dx / distance;
+                double unitY = dy / distance;
+
+                SmartDashboard.putNumber("alignment dx", dx);
+                SmartDashboard.putNumber("alignment dy", dy);
+
+                double speed = MathUtil.clamp(kp_attract * distance + feedforward, 
+                    -speedlimit, 
+                    speedlimit);
+
+
+                // makes robot go straight by applying calculated velocity to unit vector
+                double attractY = unitY * speed;
+                double attractX = unitX * speed;
+           
+                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
+                SmartDashboard.putNumber("distance to target", distance);
+                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                
+                ChassisSpeeds speeds =
+                    new ChassisSpeeds(
+                        MathUtil.clamp(attractX, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                        MathUtil.clamp(attractY, -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP),
+                    getAngularComponentFromRotationOverride(targetPose.getRotation().getDegrees())
+                );
 
                 drive(speeds);
             }
@@ -188,7 +241,7 @@ public class RebuiltSwerve extends SwerveBase{
             }));
     }
 
-    public Command driveToPoseWhileTurningToHub(Supplier<Pose2d> drivePoseSupplier, double distanceEnd){
+    public Command driveToPoseWhileTurningToHub(Supplier<Pose2d> drivePoseSupplier, double distanceEnd, double ff){
 
         return 
             
@@ -209,7 +262,7 @@ public class RebuiltSwerve extends SwerveBase{
                 double feedForward = (currentSpeeds.vyMetersPerSecond * dx_turn - currentSpeeds.vxMetersPerSecond * dy_turn)
                     / (norm * norm);
                 
-                ChassisSpeeds speeds = getNextSpeedsOutput(drivePoseSupplier.get(), robotPose, 0);
+                ChassisSpeeds speeds = getNextSpeedsOutput(drivePoseSupplier.get(), robotPose, ff);
 
                 speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta);
 

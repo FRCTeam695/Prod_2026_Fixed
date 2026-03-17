@@ -17,6 +17,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
 
@@ -78,9 +79,11 @@ public class RobotContainer {
           (swerve.resetGyroWithAllianceFlip(90)
           .andThen(
             deadline(
-              swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(10.84, 2.55, Rotation2d.fromDegrees(63)), 0.05)
-              .andThen(swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(8.57, 0.514, Rotation2d.fromDegrees(63)), 0.05))
-              .andThen(swerve.driveToPose(() -> new Pose2d(8.17, 1.05, Rotation2d.fromDegrees(51.27)), 0.01, 0)), //3
+              swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)), 0.08, 2.5, 2.0)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)), 0.1, 1.5)) //find this pose, get ready for pacman
+              .andThen(
+                  swerve.driveToPoseWithSpeedLimit(()-> new Pose2d(8.25, 1.9, Rotation2d.fromDegrees(167.07)), 0.15, 2.0, 2.0) //find this pose, get ready for pirouette
+              ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
@@ -90,22 +93,24 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPose(() -> new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(58)), 0.03, 0), //0
-              parallel(
-                pivot.setDutyCycle(()-> -0.1)
-              )
+              swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)), 0.08, 2.0, 2.0),
+              pivot.setDutyCycle(()-> -0.1)
             )
-          ).andThen(
+          )
+          .andThen(
             deadline(
-              swerve.pacmanDriveToPose(() -> new Pose2d(10.27, 2.57, Rotation2d.fromDegrees(0)), 0.03, 0), //0
-              parallel(
-                pivot.setDutyCycle(()-> -0.1)
-              )
+              swerve.driveToPose(() -> new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)), 0.2, 1.5),
+              pivot.setDutyCycle(()-> -0.1)
+          ))
+          .andThen(
+            deadline(
+              swerve.driveToPose(() -> new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)), 0.15, 0.5),
+              pivot.setDutyCycle(()-> -0.1)
           ))
           .andThen(
               deadline(
-                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.45, 2.47, Rotation2d.fromDegrees(133.53)), 0.01),
-                tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
+                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.9, 2.7, Rotation2d.fromDegrees(133.53)), 0.2, 2.0),
+                new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
               )
           )
           .andThen(

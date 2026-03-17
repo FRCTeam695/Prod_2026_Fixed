@@ -62,7 +62,7 @@ public class Constants {
             // max speed ft/sec
             Units.metersToFeet(4.9),
             // wheel diameter
-            4 * Math.PI, 
+            3.8 * Math.PI, 
             // turn wheel kp
             70, 
             // wheelbase and track width
@@ -171,7 +171,7 @@ public class Constants {
         public static final double TURN_WHEEL_KP = CHOSEN_CONSTANTS.turnWheelKP;
         public static final double TURN_WHEEL_KS = CHOSEN_CONSTANTS.turnWheelKS;
         public static final double TURN_WHEEL_KD = CHOSEN_CONSTANTS.turnWheelKD;
-        public static final double ROBOT_ROTATION_KP = 4.2;
+        public static final double ROBOT_ROTATION_KP = 3.8;
         public static final double MAX_WHEEL_ROTATIONAL_SPEED = CHOSEN_CONSTANTS.maxWheelRotationalSpeed;
         public static final double GYRO_DRIFT_COMPENSATION = CHOSEN_CONSTANTS.gyroDriftCompensation;
         public static final double SKEW_COMPENSATION_RATE = -0.08;

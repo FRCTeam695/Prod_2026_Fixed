@@ -45,7 +45,8 @@ public class IntakePivot extends SubsystemBase {
     private final DoublePublisher currentPositionDegreesPub = table.getDoubleTopic("Current Position Degrees").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher setpointPositionDegreesPub = table.getDoubleTopic("Setpoint Position Degrees").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
-    private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));;
+    private final DoublePublisher statorCurrentPub = table.getDoubleTopic("Stator Current").publish(PubSubOption.periodic(0.02));
+    private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));
 
     public final double pivotRetractedPositionDegrees = 134.9;
     public final double pivotExtendedPositionDegrees = 1.005;//5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
@@ -67,6 +68,7 @@ public class IntakePivot extends SubsystemBase {
             configurePivot();
             motionMagicSetter = new MotionMagicVoltage(0).withSlot(0);
             dutyCycleSetter = new DutyCycleOut(0);
+            pivot.getStatorCurrent().setUpdateFrequency(50);
     
             pivot.setPosition(Units.degreesToRotations(pivotRetractedPositionDegrees));
             motionMagicSetter.withPosition(pivotRetractedPositionDegrees);
@@ -227,6 +229,7 @@ public class IntakePivot extends SubsystemBase {
         currentPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()));
         setpointPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getClosedLoopReference().getValueAsDouble()));
         dutyCyclePub.set(pivot.getDutyCycle().getValueAsDouble());
+        statorCurrentPub.set(pivot.getStatorCurrent().getValueAsDouble());
         atSetpointPub.set(withinTolerance.getAsBoolean());
 
         SmartDashboard.putBoolean("Stator Current Trigger", statorOverThreshold.getAsBoolean());
