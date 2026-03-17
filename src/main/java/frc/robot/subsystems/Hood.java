@@ -54,7 +54,7 @@ public class Hood extends SubsystemBase {
                     //  *
 
                     .withAbsoluteSensorDiscontinuityPoint(1)
-                    .withMagnetOffset(0) //0.002441
+                    .withMagnetOffset(20.0/360 - 0.498047) //0.002441
 
                     // expected = measured + offset
                     // offset = expected - measured. in this case, expected is 0.2 as we are moving it to 72 degrees
@@ -73,8 +73,8 @@ public class Hood extends SubsystemBase {
                     //  * upperLimit) + 0.5. 
                     //  *
 
-                    .withAbsoluteSensorDiscontinuityPoint(0.5)
-                    .withMagnetOffset(0) //-0.002197
+                    .withAbsoluteSensorDiscontinuityPoint(1)
+                    .withMagnetOffset(20.0/360 - 0.273438) //-0.002197
                     .withSensorDirection(SensorDirectionValue.CounterClockwise_Positive)
             );
 
@@ -135,6 +135,8 @@ public class Hood extends SubsystemBase {
     public double getHoodExitAngle(CANcoder cancoder){
         return (90 - cancoder.getAbsolutePosition().getValueAsDouble() * 360);
     }
+    //(90 - (cancoder.getAbsolutePosition().getValueAsDouble() + offset) * 360) = 70
+    //20/360 = canc + offset
 
     // Networktables
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
@@ -142,13 +144,9 @@ public class Hood extends SubsystemBase {
     private final DoublePublisher r_currentRot = hoodTable.getDoubleTopic("Right current Position (Rot)").publish();
     private final DoublePublisher l_currentRot = hoodTable.getDoubleTopic("Left current Position (Rot)").publish();
 
-    private final DoublePublisher currentHoodDegRight = hoodTable.getDoubleTopic("Right current deg on hood").publish();
-    private final DoublePublisher currentHoodDegLeft = hoodTable.getDoubleTopic("Left current deg on hood").publish();
 
     private final DoublePublisher targetPosDeg = hoodTable.getDoubleTopic("Target deg on hood").publish();
 
-    private final DoublePublisher rightCANPositionPub = hoodTable.getDoubleTopic("Right CAN position (Deg)").publish();
-    private final DoublePublisher leftCANPositionPub = hoodTable.getDoubleTopic("Left CAN position (Deg)").publish();
 
     private final DoublePublisher rightExitAnglePub = hoodTable.getDoubleTopic("Right hood exit angle (deg)").publish();
     private final DoublePublisher leftExitAnglePub = hoodTable.getDoubleTopic("Left hood exit angle (deg)").publish();
@@ -159,12 +157,6 @@ public class Hood extends SubsystemBase {
         double lPos = l_actuator.get();
         r_currentRot.set(rPos);
         l_currentRot.set(lPos);
-
-        currentHoodDegRight.set(actUnitToDeg(rPos));
-        currentHoodDegLeft.set(actUnitToDeg(lPos));
-
-        rightCANPositionPub.set(r_cancoder.getAbsolutePosition().getValueAsDouble());
-        leftCANPositionPub.set(l_cancoder.getAbsolutePosition().getValueAsDouble());
 
         rightExitAnglePub.set(getHoodExitAngle(r_cancoder));
         leftExitAnglePub.set(getHoodExitAngle(l_cancoder));

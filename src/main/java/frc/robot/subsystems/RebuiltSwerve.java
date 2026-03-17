@@ -33,16 +33,27 @@ public class RebuiltSwerve extends SwerveBase{
         super(camNames, modules, reefTags);
     }
 
-    public Pose2d optionalFlipPose(Pose2d pose){
+    public Pose2d optionalFlipPoseSeededBlue(Pose2d pose){
         if(isRedAlliance()){
             return new Pose2d(Constants.FieldConstants.FIELD_LENGTH - pose.getX(), Constants.FieldConstants.FIELD_WIDTH - pose.getY(), Rotation2d.fromDegrees(pose.getRotation().getDegrees() + 180));
         }
         return pose;
     }
 
+    public Pose2d optionalFlipPoseSeededRed(Pose2d pose){
+        if(isRedAlliance()){
+            return pose;
+        }
+        return new Pose2d(Constants.FieldConstants.FIELD_LENGTH - pose.getX(), Constants.FieldConstants.FIELD_WIDTH - pose.getY(), Rotation2d.fromDegrees(pose.getRotation().getDegrees() + 180));
+    }
+
+    public Pose2d flipPoseToRight(Pose2d pose){
+        return new Pose2d(pose.getX(), Constants.FieldConstants.FIELD_WIDTH - pose.getY(), Rotation2d.fromDegrees(-pose.getRotation().getDegrees()));
+    }
+
     public Pose2d getOutpostPose(){
         if(isRedAlliance()){
-           return optionalFlipPose(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180)));
+           return optionalFlipPoseSeededBlue(new Pose2d(0.655,0.64, Rotation2d.fromDegrees(180)));
         }
         return new Pose2d(0.655 - 0.075 ,0.64, Rotation2d.fromDegrees(180));
     }

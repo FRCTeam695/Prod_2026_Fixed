@@ -170,7 +170,7 @@ public class TalonFXModule{
         }
 
 
-        config.Slot0.kP = 45;//43.8;
+        config.Slot0.kP = 43;//43.8;
         config.Slot0.kS = 0.14;
         config.Slot0.kA = 0;//0.115;
         config.Slot0.kV = 0;//2.58;

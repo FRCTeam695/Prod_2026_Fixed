@@ -138,6 +138,14 @@ public class SwerveBase extends SubsystemBase {
             3, 4, 5, 8, 9, 10, 11, 2
         });
 
+        addTagToDictionary("redHubTags", new int[]{
+            3, 4, 5, 8, 9, 10, 11, 2
+        });
+
+        addTagToDictionary("blueHubTags", new int[]{
+            19, 20, 21, 24, 25, 26, 18, 27
+        });
+
 
         pigeon = new Pigeon2(8, "drivetrain");
         yawSignal = pigeon.getAccumGyroZ();
@@ -201,7 +209,7 @@ public class SwerveBase extends SubsystemBase {
     public void setValidTagIDs(String tagSetName) {
 
         validTagIDs = tagDictionary.get(tagSetName);
-
+        SmartDashboard.putString("Current Valid Tagset", tagSetName);
         for (String cam : camNames) {
             LimelightHelpers.SetFiducialIDFiltersOverride(cam, validTagIDs);
         }
@@ -216,6 +224,19 @@ public class SwerveBase extends SubsystemBase {
 
     public Command setHubTagsValid() {
         return runOnce(() -> setValidTagIDs("hubTags"));
+    }
+
+    public Command setAllianceHubTagsValid(){
+        return runOnce(
+            ()-> {
+                if(isRedAlliance()){
+                    setValidTagIDs("redHubTags");
+                }
+                else{
+                    setValidTagIDs("blueHubTags");
+                }
+            }
+        );
     }
 
     public void playSong(){
