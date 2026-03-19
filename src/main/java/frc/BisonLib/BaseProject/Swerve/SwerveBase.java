@@ -184,6 +184,7 @@ public class SwerveBase extends SubsystemBase {
 
 
         thetaController.enableContinuousInput(-180, 180);
+        pacmanThetaController.enableContinuousInput(-180, 180);
 
 
         odometryLock.writeLock().lock();
