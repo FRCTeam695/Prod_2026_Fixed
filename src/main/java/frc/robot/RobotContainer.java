@@ -85,7 +85,7 @@ public class RobotContainer {
               swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
               .andThen(swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
               .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 0.7) //inital centerline move
+                  swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 1.0, 0.7) //inital centerline move
               ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
               parallel(
@@ -96,18 +96,18 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 1.0, 2.0),
               pivot.setDutyCycle(()-> -0.1)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.5),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.0, 1.5),
               pivot.setDutyCycle(()-> -0.1)
           ))
           .andThen(
             deadline(
-              swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 1.0, 0.5),
               pivot.setDutyCycle(()-> -0.1)
           ))
           .andThen(
@@ -171,7 +171,7 @@ public class RobotContainer {
               swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
               .andThen(swerve.driveToPose(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07))), 0.1, 1.5)) //find this pose, get ready for pacman
               .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07))), 0.15, 2.0, 0.7) //inital centerline move
+                  swerve.driveToPoseWithSpeedLimit(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07))), 0.15, 1.0, 0.7) //inital centerline move
               ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
               parallel(
@@ -182,18 +182,18 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07))), 0.08, 2.0, 2.0),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07))), 0.08, 1.0, 2.0),
               pivot.setDutyCycle(()-> -0.1)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPose(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0))), 0.2, 1.5),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0))), 0.2, 1.0, 1.5),
               pivot.setDutyCycle(()-> -0.1)
           ))
           .andThen(
             deadline(
-              swerve.driveToPose(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60))), 0.15, 0.5),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60))), 0.15, 1.0, 0.5),
               pivot.setDutyCycle(()-> -0.1)
           ))
           .andThen(
