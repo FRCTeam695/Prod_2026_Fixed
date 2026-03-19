@@ -38,6 +38,8 @@ public class Feeder extends SubsystemBase {
     public static final double metersPerRotationOfMotor = ((12/36.)*30*5)/1000.;
 
     public final Trigger feederStalled;
+
+    private double startingFeederPosition = 0.0;
     
     //1st pulley on motor = 12 teeth
     //2nd pulley on shaft = 36 teeth
@@ -91,7 +93,15 @@ public class Feeder extends SubsystemBase {
         });
     }
 
-    
+    public Command runFeederOneRotation(){
+        return (runOnce(() -> {
+            startingFeederPosition = floorFeederMotor.getPosition().getValueAsDouble() * metersPerRotationOfMotor;
+        }).andThen(
+            setVelocityMPS(() -> metersPerRotationOfMotor * 100 * 0.05)
+        ).until(
+            () -> Math.abs(floorFeederMotor.getPosition().getValueAsDouble() * metersPerRotationOfMotor - startingFeederPosition) > 0.1
+        ));
+    }
 
     public void periodic(){
 

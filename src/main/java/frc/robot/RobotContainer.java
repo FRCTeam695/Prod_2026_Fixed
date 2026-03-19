@@ -506,7 +506,9 @@ public class RobotContainer {
         )
     );
 
-    driver.x().onTrue(pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees));
+    driver.x().onTrue(
+      feeder.runFeederOneRotation()
+    );
 
     // driver.x().whileTrue(
     //     swerve.setHubTagsValid()
