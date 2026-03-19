@@ -9,9 +9,12 @@ import com.ctre.phoenix6.signals.SensorDirectionValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Servo;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -37,9 +40,15 @@ public class Hood extends SubsystemBase {
     /** actuator base length (mm) */
     private final double ACTLEN = 167.9;
 
-
     private final double ACT_TO_MM = 100;
 
+    private ShuffleboardTab hoodTab = Shuffleboard.getTab("Hood");
+
+    // positive numbers bring hood down, negative numbers bring hood up
+    private GenericEntry hoodAdjustment = hoodTab.add("Hood Angle Adjustment", 0.0).getEntry();
+
+    private double prevHoodAdjustment = 0.0;
+    
     public Hood() {
         r_actuator = new Servo(1);
         l_actuator = new Servo(0);
@@ -106,7 +115,7 @@ public class Hood extends SubsystemBase {
     /**  */
     public Command setActuatorDeg(DoubleSupplier deg) {
         return run(
-            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble(), 52, 72.6)))
+            () -> setPosition(degToActUnit(MathUtil.clamp(deg.getAsDouble() + hoodAdjustment.getDouble(0.0), 52, 72.6)))
         );
     }
 

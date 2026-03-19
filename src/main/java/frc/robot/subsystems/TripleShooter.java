@@ -3,6 +3,9 @@ package frc.robot.subsystems;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.GenericEntry;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -14,6 +17,10 @@ public class TripleShooter extends SubsystemBase{
     public final IndividualShooter shooterLeft;
     public final IndividualShooter shooterMiddle;
     public final IndividualShooter shooterRight;
+
+    private ShuffleboardTab shootTab = Shuffleboard.getTab("Shooter");
+    private GenericEntry rpmPercent = shootTab.add("RPM Percent Adjustment", 1.0).getEntry();
+    private double prevRPMEntry = 1.0;
 
     public final double kShooterRotationsToMeters = 2 * Math.PI * Units.inchesToMeters(2);
     public final double kMaxSpeedMPS = kShooterRotationsToMeters * 100;
@@ -41,10 +48,13 @@ public class TripleShooter extends SubsystemBase{
     public Command setVelocityTorqueCurrentMPS(DoubleSupplier velocityMPS){
         return 
             run(()-> {
-                SmartDashboard.putNumber("Commanded Vel MPS shooter", velocityMPS.getAsDouble());
-                shooterLeft.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterMiddle.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterRight.setTorqueCurrent(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+
+                double velocity = velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0);
+
+                SmartDashboard.putNumber("Commanded Vel MPS shooter", velocity);
+                shooterLeft.setTorqueCurrent(velocityMPS.getAsDouble()  / velocity);
+                shooterMiddle.setTorqueCurrent(velocityMPS.getAsDouble() / velocity);
+                shooterRight.setTorqueCurrent(velocityMPS.getAsDouble() / velocity);
             }
         );
     }
@@ -53,19 +63,25 @@ public class TripleShooter extends SubsystemBase{
         return 
         runOnce(
             ()-> {
+
+                double velocity = velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0);
+
                 shooterLeft.configForVelocityControl();
                 shooterMiddle.configForVelocityControl();
                 shooterRight.configForVelocityControl();
 
-                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+                shooterLeft.setVelocityRPS(velocity / kShooterRotationsToMeters);
+                shooterMiddle.setVelocityRPS(velocity / kShooterRotationsToMeters);
+                shooterRight.setVelocityRPS(velocity / kShooterRotationsToMeters);
             }
         ).andThen(
             run(()-> {
-                shooterLeft.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterMiddle.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
-                shooterRight.setVelocityRPS(velocityMPS.getAsDouble() / kShooterRotationsToMeters);
+
+                double velocity = velocityMPS.getAsDouble() * rpmPercent.getDouble(1.0);
+
+                shooterLeft.setVelocityRPS(velocity / kShooterRotationsToMeters);
+                shooterMiddle.setVelocityRPS(velocity / kShooterRotationsToMeters);
+                shooterRight.setVelocityRPS(velocity / kShooterRotationsToMeters);
             }).until(condition)
         );
     }
