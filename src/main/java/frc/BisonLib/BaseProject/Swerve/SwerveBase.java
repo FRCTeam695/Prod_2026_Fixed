@@ -56,6 +56,7 @@ public class SwerveBase extends SubsystemBase {
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
     private final PIDController thetaController = new PIDController(Constants.Swerve.ROBOT_ROTATION_KP, 0, 0.0);
+    private final PIDController pacmanThetaController = new PIDController(3.8, 0, 0.0);
     private final BaseStatusSignal[] allOdomSignals;
 
     protected double max_accel = 0;
@@ -356,6 +357,17 @@ public class SwerveBase extends SubsystemBase {
 
         SmartDashboard.putNumber("Wanted Robot Angle", thetaController.getSetpoint());
         robotRotationError = thetaController.getError();
+        return MathUtil.clamp(
+                    pidOutput / Math.toDegrees(Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND), -1, 1
+                ) * Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND;
+    }
+
+    public double getAngularComponentFromRotationOverride(double wantedAngle, boolean pacman){
+        double currentRotation = getSavedPose().getRotation().getDegrees();
+        double pidOutput = pacmanThetaController.calculate(currentRotation, wantedAngle);
+
+        SmartDashboard.putNumber("Wanted Robot Angle", thetaController.getSetpoint());
+        robotRotationError = pacmanThetaController.getError();
         return MathUtil.clamp(
                     pidOutput / Math.toDegrees(Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND), -1, 1
                 ) * Constants.Swerve.MAX_ANGULAR_SPEED_RAD_PER_SECOND;

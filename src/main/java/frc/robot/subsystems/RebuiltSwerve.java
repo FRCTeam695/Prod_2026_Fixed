@@ -136,7 +136,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) + 90;
                 
-                double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)));
+                double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)), true);
                 SmartDashboard.putNumber("Initial Pacman Angular Vel", pacmanAngularSpeeds);
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){
@@ -145,7 +145,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 // if there is some feedback from the right stick, snap to that angle (heading override)
                 if(rightStickMagnitude >= 0.05){
-                    pacmanAngularSpeeds = getAngularComponentFromRotationOverride(headingOverride);
+                    pacmanAngularSpeeds = getAngularComponentFromRotationOverride(headingOverride, true);
                 }
 
                 // pacmanAngularSpeeds = pacmanHeadingFilter.calculate(pacmanAngularSpeeds);
