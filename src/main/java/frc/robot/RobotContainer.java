@@ -87,7 +87,7 @@ public class RobotContainer {
               .andThen(
                   swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 1.0, 0.7) //inital centerline move
               ),
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> 0.0)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
@@ -97,18 +97,18 @@ public class RobotContainer {
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 1.0, 2.0),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
             )
           )
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.0, 1.5),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
           ))
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 1.0, 0.5),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
           ))
           .andThen(
               deadline(
@@ -126,7 +126,7 @@ public class RobotContainer {
               .andThen(
                   swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 2.0)
               ),
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> 0.0)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
@@ -136,18 +136,18 @@ public class RobotContainer {
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
             )
           )
           .andThen(
             deadline(
               swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.5),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
           ))
           .andThen(
             deadline(
               swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
           ))
           .andThen(
               deadline(
@@ -173,7 +173,7 @@ public class RobotContainer {
               .andThen(
                   swerve.driveToPoseWithSpeedLimit(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07))), 0.15, 1.0, 0.7) //inital centerline move
               ),
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.1)),             
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> 0.0)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
@@ -183,18 +183,18 @@ public class RobotContainer {
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07))), 0.08, 1.0, 2.0),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
             )
           )
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0))), 0.2, 1.0, 1.5),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
           ))
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60))), 0.15, 1.0, 0.5),
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
           ))
           .andThen(
               deadline(
@@ -208,7 +208,7 @@ public class RobotContainer {
           .andThen(
             deadline(
               swerve.driveToPose(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(15.1, 0.54, Rotation2d.fromDegrees(113.3))), 0.1, 1.0), //get ready to intake from depot
-              pivot.setDutyCycle(()-> -0.1),
+              pivot.setDutyCycle(()-> 0.0),
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
@@ -219,13 +219,13 @@ public class RobotContainer {
             deadline(
               //15.936, 0.950
               swerve.driveToPose(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(15.936, 0.845, Rotation2d.fromDegrees(71.49))), 0.1, 0.5), //traverse through depot
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
             )
           )
           .andThen(
             deadline(
               swerve.driveToPoseWithSpeedLimit(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(15.936, 2.518, Rotation2d.fromDegrees(71.49))), 0.1, 1, 0.5), //traverse through depot
-              pivot.setDutyCycle(()-> -0.1)
+              pivot.setDutyCycle(()-> 0.0)
             )
           )
           .andThen(
@@ -328,7 +328,7 @@ public class RobotContainer {
               ).withTimeout(1.0))
               ,
               parallel(
-                pivot.setDutyCycle(()-> -0.1),
+                pivot.setDutyCycle(()-> 0.0),
                 intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
               )
           )
@@ -372,7 +372,7 @@ public class RobotContainer {
         pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
           .andThen(
             parallel(
-              pivot.setDutyCycle(()-> -0.1),
+              pivot.setDutyCycle(()-> 0.0),
               intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
             )
           ).alongWith(swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading))
@@ -382,7 +382,7 @@ public class RobotContainer {
       pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
           .andThen(
             parallel(
-              pivot.setDutyCycle(()-> -0.1),
+              pivot.setDutyCycle(()-> 0.0),
               intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
             )
           ).alongWith(
