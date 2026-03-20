@@ -139,7 +139,7 @@ public class IntakePivot extends SubsystemBase {
                 pivot.setControl(dutyCycleSetter.withOutput(0.1));
             })
             .until(
-                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 68)
+                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 35)
             )
             ).andThen(
                 holdPosition()
