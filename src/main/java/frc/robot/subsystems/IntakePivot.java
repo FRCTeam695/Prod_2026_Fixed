@@ -59,6 +59,8 @@ public class IntakePivot extends SubsystemBase {
     private final double pivotTolerance = 10;
     private final double statorAmpLimit = 20;
 
+    private final double pivotRaiseLimitDeg = 35;
+
 
         public IntakePivot() {
     
@@ -139,7 +141,7 @@ public class IntakePivot extends SubsystemBase {
                 pivot.setControl(dutyCycleSetter.withOutput(0.1));
             })
             .until(
-                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 35)
+                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > pivotRaiseLimitDeg)
             )
             ).andThen(
                 holdPosition()
@@ -169,7 +171,7 @@ public class IntakePivot extends SubsystemBase {
         public Command holdPosition(){
             return run(
                 () -> {
-                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(68)));
+                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(pivotRaiseLimitDeg)));
                 }
             );
         }
