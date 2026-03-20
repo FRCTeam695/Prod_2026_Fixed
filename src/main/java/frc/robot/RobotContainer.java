@@ -507,7 +507,9 @@ public class RobotContainer {
     );
 
     driver.x().onTrue(
-      feeder.runFeederOneRotation()
+      feeder.runFeederOneRotation().andThen(
+        intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+      ).withTimeout(2)
     );
 
     // driver.x().whileTrue(
