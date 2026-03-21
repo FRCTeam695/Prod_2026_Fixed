@@ -313,6 +313,7 @@ public class TalonFXModule{
         
         SmartDashboard.putNumber("Module " + (this.index+1) + " Desired Velocity", desiredState.speedMetersPerSecond);
         SmartDashboard.putNumber("Module " + (this.index+1) + " Rotation Setpoint Deg", desiredState.angle.getDegrees());
+        SmartDashboard.putNumber("Module " + (this.index+1) + " Angular Position", turnMotor.getPosition().getValueAsDouble());
         SmartDashboard.putNumber("Module " + (this.index+1) + " Angular Velocity", turnMotor.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("Module " + (this.index+1) + " Angular Acceleration", turnMotor.getAcceleration().getValueAsDouble());
 
