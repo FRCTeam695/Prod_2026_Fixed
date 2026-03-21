@@ -501,8 +501,10 @@ public class RobotContainer {
     );
 
     driver.y().whileTrue(
-        tripleShooter.setVelocityTorqueCurrentMPS(
-            ()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()
+        run
+        (
+          ()-> swerve.stopModules(),
+          swerve
         )
     );
 

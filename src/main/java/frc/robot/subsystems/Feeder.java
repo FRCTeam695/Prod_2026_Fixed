@@ -100,7 +100,8 @@ public class Feeder extends SubsystemBase {
             setVelocityMPS(() -> metersPerRotationOfMotor * 100 * 0.05)
         ).until(
             () -> Math.abs(floorFeederMotor.getPosition().getValueAsDouble() * metersPerRotationOfMotor - startingFeederPosition) > 0.1
-        ));
+        ))
+        .andThen(setVelocityMPS(()-> 0));
     }
 
     public void periodic(){
