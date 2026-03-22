@@ -75,6 +75,92 @@ public class RobotContainer {
     configureBindings();
     configureDefaultCommands();
 
+    autoChooser.addOption("Mirror", 
+              (swerve.resetGyroWithAllianceFlip(90)
+          .andThen(
+            swerve.setAllianceHubTagsValid()
+          )
+          .andThen(
+            deadline( 
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
+              .andThen(
+                  swerve.driveToPoseWithSpeedLimit(()-> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 0.7) //inital centerline move
+              ),
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
+              parallel(
+                    tripleShooter.setDutyCycle(()-> -0.4),
+                    kicker.setDutyCycle(()-> -1)
+                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
+            )
+          )
+          .andThen(
+            deadline(
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              pivot.setDutyCycle(()-> -0.05)
+            )
+          )
+          .andThen(
+            deadline(
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.0, 1.5),
+              pivot.setDutyCycle(()-> -0.05)
+          ))
+          .andThen(
+            deadline(
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 2.0, 0.5),
+              pivot.setDutyCycle(()-> -0.05)
+          ))
+          .andThen(
+              deadline(
+                swerve.driveToPoseWhileTurningToHub(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(13.9, 2.7, Rotation2d.fromDegrees(133.53)))), 0.4, 1.0),
+                new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
+              )
+          )
+          .andThen(
+            autoShoot().withTimeout(3.8)
+          )
+          .andThen(
+            deadline(
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
+              .andThen(
+                  swerve.driveToPoseWithSpeedLimit(()-> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 2.0)
+              ),
+              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
+              parallel(
+                    tripleShooter.setDutyCycle(()-> -0.4),
+                    kicker.setDutyCycle(()-> -1)
+                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
+            )
+          )
+          .andThen(
+            deadline(
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              pivot.setDutyCycle(()-> -0.05)
+            )
+          )
+          .andThen(
+            deadline(
+              swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.5),
+              pivot.setDutyCycle(()-> -0.05)
+          ))
+          .andThen(
+            deadline(
+              swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
+              pivot.setDutyCycle(()-> -0.05)
+          ))
+          .andThen(
+              deadline(
+                swerve.driveToPoseWhileTurningToHub(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(13.9, 2.7, Rotation2d.fromDegrees(133.53)))), 0.4, 1.0),
+                new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
+              )
+          )
+          .andThen(
+            autoShoot().withTimeout(3.8)
+          )
+          ).alongWith(new WaitCommand(0.5).andThen(intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)))
+    );
+
     autoChooser.addOption("Citrus Sweep Right",
         (swerve.resetGyroWithAllianceFlip(-90)
           .andThen(
