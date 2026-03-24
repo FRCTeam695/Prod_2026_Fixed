@@ -8,6 +8,11 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.networktables.BooleanPublisher;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -26,8 +31,20 @@ public class RebuiltSwerve extends SwerveBase{
 
     public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(800.0));
 
+    private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    private final NetworkTable swerveTable = inst.getTable("Swerve");
 
+    private final DoublePublisher hubDistPub = swerveTable.getDoubleTopic("Distance to Hub").publish();
+    private final DoublePublisher rotateToHubSetpointPub = swerveTable.getDoubleTopic("Hub Rotation Setpoint").publish();
+    private final DoublePublisher pacmanAngularVelPub = swerveTable.getDoubleTopic("Initial Pacman Angular Vel").publish();
+    private final DoublePublisher targetDistPub = swerveTable.getDoubleTopic("Distance to Target").publish();
+    private final DoublePublisher alignSpeedsPub = swerveTable.getDoubleTopic("Align Speeds MPS").publish();
+    private final DoublePublisher robotRotationPub = swerveTable.getDoubleTopic("Robot Rotation Deg").publish();
 
+    private final BooleanPublisher reachedDestinationPub = swerveTable.getBooleanTopic("Reached Destination").publish();
+    private final StringPublisher targetPosePub = swerveTable.getStringTopic("Target Pose").publish();
+    private final StringPublisher hubPosePub = swerveTable.getStringTopic("Hub Pose").publish();
+    private final StringPublisher robotPosePub = swerveTable.getStringTopic("Robot Pose").publish();
 
     public RebuiltSwerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
@@ -66,17 +83,18 @@ public class RebuiltSwerve extends SwerveBase{
             ChassisSpeeds currentSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
 
             m_field.getObject("virtualHub").setPose(virtualPose);
-            SmartDashboard.putString("virtualHub", virtualPose.toString());
+
+            hubPosePub.set(virtualPose.toString());
 
             double dx = virtualPose.getX() - robotPose.getX();
             double dy = virtualPose.getY() - robotPose.getY();
             double norm = Math.hypot(dx, dy);
 
-            SmartDashboard.putNumber("distance to hub", norm);
+            hubDistPub.set(norm);
 
             double theta = Math.toDegrees(Math.atan2(dy, dx));
 
-            SmartDashboard.putNumber("rotation goal", theta);
+            rotateToHubSetpointPub.set(theta);
 
             double feedForward = (currentSpeeds.vyMetersPerSecond * dx - currentSpeeds.vxMetersPerSecond * dy)
                  / (norm * norm);
@@ -137,7 +155,9 @@ public class RebuiltSwerve extends SwerveBase{
                 double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) + 90;
                 
                 double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)), true);
-                SmartDashboard.putNumber("Initial Pacman Angular Vel", pacmanAngularSpeeds);
+                
+                pacmanAngularVelPub.set(pacmanAngularSpeeds);
+
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){
                     pacmanAngularSpeeds = commandedSpeeds.omegaRadiansPerSecond;
@@ -171,7 +191,7 @@ public class RebuiltSwerve extends SwerveBase{
             }
             ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
+                reachedDestinationPub.set(true);
                 this.stopModules();
             }));
     }
@@ -181,10 +201,10 @@ public class RebuiltSwerve extends SwerveBase{
             run(
             ()->{
                 Pose2d targetPose = targetPoseSupplier.get();
-                SmartDashboard.putBoolean("reached destination", false);
- 
+                reachedDestinationPub.set(false);
+
                 m_field.getObject("targetPose").setPose(targetPose);
-                SmartDashboard.putString("targetPose", targetPose.toString());
+                targetPosePub.set(targetPose.toString());
 
                 // the current field relative robot pose
                 Pose2d robotPose = getSavedPose();
@@ -197,21 +217,15 @@ public class RebuiltSwerve extends SwerveBase{
                 double unitX = dx / distance;
                 double unitY = dy / distance;
 
-                SmartDashboard.putNumber("alignment dx", dx);
-                SmartDashboard.putNumber("alignment dy", dy);
-
                 double speed = MathUtil.clamp(kp_attract * distance + feedforward, 
                     -speedlimit, 
                     speedlimit);
-
 
                 // makes robot go straight by applying calculated velocity to unit vector
                 double attractY = unitY * speed;
                 double attractX = unitX * speed;
            
-                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
-                SmartDashboard.putNumber("distance to target", distance);
-                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                targetDistPub.set(distance);
                 
                 ChassisSpeeds speeds =
                     new ChassisSpeeds(
@@ -220,11 +234,13 @@ public class RebuiltSwerve extends SwerveBase{
                     getAngularComponentFromRotationOverride(targetPose.getRotation().getDegrees())
                 );
 
+                alignSpeedsPub.set(Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond));
+
                 drive(speeds);
             }
             ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
+                reachedDestinationPub.set(true);
                 this.stopModules();
             }));
     }
@@ -241,13 +257,12 @@ public class RebuiltSwerve extends SwerveBase{
                 ChassisSpeeds speeds = getNextSpeedsOutput(targetPose, currentPose, feedForward);
                     
                 speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(dy, dx)));
-                SmartDashboard.putString("align speeds", speeds.toString());
 
                 drive(speeds);
             }
             ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
+                reachedDestinationPub.set(true);
                 this.stopModules();
             }));
     }
@@ -266,7 +281,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 double norm = Math.hypot(dx_turn, dy_turn);
 
-                SmartDashboard.putNumber("distance to hub", norm);
+                hubDistPub.set(norm);
 
                 double theta = Math.toDegrees(Math.atan2(dy_turn, dx_turn));
 
@@ -282,16 +297,17 @@ public class RebuiltSwerve extends SwerveBase{
             }
             ).until(() -> getDistanceToTranslation(drivePoseSupplier.get().getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
+                reachedDestinationPub.set(true);
                 this.stopModules();
             }));
     }
 
     public ChassisSpeeds getNextSpeedsOutput(Pose2d targetPose, Pose2d currentPose, double feedforward){
-                SmartDashboard.putBoolean("reached destination", false);
+                
+                reachedDestinationPub.set(false);
  
                 m_field.getObject("targetPose").setPose(targetPose);
-                SmartDashboard.putString("targetPose", targetPose.toString());
+                targetPosePub.set(targetPose.toString());
 
                 // the current field relative robot pose
                 Pose2d robotPose = getSavedPose();
@@ -304,9 +320,6 @@ public class RebuiltSwerve extends SwerveBase{
                 double unitX = dx / distance;
                 double unitY = dy / distance;
 
-                SmartDashboard.putNumber("alignment dx", dx);
-                SmartDashboard.putNumber("alignment dy", dy);
-
                 double speed = MathUtil.clamp(kp_attract * distance + feedforward, 
                     -Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP, 
                     Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
@@ -316,9 +329,7 @@ public class RebuiltSwerve extends SwerveBase{
                 double attractY = unitY * speed;
                 double attractX = unitX * speed;
            
-                // SmartDashboard.putNumber("desired velocity", desiredVelocity);
-                SmartDashboard.putNumber("distance to target", distance);
-                SmartDashboard.putNumber("attract speed", Math.hypot(attractX, attractY));
+                targetDistPub.set(distance);
                 
                 ChassisSpeeds speeds =
                     new ChassisSpeeds(
@@ -327,17 +338,19 @@ public class RebuiltSwerve extends SwerveBase{
                     getAngularComponentFromRotationOverride(targetPose.getRotation().getDegrees())
                 );
 
+                alignSpeedsPub.set(Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond));
+
                 return speeds;
     }
 
     @Override
     public void periodic() {
         super.periodic();
+
         SmartDashboard.putData("Field", m_field);
-
-         m_field.getObject("robot pose").setPose(getSavedPose());
-        SmartDashboard.putString("robot pose", getSavedPose().toString());
-
-        SmartDashboard.putNumber("robot rotation", getSavedPose().getRotation().getDegrees());
+        m_field.getObject("robot pose").setPose(getSavedPose());
+        
+        robotPosePub.set(getSavedPose().toString());
+        robotRotationPub.set(getSavedPose().getRotation().getDegrees());
     }
 }

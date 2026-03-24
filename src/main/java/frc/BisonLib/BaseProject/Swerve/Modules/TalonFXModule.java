@@ -4,8 +4,10 @@ package frc.BisonLib.BaseProject.Swerve.Modules;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 //import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -73,6 +75,21 @@ public class TalonFXModule{
      */
     public int index;
 
+    private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
+    private final NetworkTable swerveModuleTable = inst.getTable("Swerve Modules");
+    private final NetworkTable moduleTable = swerveModuleTable.getSubTable("Module " + (this.index + 1));
+
+    private final DoublePublisher driveDesiredVel = moduleTable.getDoubleTopic("Desired Drive Velocity").publish();
+    private final DoublePublisher driveVel = moduleTable.getDoubleTopic("Drive Velocity").publish();
+    private final DoublePublisher driveVelError = moduleTable.getDoubleTopic("Drive Velocity Error").publish();
+    private final DoublePublisher driveAccel = moduleTable.getDoubleTopic("Drive Acceleration").publish();
+
+    private final DoublePublisher rotationSetpointDeg = moduleTable.getDoubleTopic("Setpoint Rotation Degrees").publish();
+    private final DoublePublisher rotationDeg = moduleTable.getDoubleTopic("Rotation Degrees").publish();
+    private final DoublePublisher angularVel = moduleTable.getDoubleTopic("Angular Velocity").publish();
+    private final DoublePublisher angularAccel = moduleTable.getDoubleTopic("Angular Acceleration").publish();
+
+    private final DoublePublisher dutyCycle = moduleTable.getDoubleTopic("Duty Cycle").publish();
 
     public TalonFXModule(int driveMotorId, int turnMotorId, double absoluteEncoderOffset, int TurnCANCoderId, int moduleIndex){
         this.index = moduleIndex;
@@ -311,22 +328,20 @@ public class TalonFXModule{
         );
 
         
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Desired Velocity", desiredState.speedMetersPerSecond);
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Rotation Setpoint Deg", desiredState.angle.getDegrees());
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Angular Position", turnMotor.getPosition().getValueAsDouble());
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Angular Velocity", turnMotor.getVelocity().getValueAsDouble());
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Angular Acceleration", turnMotor.getAcceleration().getValueAsDouble());
+        driveDesiredVel.set(velocity);
+        rotationSetpointDeg.set(desiredState.angle.getDegrees());
+        rotationDeg.set(turnMotor.getPosition().getValueAsDouble());
+        angularVel.set(turnMotor.getVelocity().getValueAsDouble());
+        angularAccel.set(turnMotor.getAcceleration().getValueAsDouble());
+        driveVel.set(
+            driveMotor.getVelocity().getValueAsDouble() / Constants.Swerve.DRIVING_GEAR_RATIO * Constants.Swerve.WHEEL_CIRCUMFERENCE_METERS
+        );
+        driveVelError.set(
+            (velocity)-(driveMotor.getVelocity().getValueAsDouble() / Constants.Swerve.DRIVING_GEAR_RATIO * Constants.Swerve.WHEEL_CIRCUMFERENCE_METERS)
+        );
+        driveAccel.set(getDriveAcceleration());
+        dutyCycle.set(driveMotor.getDutyCycle().getValueAsDouble());
 
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Motor Velocity", driveMotor.getVelocity().getValueAsDouble() / Constants.Swerve.DRIVING_GEAR_RATIO * Constants.Swerve.WHEEL_CIRCUMFERENCE_METERS);
-        SmartDashboard.putNumber("Module " + (this.index+1) + " PID Desired Velocity", velocity);
-
-        SmartDashboard.putNumber("Module " + (this.index+1) + " Velocity Error", (velocity)-(driveMotor.getVelocity().getValueAsDouble() / Constants.Swerve.DRIVING_GEAR_RATIO * Constants.Swerve.WHEEL_CIRCUMFERENCE_METERS));
-
-        SmartDashboard.putNumber("Module" + (this.index+1) + "Acceleration", getDriveAcceleration());
-
-        SmartDashboard.putNumber("Module " + (this.index+1) + "Duty cycle", driveMotor.getDutyCycle().getValueAsDouble());
-
-        
     }
 
     public SwerveModulePosition getPosition(){

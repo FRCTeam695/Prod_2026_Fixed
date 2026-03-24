@@ -10,6 +10,7 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 
+import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 
 import edu.wpi.first.networktables.NetworkTable;
@@ -30,10 +31,13 @@ public class Feeder extends SubsystemBase {
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable feederTable = inst.getTable("Feeder");
 
-    private final DoublePublisher mpsPub = feederTable.getDoubleTopic("Velocity Meters Per Second").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher mpsPub = feederTable.getDoubleTopic("Velocity MPS").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher dutyCycleOutPub = feederTable.getDoubleTopic("DutyCycleOut").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher voltagePub = feederTable.getDoubleTopic("Voltage").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher setPointPub = feederTable.getDoubleTopic("Set Point").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher statorPub = feederTable.getDoubleTopic("Stator Current").publish(PubSubOption.periodic(0.02));
+
+    private final BooleanPublisher isStalledPub = feederTable.getBooleanTopic("Feeder Stalled").publish(PubSubOption.periodic(0.02));
 
     public static final double metersPerRotationOfMotor = ((12/36.)*30*5)/1000.;
 
@@ -110,12 +114,8 @@ public class Feeder extends SubsystemBase {
         dutyCycleOutPub.set(floorFeederMotor.getDutyCycle().getValueAsDouble());
         voltagePub.set(floorFeederMotor.getMotorVoltage().getValueAsDouble());  
         setPointPub.set(floorFeederMotor.getClosedLoopReference(true).getValueAsDouble()*metersPerRotationOfMotor);
-
-        SmartDashboard.putNumber("vel", floorFeederMotor.getVelocity(true).getValue().in(RPM)*metersPerRotationOfMotor/60);
-
-        SmartDashboard.putNumber("Feeder stator current", floorFeederMotor.getStatorCurrent().getValueAsDouble());
-
-        SmartDashboard.putBoolean("Feeder is stalled", feederStalled.getAsBoolean());
+        statorPub.set(floorFeederMotor.getStatorCurrent().getValueAsDouble());
+        isStalledPub.set(feederStalled.getAsBoolean());
 
     }
 }

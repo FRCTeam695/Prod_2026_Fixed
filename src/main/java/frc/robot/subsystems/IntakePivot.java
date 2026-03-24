@@ -21,7 +21,6 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.util.*;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -47,6 +46,9 @@ public class IntakePivot extends SubsystemBase {
     private final DoublePublisher dutyCyclePub = table.getDoubleTopic("Duty Cycle").publish(PubSubOption.periodic(0.02));
     private final DoublePublisher statorCurrentPub = table.getDoubleTopic("Stator Current").publish(PubSubOption.periodic(0.02));
     private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));
+    private final DoublePublisher voltagePub = table.getDoubleTopic("Voltage").publish();
+    private final DoublePublisher stallCurrentPub = table.getDoubleTopic("Stall Current").publish();
+    private final BooleanPublisher statorOverThresholdPub = table.getBooleanTopic("Stator Over 20 A").publish();
 
     public final double pivotRetractedPositionDegrees = 134.9;
     public final double pivotExtendedPositionDegrees = 1.005;//5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
@@ -224,16 +226,14 @@ public class IntakePivot extends SubsystemBase {
    
     @Override
     public void periodic(){
-        SmartDashboard.putNumber("Voltage", pivot.getMotorVoltage().getValueAsDouble());
-        SmartDashboard.putNumber("Current", pivot.getStatorCurrent().getValueAsDouble());
-        SmartDashboard.putNumber("Motor Stall Current", pivot.getMotorStallCurrent().getValueAsDouble());
+        voltagePub.set(pivot.getMotorVoltage().getValueAsDouble());
+        stallCurrentPub.set(pivot.getMotorStallCurrent().getValueAsDouble());
+        statorCurrentPub.set(pivot.getStatorCurrent().getValueAsDouble());
+        statorOverThresholdPub.set(statorOverThreshold.getAsBoolean());
+        dutyCyclePub.set(pivot.getDutyCycle().getValueAsDouble());
 
         currentPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()));
         setpointPositionDegreesPub.set(Units.rotationsToDegrees(pivot.getClosedLoopReference().getValueAsDouble()));
-        dutyCyclePub.set(pivot.getDutyCycle().getValueAsDouble());
-        statorCurrentPub.set(pivot.getStatorCurrent().getValueAsDouble());
         atSetpointPub.set(withinTolerance.getAsBoolean());
-
-        SmartDashboard.putBoolean("Stator Current Trigger", statorOverThreshold.getAsBoolean());
     }
 }
