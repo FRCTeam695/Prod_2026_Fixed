@@ -16,6 +16,7 @@ import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.PubSub;
 import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
@@ -35,6 +36,7 @@ public class IndividualShooter {
     private final DoublePublisher velocityPub;
     private final BooleanPublisher atSetpointPub;
     private final BooleanPublisher stoppedShootingPub;
+    private final DoublePublisher velocityErrorPub;
     public final Trigger withinTolerance;
     private final double unitConversionFactor;
     private final ShooterMiniConfig myConfig;
@@ -42,7 +44,7 @@ public class IndividualShooter {
 
     private final Debouncer shooterDipDebouncer;
 
-    private final double dipThreshold = 0.0;
+    private final double dipThreshold = 1.482;
 
     private boolean hasSeenDip = false;
 
@@ -65,8 +67,10 @@ public class IndividualShooter {
         velocityPub = table.getDoubleTopic("Shooter " + miniConfig.name + " Velocity").publish(PubSubOption.periodic(0.02));
         atSetpointPub = table.getBooleanTopic("Shooter " + miniConfig.name + " At Setpoint").publish(PubSubOption.periodic(0.02));
         stoppedShootingPub = table.getBooleanTopic("Shooter " + miniConfig.name + " Stopped Shooting").publish(PubSubOption.periodic(0.02));
+        velocityErrorPub = table.getDoubleTopic("Shooter " + miniConfig.name + " Velocity Error").publish(PubSubOption.periodic(0.02));
 
-        shooterDipDebouncer = new Debouncer(0.1, Debouncer.DebounceType.kRising);
+        // noShooterDips must be true for more than __ seconds to actually be considered true
+        shooterDipDebouncer = new Debouncer(0.35, Debouncer.DebounceType.kFalling);
     }
 
     public void configForVelocityControl(){
@@ -147,7 +151,11 @@ public class IndividualShooter {
             hasSeenDip = true;
         }
 
-        return hasSeenDip && shooterDipDebouncer.calculate(!shooterDip);
+        boolean noShooterDips = !shooterDip;
+
+
+        // noShooterDips must be true for more than __ seconds to actually be considered true
+        return hasSeenDip && shooterDipDebouncer.calculate(noShooterDips);
     }
 
     public void sendSendables(){
@@ -156,6 +164,9 @@ public class IndividualShooter {
         velocityPub.set(motor.getVelocity().getValueAsDouble() * unitConversionFactor);
         atSetpointPub.set(withinTolerance.getAsBoolean());
         stoppedShootingPub.set(stoppedShooting());
+        velocityErrorPub.set(
+            motor.getClosedLoopReference().getValueAsDouble() * unitConversionFactor - motor.getVelocity().getValueAsDouble() * unitConversionFactor
+        );
     }
 
     public record ShooterMiniConfig(InvertedValue isInverted, double kp, double kv, double ks, double ka, String name, int id) {}
