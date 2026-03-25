@@ -600,27 +600,7 @@ public class RobotContainer {
       intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))
     );
 
-    // driver.x().whileTrue(
-    //     swerve.setHubTagsValid()
-    //     .andThen(
-    //       parallel(
-    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7),
-    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-    //     ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
-    //     )
-    //     .andThen(
-    //       kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
-    //     )
-    //     .andThen(
-    //       parallel(
-    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7),
-    //         feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
-    //         pivot.slowRaise(),
-    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-    //       )
-    //     )
-    // );
+    // ADD WARM UP SHOOTER WHEEL COMMAND
 
   }
 

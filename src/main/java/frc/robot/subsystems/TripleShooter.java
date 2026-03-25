@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -18,13 +19,18 @@ public class TripleShooter extends SubsystemBase{
     public final double kShooterRotationsToMeters = 2 * Math.PI * Units.inchesToMeters(2);
     public final double kMaxSpeedMPS = kShooterRotationsToMeters * 100;
     public final Trigger allShootersWithinTolerance;
+
+    public final Trigger stoppedShooting;
+
     public TripleShooter(ShooterMiniConfig configLeft, ShooterMiniConfig configMiddle, ShooterMiniConfig configRight){
         shooterLeft = new IndividualShooter(configLeft, kShooterRotationsToMeters);
         shooterMiddle = new IndividualShooter(configMiddle, kShooterRotationsToMeters);
         shooterRight = new IndividualShooter(configRight, kShooterRotationsToMeters);
         allShootersWithinTolerance = shooterLeft.withinTolerance.and(shooterMiddle.withinTolerance).and(shooterRight.withinTolerance);
 
-
+        stoppedShooting = new Trigger(()-> {
+            return shooterLeft.stoppedShooting() && shooterMiddle.stoppedShooting() && shooterRight.stoppedShooting();
+        });
     }
 
 
@@ -85,6 +91,8 @@ public class TripleShooter extends SubsystemBase{
         shooterLeft.sendSendables();
         shooterMiddle.sendSendables();
         shooterRight.sendSendables();
+
+        SmartDashboard.putBoolean("Stopped Shooting", stoppedShooting.getAsBoolean());
     }
 
 
