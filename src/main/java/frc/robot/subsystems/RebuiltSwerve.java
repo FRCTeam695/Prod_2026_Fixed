@@ -29,7 +29,7 @@ public class RebuiltSwerve extends SwerveBase{
     
     private final double kp_attract = 3.3;
 
-    public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(900.0), -Math.toRadians(1000.0), 0.0);
+    public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(3000.0), -Math.toRadians(3000.0), 0.0);
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable swerveTable = inst.getTable("Swerve");
@@ -41,7 +41,7 @@ public class RebuiltSwerve extends SwerveBase{
     private final DoublePublisher targetDistPub = swerveTable.getDoubleTopic("Distance to Target").publish();
     private final DoublePublisher alignSpeedsPub = swerveTable.getDoubleTopic("Align Speeds MPS").publish();
     private final DoublePublisher robotRotationPub = swerveTable.getDoubleTopic("Robot Rotation Deg").publish();
-
+    private final DoublePublisher pacmanTargetAngle = swerveTable.getDoubleTopic("Pacman Wanted Angle").publish();
     private final BooleanPublisher reachedDestinationPub = swerveTable.getBooleanTopic("Reached Destination").publish();
     private final StringPublisher targetPosePub = swerveTable.getStringTopic("Target Pose").publish();
     private final StringPublisher hubPosePub = swerveTable.getStringTopic("Hub Pose").publish();
@@ -161,6 +161,7 @@ public class RebuiltSwerve extends SwerveBase{
                 double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)), true);
                 
                 pacmanInitAngularVelPub.set(pacmanAngularSpeeds);
+                pacmanTargetAngle.set(Math.toDegrees(Math.atan2(vy, vx)));
 
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){

@@ -56,7 +56,7 @@ public class SwerveBase extends SubsystemBase {
     // private final LinearFilter xAccelFilter = LinearFilter.movingAverage(5);
     // private final LinearFilter yAccelFilter = LinearFilter.movingAverage(5);
     private final PIDController thetaController = new PIDController(Constants.Swerve.ROBOT_ROTATION_KP, 0, 0.0);
-    private final PIDController pacmanThetaController = new PIDController(3.8, 0, 0.0);
+    private final PIDController pacmanThetaController = new PIDController(3.95, 0, 0.0);
     private final BaseStatusSignal[] allOdomSignals;
 
     protected double max_accel = 0;
