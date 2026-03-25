@@ -454,6 +454,7 @@ public class RobotContainer {
 
     driver.back().onTrue(swerve.backwardsResetGyro());
 
+
     // driver.leftBumper().toggleOnTrue(
     //     pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
     //       .andThen(
@@ -468,87 +469,87 @@ public class RobotContainer {
       swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading)
     );
 
-    driver.leftTrigger().whileTrue(
-      pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
-          .andThen(
-            parallel(
-              pivot.setDutyCycle(()-> -0.05),
-              intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
-            )
-          ).alongWith(
-      run
-          (
-            ()-> 
-              swerve.teleopDefaultCommand(
-                driver::getRequestedChassisSpeeds,
-                true
-              )
-              ,
-              swerve
-          ).withName("Swerve Drive Command")
-    ));
+    // driver.leftTrigger().whileTrue(
+    //   pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
+    //       .andThen(
+    //         parallel(
+    //           pivot.setDutyCycle(()-> -0.05),
+    //           intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+    //         )
+    //       ).alongWith(
+    //   run
+    //       (
+    //         ()-> 
+    //           swerve.teleopDefaultCommand(
+    //             driver::getRequestedChassisSpeeds,
+    //             true
+    //           )
+    //           ,
+    //           swerve
+    //       ).withName("Swerve Drive Command")
+    // ));
 
-    /*
-     * Auto shoot while held
-     */
-    driver.rightTrigger().whileTrue(
-      autoShoot()
-    );
+    // /*
+    //  * Auto shoot while held
+    //  */
+    // driver.rightTrigger().whileTrue(
+    //   autoShoot()
+    // );
 
-    driver.rightTrigger().onFalse(
-      (runOnce(() -> swerve.setValidTagIDs("allTags"))
-      .andThen(
-        parallel(
-          tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
-          kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
-        )
-        .andThen(
-          parallel(
-            tripleShooter.setDutyCycle(()-> -0.4),
-            kicker.setDutyCycle(()-> -1)
-          ).withTimeout(0.5)
-        )
-      )).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees))
-    );
+    // driver.rightTrigger().onFalse(
+    //   (runOnce(() -> swerve.setValidTagIDs("allTags"))
+    //   .andThen(
+    //     parallel(
+    //       tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
+    //       kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
+    //     )
+    //     .andThen(
+    //       parallel(
+    //         tripleShooter.setDutyCycle(()-> -0.4),
+    //         kicker.setDutyCycle(()-> -1)
+    //       ).withTimeout(0.5)
+    //     )
+    //   )).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees))
+    // );
 
-    /*
-     * stockpile while held
-     */
-    driver.rightBumper().whileTrue(
-      (
-        parallel(
-          tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
-          swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
-        ).until(tripleShooter.allShootersWithinTolerance)
-        .andThen(
-            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
-        )
-        .andThen(
-          parallel(
-            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
-            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
-            feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
-            pivot.slowRaise()
-          )
-        )
-      ).alongWith(
-        hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
-      )
-    );
+    // /*
+    //  * stockpile while held
+    //  */
+    // driver.rightBumper().whileTrue(
+    //   (
+    //     parallel(
+    //       tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //       swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
+    //     ).until(tripleShooter.allShootersWithinTolerance)
+    //     .andThen(
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+    //     )
+    //     .andThen(
+    //       parallel(
+    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //         feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
+    //         pivot.slowRaise()
+    //       )
+    //     )
+    //   ).alongWith(
+    //     hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
+    //   )
+    // );
 
-    driver.rightBumper().onFalse(
-      (parallel(
-        tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
-        kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
-      )
-      .andThen(
-        parallel(
-          tripleShooter.setDutyCycle(()-> -0.4),
-          kicker.setDutyCycle(()-> -1)
-        ).withTimeout(1.0)
-      )).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees))
-    );
+    // driver.rightBumper().onFalse(
+    //   (parallel(
+    //     tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
+    //     kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
+    //   )
+    //   .andThen(
+    //     parallel(
+    //       tripleShooter.setDutyCycle(()-> -0.4),
+    //       kicker.setDutyCycle(()-> -1)
+    //     ).withTimeout(1.0)
+    //   )).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees))
+    // );
 
     /*
      * home the pivot while held
@@ -567,12 +568,12 @@ public class RobotContainer {
     /*
     
      */
-    driver.a().whileTrue(
-      parallel(
-        tripleShooter.setDutyCycle(()-> -0.4),
-        kicker.setDutyCycle(()-> -1)
-      )
-    );
+    // driver.a().whileTrue(
+    //   parallel(
+    //     tripleShooter.setDutyCycle(()-> -0.4),
+    //     kicker.setDutyCycle(()-> -1)
+    //   )
+    // );
 
     // /*
     //  * retract pivot
@@ -581,21 +582,21 @@ public class RobotContainer {
     //   pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
     // );
 
-    driver.b().whileTrue(
-      parallel(
-        tripleShooter.setDutyCycle(() -> 0.6),
-        swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, () -> shotCalculator.getCachedSetpoint().virtualTarget())
-      )
-    );
+    // driver.b().whileTrue(
+    //   parallel(
+    //     tripleShooter.setDutyCycle(() -> 0.6),
+    //     swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, () -> shotCalculator.getCachedSetpoint().virtualTarget())
+    //   )
+    // );
 
-    driver.povLeft().onTrue(
-      //pivot.slowRaise()
-      hood.setActuatorDeg(() -> 72)
-    );
+    // driver.povLeft().onTrue(
+    //   //pivot.slowRaise()
+    //   hood.setActuatorDeg(() -> 72)
+    // );
 
-    driver.povRight().onTrue(
-      hood.setActuatorDeg(()-> 52)
-    );
+    // driver.povRight().onTrue(
+    //   hood.setActuatorDeg(()-> 52)
+    // );
 
     driver.y().whileTrue(
         run
@@ -605,11 +606,11 @@ public class RobotContainer {
         )
     );
 
-    driver.x().whileTrue(
-      parallel(
-      feeder.runFeederOneRotation(),
-      intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))
-    );
+    // driver.x().whileTrue(
+    //   parallel(
+    //   feeder.runFeederOneRotation(),
+    //   intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))
+    // );
 
     // driver.x().whileTrue(
     //     swerve.setHubTagsValid()

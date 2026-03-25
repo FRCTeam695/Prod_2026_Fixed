@@ -29,7 +29,7 @@ public class RebuiltSwerve extends SwerveBase{
     
     private final double kp_attract = 3.3;
 
-    public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(800.0));
+    public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(900.0), -Math.toRadians(1000.0), 0.0);
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable swerveTable = inst.getTable("Swerve");
