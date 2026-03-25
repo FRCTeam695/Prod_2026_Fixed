@@ -36,7 +36,8 @@ public class RebuiltSwerve extends SwerveBase{
 
     private final DoublePublisher hubDistPub = swerveTable.getDoubleTopic("Distance to Hub").publish();
     private final DoublePublisher rotateToHubSetpointPub = swerveTable.getDoubleTopic("Hub Rotation Setpoint").publish();
-    private final DoublePublisher pacmanAngularVelPub = swerveTable.getDoubleTopic("Initial Pacman Angular Vel").publish();
+    private final DoublePublisher pacmanInitAngularVelPub = swerveTable.getDoubleTopic("Initial Pacman Angular Vel").publish();
+    private final DoublePublisher pacmanAdjustedAngularVelPub = swerveTable.getDoubleTopic("Adjusted Pacman Angular Vel").publish();
     private final DoublePublisher targetDistPub = swerveTable.getDoubleTopic("Distance to Target").publish();
     private final DoublePublisher alignSpeedsPub = swerveTable.getDoubleTopic("Align Speeds MPS").publish();
     private final DoublePublisher robotRotationPub = swerveTable.getDoubleTopic("Robot Rotation Deg").publish();
@@ -143,7 +144,10 @@ public class RebuiltSwerve extends SwerveBase{
 
     public Command pacmanDrive(Supplier<ChassisSpeeds> commandedSpeedsSupplier, Supplier<Translation2d> headingOverrideSupplier){
         return(
-            run(()->{
+            runOnce(()->{
+                pacmanHeadingFilter.reset(0.0);
+            }).andThen(
+                run(()->{
                 ChassisSpeeds commandedSpeeds = commandedSpeedsSupplier.get();
                 double vx = commandedSpeeds.vxMetersPerSecond;
                 double vy = commandedSpeeds.vyMetersPerSecond;
@@ -156,7 +160,7 @@ public class RebuiltSwerve extends SwerveBase{
                 
                 double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)), true);
                 
-                pacmanAngularVelPub.set(pacmanAngularSpeeds);
+                pacmanInitAngularVelPub.set(pacmanAngularSpeeds);
 
                 // to make sure we don't snap back to theta=0 when not driving
                 if(Math.hypot(vx, vy) < 0.05){
@@ -168,13 +172,15 @@ public class RebuiltSwerve extends SwerveBase{
                     pacmanAngularSpeeds = getAngularComponentFromRotationOverride(headingOverride, true);
                 }
 
-                // pacmanAngularSpeeds = pacmanHeadingFilter.calculate(pacmanAngularSpeeds);
+                pacmanAngularSpeeds = pacmanHeadingFilter.calculate(pacmanAngularSpeeds);
 
                 ChassisSpeeds adjustedSpeeds = new ChassisSpeeds(vx, vy, pacmanAngularSpeeds);
 
+                pacmanAdjustedAngularVelPub.set(adjustedSpeeds.omegaRadiansPerSecond);
+                
                 drive(adjustedSpeeds);
 
-            })
+            }))
         );
     }
 

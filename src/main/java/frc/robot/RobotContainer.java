@@ -454,14 +454,18 @@ public class RobotContainer {
 
     driver.back().onTrue(swerve.backwardsResetGyro());
 
-    driver.leftBumper().toggleOnTrue(
-        pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
-          .andThen(
-            parallel(
-              pivot.setDutyCycle(()-> -0.05),
-              intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
-            )
-          ).alongWith(swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading))
+    // driver.leftBumper().toggleOnTrue(
+    //     pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
+    //       .andThen(
+    //         parallel(
+    //           pivot.setDutyCycle(()-> -0.05),
+    //           intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
+    //         )
+    //       ).alongWith(swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading))
+    // );
+
+    driver.leftBumper().whileTrue(
+      swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading)
     );
 
     driver.leftTrigger().whileTrue(
@@ -570,11 +574,18 @@ public class RobotContainer {
       )
     );
 
-    /*
-     * retract pivot
-     */
-    driver.b().onTrue(
-      pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
+    // /*
+    //  * retract pivot
+    //  */
+    // driver.b().onTrue(
+    //   pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
+    // );
+
+    driver.b().whileTrue(
+      parallel(
+        tripleShooter.setDutyCycle(() -> 0.6),
+        swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, () -> shotCalculator.getCachedSetpoint().virtualTarget())
+      )
     );
 
     driver.povLeft().onTrue(

@@ -77,19 +77,19 @@ public class TalonFXModule{
 
     private final NetworkTableInstance inst = NetworkTableInstance.getDefault();
     private final NetworkTable swerveModuleTable = inst.getTable("Swerve Modules");
-    private final NetworkTable moduleTable = swerveModuleTable.getSubTable("Module " + (this.index + 1));
+    private final NetworkTable moduleTable;
 
-    private final DoublePublisher driveDesiredVel = moduleTable.getDoubleTopic("Desired Drive Velocity").publish();
-    private final DoublePublisher driveVel = moduleTable.getDoubleTopic("Drive Velocity").publish();
-    private final DoublePublisher driveVelError = moduleTable.getDoubleTopic("Drive Velocity Error").publish();
-    private final DoublePublisher driveAccel = moduleTable.getDoubleTopic("Drive Acceleration").publish();
+    private final DoublePublisher driveDesiredVel;
+    private final DoublePublisher driveVel;
+    private final DoublePublisher driveVelError;
+    private final DoublePublisher driveAccel;
 
-    private final DoublePublisher rotationSetpointDeg = moduleTable.getDoubleTopic("Setpoint Rotation Degrees").publish();
-    private final DoublePublisher rotationDeg = moduleTable.getDoubleTopic("Rotation Degrees").publish();
-    private final DoublePublisher angularVel = moduleTable.getDoubleTopic("Angular Velocity").publish();
-    private final DoublePublisher angularAccel = moduleTable.getDoubleTopic("Angular Acceleration").publish();
+    private final DoublePublisher rotationSetpointDeg;
+    private final DoublePublisher rotationDeg;
+    private final DoublePublisher angularVel;
+    private final DoublePublisher angularAccel;
 
-    private final DoublePublisher dutyCycle = moduleTable.getDoubleTopic("Duty Cycle").publish();
+    private final DoublePublisher dutyCycle;
 
     public TalonFXModule(int driveMotorId, int turnMotorId, double absoluteEncoderOffset, int TurnCANCoderId, int moduleIndex){
         this.index = moduleIndex;
@@ -118,6 +118,21 @@ public class TalonFXModule{
         odomSignals[0] = drivePositionSignal;
         odomSignals[1] = driveVelocitySignal;
         odomSignals[2] = rotationSignal;
+
+        moduleTable = swerveModuleTable.getSubTable("Module " + (this.index + 1));
+
+        driveDesiredVel = moduleTable.getDoubleTopic("Desired Drive Velocity").publish();
+        driveVel = moduleTable.getDoubleTopic("Drive Velocity").publish();
+        driveVelError = moduleTable.getDoubleTopic("Drive Velocity Error").publish();
+        driveAccel = moduleTable.getDoubleTopic("Drive Acceleration").publish();
+
+        rotationSetpointDeg = moduleTable.getDoubleTopic("Setpoint Rotation Degrees").publish();
+        rotationDeg = moduleTable.getDoubleTopic("Rotation Degrees").publish();
+        angularVel = moduleTable.getDoubleTopic("Angular Velocity").publish();
+        angularAccel = moduleTable.getDoubleTopic("Angular Acceleration").publish();
+
+        dutyCycle = moduleTable.getDoubleTopic("Duty Cycle").publish();
+
     }
 
 
