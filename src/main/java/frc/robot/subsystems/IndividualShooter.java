@@ -70,7 +70,7 @@ public class IndividualShooter {
         velocityErrorPub = table.getDoubleTopic("Shooter " + miniConfig.name + " Velocity Error").publish(PubSubOption.periodic(0.02));
 
         // noShooterDips must be true for more than __ seconds to actually be considered true
-        shooterDipDebouncer = new Debouncer(0.35, Debouncer.DebounceType.kFalling);
+        shooterDipDebouncer = new Debouncer(0.7, Debouncer.DebounceType.kRising);
     }
 
     public void configForVelocityControl(){
@@ -151,11 +151,8 @@ public class IndividualShooter {
             hasSeenDip = true;
         }
 
-        boolean noShooterDips = !shooterDip;
-
-
         // noShooterDips must be true for more than __ seconds to actually be considered true
-        return hasSeenDip && shooterDipDebouncer.calculate(noShooterDips);
+        return hasSeenDip && shooterDipDebouncer.calculate(withinTolerance.getAsBoolean());
     }
 
     public void sendSendables(){
