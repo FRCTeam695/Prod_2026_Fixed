@@ -594,33 +594,31 @@ public class RobotContainer {
         )
     );
 
-    driver.x().whileTrue(
-      parallel(
-      feeder.runFeederOneRotation(),
-      intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))
-    );
-
     // driver.x().whileTrue(
-    //     swerve.setHubTagsValid()
-    //     .andThen(
-    //       parallel(
-    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7),
-    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-    //     ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
-    //     )
-    //     .andThen(
-    //       kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
-    //     )
-    //     .andThen(
-    //       parallel(
-    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
-    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7),
-    //         feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
-    //         pivot.slowRaise(),
-    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
-    //       )
-    //     )
+    //   parallel(
+    //   feeder.runFeederOneRotation(),
+    //   intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))
     // );
+
+    driver.x().whileTrue(
+        swerve.setHubTagsValid()
+        .andThen(
+          parallel(
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.6)
+        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+        )
+        .andThen(
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+        )
+        .andThen(
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.6),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.slowRaise()          
+          )
+        )
+    );
 
   }
 
@@ -671,7 +669,8 @@ public class RobotContainer {
     hood.setDefaultCommand(
       hood.setActuatorDeg(
         () -> 
-        shotCalculator.getCachedSetpoint().angle()
+        72.5
+        //shotCalculator.getCachedSetpoint().angle()
       )
     );
   }
