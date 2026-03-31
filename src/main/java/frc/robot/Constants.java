@@ -45,7 +45,7 @@ public class Constants {
 
 
     public static final class Intake{
-        public static final double INTAKE_SPEED = 1.0;
+        public static final double INTAKE_SPEED = 0.7;
     }
 
     public static final class Swerve {

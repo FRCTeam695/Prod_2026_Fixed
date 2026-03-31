@@ -42,6 +42,9 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         rpmMapStockpile = new InterpolatingDoubleTreeMap();
         angleMapStockpile = new InterpolatingDoubleTreeMap();
 
+        rpmMapStockpile.put(12., 0.9 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
+        angleMapStockpile.put(12., 52.);
+
         rpmMapStockpile.put(10.8, 0.85 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
         angleMapStockpile.put(10.8, 52.);
 

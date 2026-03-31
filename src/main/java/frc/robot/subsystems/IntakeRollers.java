@@ -17,6 +17,8 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+
 import java.util.function.DoubleSupplier;
 import static edu.wpi.first.units.Units.Amps;
 
@@ -42,12 +44,19 @@ public class IntakeRollers extends SubsystemBase {
     private final Follower followRequest = new Follower(leader_ID, MotorAlignmentValue.Opposed);
     public final double kMaxVelocity = 100;
     private final VelocityTorqueCurrentFOC torqueRequest = new VelocityTorqueCurrentFOC(0);
+    private final Trigger velIsSmall;
+    private final Trigger hasDemand;
+    public final Trigger isStalled;
+    private boolean demanding = false;
 
     public IntakeRollers() {
         leaderRoller = new TalonFX(leader_ID);
         followerRoller = new TalonFX(60);
         configureRollers();
         followerRoller.setControl(followRequest);
+        velIsSmall = new Trigger(()-> leaderRoller.getVelocity().getValueAsDouble() < 5);
+        hasDemand = new Trigger(()-> demanding);
+        isStalled = velIsSmall.and(hasDemand);
     }
 
     public void configureRollers() {
@@ -83,7 +92,11 @@ public class IntakeRollers extends SubsystemBase {
     }
 
     public Command setVelocityRPS(DoubleSupplier targetVelocityRPS) {
-        return run(() -> leaderRoller.setControl(velocity.withVelocity(targetVelocityRPS.getAsDouble())));
+        return run(() -> 
+        {
+            leaderRoller.setControl(velocity.withVelocity(targetVelocityRPS.getAsDouble()));
+            if(leaderRoller.getVelocity().getValueAsDouble() > 10) demanding = true;
+        }).handleInterrupt(()-> demanding = false);
     }
 
     public Command setDutyCycle(DoubleSupplier percent) {
