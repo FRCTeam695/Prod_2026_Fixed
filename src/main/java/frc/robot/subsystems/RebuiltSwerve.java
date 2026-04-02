@@ -130,11 +130,11 @@ public class RebuiltSwerve extends SwerveBase{
                 double vx = commandedSpeeds.vxMetersPerSecond;
                 double vy = commandedSpeeds.vyMetersPerSecond;
 
-                Translation2d translationOverride = headingOverrideSupplier.get();
+                // Translation2d translationOverride = headingOverrideSupplier.get();
                 
-                double rightStickMagnitude = translationOverride.getNorm();
+                // double rightStickMagnitude = translationOverride.getNorm();
 
-                double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) + 90;
+                // double headingOverride = Math.toDegrees(Math.atan2(translationOverride.getY(), translationOverride.getX())) + 90;
                 
                 double pacmanAngularSpeeds = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(vy, vx)), true);
                 SmartDashboard.putNumber("Initial Pacman Angular Vel", pacmanAngularSpeeds);
@@ -143,10 +143,7 @@ public class RebuiltSwerve extends SwerveBase{
                     pacmanAngularSpeeds = commandedSpeeds.omegaRadiansPerSecond;
                 }
 
-                // if there is some feedback from the right stick, snap to that angle (heading override)
-                if(rightStickMagnitude >= 0.05){
-                    pacmanAngularSpeeds = getAngularComponentFromRotationOverride(headingOverride, true);
-                }
+                SmartDashboard.putNumber("pacman heading angle", Math.toDegrees(Math.atan2(vy, vx)));
 
                 // pacmanAngularSpeeds = pacmanHeadingFilter.calculate(pacmanAngularSpeeds);
 
