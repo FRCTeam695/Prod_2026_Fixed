@@ -406,7 +406,7 @@ public class RobotContainer {
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
             feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
-            pivot.slowRaise()
+            new WaitCommand(1.5).andThen(pivot.slowRaise())
           )
         )
       ).alongWith(
@@ -502,7 +502,7 @@ public class RobotContainer {
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
             feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
-            pivot.slowRaise(),
+            new WaitCommand(1.5).andThen(pivot.slowRaise()),
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
           )
         )

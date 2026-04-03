@@ -5,6 +5,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -23,6 +24,8 @@ public class Robot extends TimedRobot {
     // // Update odometry on a different thread for faster loop period.
     // // https://www.desmos.com/calculator/vdgebi9s4t
     addPeriodic(odometryUpdater::run, 1.0/Constants.Swerve.ODOMETRY_UPDATE_RATE_HZ_INTEGER);
+
+    RobotController.setBrownoutVoltage(5.5);
   }
 
   @Override
