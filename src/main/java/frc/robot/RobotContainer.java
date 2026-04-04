@@ -130,7 +130,8 @@ public class RobotContainer {
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
-                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
+                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0))),
+              feeder.openLoopSet(()-> 0)
             )
           )
           .andThen(
@@ -214,7 +215,8 @@ public class RobotContainer {
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
-                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
+                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0))),
+              feeder.openLoopSet(()-> 0)
             )
           )
           .andThen(
