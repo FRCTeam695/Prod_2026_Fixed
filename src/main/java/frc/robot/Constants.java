@@ -58,9 +58,9 @@ public class Constants {
                 0.0388, // back left
                 -0.137939 + 0.5, // back right
             // drive gear ratio
-            6.026785714285714,
+            (54.0/16) * (25.0/32) * (30.0/15),
             // max speed ft/sec
-            Units.metersToFeet(4.9),
+            Units.metersToFeet(5.85216),
             // wheel diameter
             3.8 * Math.PI, 
             // turn wheel kp
