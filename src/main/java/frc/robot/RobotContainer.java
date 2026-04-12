@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -20,9 +21,11 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
+import java.util.Optional;
 
 import com.ctre.phoenix6.signals.InvertedValue;
 
+import frc.robot.Constants.Swerve;
 import frc.robot.subsystems.*;
 import frc.robot.subsystems.IndividualShooter.ShooterMiniConfig;
 
@@ -386,12 +389,57 @@ public class RobotContainer {
       autoShoot()
     );
 
+    /*
+     * turn towards hub with custom center - need to change custom center
+     */
+    // driver.rightTrigger().whileTrue(
+    //   swerve.rotateTowardsVirtualHubCustomCenter(
+    //     driver::getRequestedChassisSpeeds, 
+    //     ()-> shotCalculator.getCachedSetpoint().virtualTarget(),
+    //     () -> new Translation2d(
+    //         -0.3 * 
+    //         -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
+    //         - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
+    //         , 
+    //         0.3 * 
+    //         (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
+    //         - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
+    //       ) 
+    //     )
+    // );
+
     driver.rightTrigger().onFalse(
       shooterCooldown()
     );
 
+    // /*
+    //  * stockpile while held (raises intake)
+    //  */
+    // driver.rightBumper().whileTrue(
+    //   (
+    //     parallel(
+    //       tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //       swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
+    //     ).until(tripleShooter.allShootersWithinTolerance)
+    //     .andThen(
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+    //     )
+    //     .andThen(
+    //       parallel(
+    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //         feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
+    //         pivot.slowRaise()
+    //       )
+    //     )
+    //   ).alongWith(
+    //     hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
+    //   )
+    // );
+
     /*
-     * stockpile while held
+     * stockpile while held (does not raise intake)
      */
     driver.rightBumper().whileTrue(
       (
@@ -407,14 +455,15 @@ public class RobotContainer {
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
-            feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
-            pivot.slowRaise()
+            feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100)
           )
         )
       ).alongWith(
         hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
       )
     );
+
+
 
     driver.rightBumper().onFalse(
       shooterCooldown()
@@ -451,9 +500,9 @@ public class RobotContainer {
       cornerShot()
     );
 
-    driver.povLeft().onTrue(
-      pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
-    );
+    // driver.povLeft().onTrue(
+    //   pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
+    // );
 
 
     driver.x().whileTrue(
@@ -468,10 +517,49 @@ public class RobotContainer {
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
             feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
-            pivot.setDutyCycle(()-> 1).until(pivot.pastThresholdAutoRaise).andThen(pivot.setDutyCycle(()-> 0.5)),
+            pivot.setDutyCycle(()-> 0.3).until(pivot.pastThresholdAutoRaise).andThen(pivot.setDutyCycle(()-> 0.1)),
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
           )
     );
+
+    // rotates around bottom right corner with custom center
+    driver.povRight().whileTrue(
+        swerve.driveWithCenter(
+          driver::getRequestedChassisSpeeds,
+          () -> 
+           new Translation2d(
+            -0.3 * 
+            -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
+            - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
+            
+            , 
+            -0.3 * 
+            (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
+            - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
+            ) 
+           // update with center of rotation
+      )
+    );
+
+    // rotates around bottom left corner with custom center
+    driver.povLeft().whileTrue(
+      swerve.driveWithCenter(
+          driver::getRequestedChassisSpeeds,
+          () -> 
+           new Translation2d(
+            -0.3 * 
+            -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
+            - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
+            , 
+            0.3 * 
+            (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
+            - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
+          ) 
+           // update with center of rotation
+        )
+    );
+    
+
 
     driver.y().onFalse(
       pivot.goToPositionDegreesWithCondition(pivot.pivotRetractedPositionDegrees, pivot.withinTolerance)

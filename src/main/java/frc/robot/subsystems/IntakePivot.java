@@ -48,7 +48,7 @@ public class IntakePivot extends SubsystemBase {
     private final DoublePublisher statorCurrentPub = table.getDoubleTopic("Stator Current").publish(PubSubOption.periodic(0.02));
     private final BooleanPublisher atSetpointPub = table.getBooleanTopic("Intake Pivot at Setpoint").publish(PubSubOption.periodic(0.02));
 
-    public final double pivotRetractedPositionDegrees = 134.9;
+    public final double pivotRetractedPositionDegrees = 133.242;
     public final double pivotExtendedPositionDegrees = 2.37;//5.8886; //3.25 = 1shim, 1.005=2shim, 5.8886
     public final double pivotAgitatePositionDegrees = 50;
 
@@ -143,10 +143,10 @@ public class IntakePivot extends SubsystemBase {
             return 
             (
                 run(()->{
-                pivot.setControl(dutyCycleSetter.withOutput(0.25));
+                pivot.setControl(dutyCycleSetter.withOutput(0.4));
             })
             .until(
-                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 25)
+                () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 40)
             )
             ).andThen(
                 holdPosition()

@@ -27,6 +27,7 @@ public class RebuiltSwerve extends SwerveBase{
     public SlewRateLimiter pacmanHeadingFilter = new SlewRateLimiter(Math.toRadians(800.0));
 
 
+    private Translation2d robotRelativeCenterOfRotationAtHub;
 
 
     public RebuiltSwerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
@@ -87,11 +88,45 @@ public class RebuiltSwerve extends SwerveBase{
 
             drive(speeds);
 
-
         });
     
     }
 
+    public Command rotateTowardsVirtualHubCustomCenter(Supplier<ChassisSpeeds> wantedSpeeds, Supplier<Translation2d> hubPose, Supplier<Translation2d> centerOfRotation){
+        return 
+        runOnce(()->{
+            robotRelativeCenterOfRotationAtHub = centerOfRotation.get();
+        }).andThen(
+        run(()->{
+            Pose2d virtualPose = new Pose2d(hubPose.get(), new Rotation2d());
+            Pose2d robotPose = getSavedPose();
+            ChassisSpeeds currentSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
+
+            m_field.getObject("virtualHub").setPose(virtualPose);
+            SmartDashboard.putString("virtualHub", virtualPose.toString());
+
+            double dx = virtualPose.getX() - robotPose.getX();
+            double dy = virtualPose.getY() - robotPose.getY();
+            double norm = Math.hypot(dx, dy);
+
+            SmartDashboard.putNumber("distance to hub", norm);
+
+            double theta = Math.toDegrees(Math.atan2(dy, dx));
+
+            SmartDashboard.putNumber("rotation goal", theta);
+
+            double feedForward = (currentSpeeds.vyMetersPerSecond * dx - currentSpeeds.vxMetersPerSecond * dy)
+                 / (norm * norm);
+
+            ChassisSpeeds speeds = wantedSpeeds.get();
+
+            speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta);
+
+            driveWithCenterOfRotation(() -> speeds, () -> robotRelativeCenterOfRotationAtHub);
+
+        }));
+    
+    }
 
     public Command safeTraverseBump(Supplier<ChassisSpeeds> speedSupplier){
         return 

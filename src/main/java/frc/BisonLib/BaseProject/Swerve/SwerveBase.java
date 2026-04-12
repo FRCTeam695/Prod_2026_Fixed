@@ -2,6 +2,7 @@ package frc.BisonLib.BaseProject.Swerve;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -81,7 +82,7 @@ public class SwerveBase extends SubsystemBase {
     public final Trigger atRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 1.2);
     public final Trigger almostAtRotationSetpoint = new Trigger(()-> Math.abs(robotRotationError) < 20);
 
-
+    private Translation2d centerOfRotation = new Translation2d(0, 0);
 
     // this is a lock to make sure nobody acesses our pose while odometry is updating it
     private final ReentrantReadWriteLock odometryLock = new ReentrantReadWriteLock();
@@ -650,20 +651,50 @@ public class SwerveBase extends SubsystemBase {
         SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
         var speeds = Constants.Swerve.kDriveKinematics.toChassisSpeeds(tmpStates);
 
+        SwerveModuleState[] moduleStates;
+
         Rotation2d skewCompensationFactor = Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * Constants.Swerve.SKEW_COMPENSATION_RATE);
 
         chassisSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
             ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getSavedPose().getRotation()),
             getSavedPose().getRotation().plus(skewCompensationFactor));
+       
+        moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
 
         //SmartDashboard.putString("Swerve/Commanded Chassis Speeds", chassisSpeeds.toString());
         // convert chassis speeds to module states
-        SwerveModuleState[] moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
 
         // set the modules to their desired speeds
         setModules(moduleStates);
         
     }
+
+    public void driveRobotRelativeWithCenter(ChassisSpeeds chassisSpeeds, Translation2d centerOfRotation) {
+        var tmpStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
+        SwerveDriveKinematics.desaturateWheelSpeeds(tmpStates, Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+        var speeds = Constants.Swerve.kDriveKinematics.toChassisSpeeds(tmpStates);
+
+        SwerveModuleState[] moduleStates;
+
+        Rotation2d skewCompensationFactor = Rotation2d.fromRadians(speeds.omegaRadiansPerSecond * Constants.Swerve.SKEW_COMPENSATION_RATE);
+
+        chassisSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
+            ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getSavedPose().getRotation()),
+            getSavedPose().getRotation().plus(skewCompensationFactor));
+       
+        moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds);
+
+        //SmartDashboard.putString("Swerve/Commanded Chassis Speeds", chassisSpeeds.toString());
+        // convert chassis speeds to module states
+
+        moduleStates = Constants.Swerve.kDriveKinematics.toSwerveModuleStates(chassisSpeeds, centerOfRotation);
+
+        // set the modules to their desired speeds
+        setModules(moduleStates);
+        
+    }
+
+     
 
     /*
      * Drives the robot in teleop, we don't want it fighting the auton swerve commands
@@ -793,6 +824,499 @@ public class SwerveBase extends SubsystemBase {
 
     }
 
+    public Command driveWithCenterOfRotationCommand(Supplier<ChassisSpeeds> commandedSpeedsSupplier, Supplier<Translation2d> center){
+
+        return runOnce( () -> {
+            centerOfRotation = center.get();
+        }).andThen(run(()->{
+        ChassisSpeeds commandedSpeeds = commandedSpeedsSupplier.get();
+
+        ChassisSpeeds currentFieldRelSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
+
+        // I made the convention "v" means robots actual vel and "w" is robots wanted vel
+        double v_x = currentFieldRelSpeeds.vxMetersPerSecond;
+        double v_y = currentFieldRelSpeeds.vyMetersPerSecond;
+        double w_x = commandedSpeeds.vxMetersPerSecond;
+        double w_y = commandedSpeeds.vyMetersPerSecond;
+        double dt = 0.02;
+        
+        double v_mag = Math.hypot(v_x, v_y);
+        double w_along_v = 0.0;
+        
+        if (v_mag > 1e-6) {
+            // project w onto v (commanded velocity component along current velocity direction)
+            double dot = v_x * w_x + v_y * w_y; // w · v
+            w_along_v = dot / v_mag;            // signed scalar projection
+        } else {
+            // if robot is nearly stopped, just use commanded speed magnitude (all commanded vel is speeding us up)
+            w_along_v = Math.hypot(w_x, w_y);
+        }
+
+        // SmartDashboard.putNumber("w along v", w_along_v);
+        // SmartDashboard.putNumber("v mag", v_mag);
+        
+        // the signum signifies if we are requesting speed up/braking
+        double max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 - Math.signum(w_along_v - v_mag) * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+        if(w_along_v - v_mag > 0){
+            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
+        }
+        else{
+            max_fwd_accel = Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ;
+        }
+
+        // SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
+        
+        double desiredForwardAccel = (w_along_v - v_mag)/dt;
+
+        // project commanded vel onto forward axis, if we aren't moving rn then all wanted vel is parallel
+        double w_parallel_x = (v_mag > 1e-6) ? (v_x / v_mag) * w_along_v : w_x;
+        double w_parallel_y = (v_mag > 1e-6) ? (v_y / v_mag) * w_along_v : w_y;
+        // SmartDashboard.putNumber("parallel cmd vel", Math.hypot(w_parallel_x, w_parallel_y));
+
+        // perpendicular component = commanded - parallel
+        double w_perp_x = w_x - w_parallel_x;
+        double w_perp_y = w_y - w_parallel_y;
+        double w_perp_mag = Math.hypot(w_perp_x, w_perp_y);
+        // SmartDashboard.putNumber("perp cmd vel", w_perp_mag);
+
+        // current sideways vel is always 0 since no component of the current vel doesn't point in the direction of the current vel
+        double desiredSkidAccel = w_perp_mag/dt;
+
+        // make sure total accel doesnt exceed max accel
+        double norm = Math.pow(desiredForwardAccel/max_fwd_accel, 2)
+                    + Math.pow(desiredSkidAccel/Constants.Swerve.MAX_SKID_ACCEL, 2);
+        if(norm > 1){
+            // SmartDashboard.putBoolean("scaling acceleration", true);
+            double scale = 1 / Math.sqrt(norm);
+            desiredForwardAccel *= scale;
+            desiredSkidAccel *= scale;
+        }
+        else{
+            // SmartDashboard.putBoolean("scaling acceleration", false);
+        }
+        double newForwardVel = v_mag + desiredForwardAccel * dt;
+        // SmartDashboard.putNumber("new forward vel", newForwardVel);
+
+        double vx_forward;
+        double vy_forward;
+        if (v_mag > 1e-6) {
+            vx_forward = (v_x/v_mag) * newForwardVel;
+            vy_forward = (v_y/v_mag) * newForwardVel;
+        }
+        else{
+            // if stopped, use commanded direction for initial forward push (preserves user intent)
+            double w_mag = Math.hypot(w_x, w_y);
+            if (w_mag > 1e-6) {
+                vx_forward = (w_x / w_mag) * newForwardVel;
+                vy_forward = (w_y / w_mag) * newForwardVel;
+            } else {
+                vx_forward = 0.0;
+                vy_forward = 0.0;
+            }
+        }
+        
+        double vx_perp = 0.0;
+        double vy_perp = 0.0;
+        if(w_perp_mag > 1e-6) {
+            vx_perp = (w_perp_x / w_perp_mag) * desiredSkidAccel * dt;
+            vy_perp = (w_perp_y / w_perp_mag) * desiredSkidAccel * dt;
+        }
+
+        // vx_perp = 0;
+        // vx_perp = 0;
+        commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        //commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        //commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
+        //speeds = applyAccelerationLimit(speeds);
+
+        // SmartDashboard.putNumber("Zj", commandedSpeeds.omegaRadiansPerSecond);
+        // SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
+        // SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
+
+        this.driveRobotRelativeWithCenter(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), center.get());
+
+        //SmartDashboard.putBoolean("collision", detectCollision());
+        
+        SmartDashboard.putNumber("X trans", centerOfRotation.getX());
+        SmartDashboard.putNumber("Y trans", centerOfRotation.getY());
+        
+        SmartDashboard.putNumber("X mult", centerOfRotation.getX()/-0.3);
+        SmartDashboard.putNumber("Y mult", centerOfRotation.getY()/-0.3);
+
+    }));
+    }
+
+    public void driveWithCenterOfRotation(Supplier<ChassisSpeeds> commandedSpeedsSupplier, Supplier<Translation2d> center){
+
+        ChassisSpeeds commandedSpeeds = commandedSpeedsSupplier.get();
+
+        ChassisSpeeds currentFieldRelSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
+
+        // I made the convention "v" means robots actual vel and "w" is robots wanted vel
+        double v_x = currentFieldRelSpeeds.vxMetersPerSecond;
+        double v_y = currentFieldRelSpeeds.vyMetersPerSecond;
+        double w_x = commandedSpeeds.vxMetersPerSecond;
+        double w_y = commandedSpeeds.vyMetersPerSecond;
+        double dt = 0.02;
+        
+        double v_mag = Math.hypot(v_x, v_y);
+        double w_along_v = 0.0;
+        
+        if (v_mag > 1e-6) {
+            // project w onto v (commanded velocity component along current velocity direction)
+            double dot = v_x * w_x + v_y * w_y; // w · v
+            w_along_v = dot / v_mag;            // signed scalar projection
+        } else {
+            // if robot is nearly stopped, just use commanded speed magnitude (all commanded vel is speeding us up)
+            w_along_v = Math.hypot(w_x, w_y);
+        }
+
+        // SmartDashboard.putNumber("w along v", w_along_v);
+        // SmartDashboard.putNumber("v mag", v_mag);
+        
+        // the signum signifies if we are requesting speed up/braking
+        double max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 - Math.signum(w_along_v - v_mag) * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+
+        if(w_along_v - v_mag > 0){
+            max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 -  (v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP));
+        }
+        else{
+            max_fwd_accel = Constants.Swerve.MAX_WHEEL_TRACTION_METERS_PER_SECOND_SQ;
+        }
+
+        // SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
+        
+        double desiredForwardAccel = (w_along_v - v_mag)/dt;
+
+        // project commanded vel onto forward axis, if we aren't moving rn then all wanted vel is parallel
+        double w_parallel_x = (v_mag > 1e-6) ? (v_x / v_mag) * w_along_v : w_x;
+        double w_parallel_y = (v_mag > 1e-6) ? (v_y / v_mag) * w_along_v : w_y;
+        // SmartDashboard.putNumber("parallel cmd vel", Math.hypot(w_parallel_x, w_parallel_y));
+
+        // perpendicular component = commanded - parallel
+        double w_perp_x = w_x - w_parallel_x;
+        double w_perp_y = w_y - w_parallel_y;
+        double w_perp_mag = Math.hypot(w_perp_x, w_perp_y);
+        // SmartDashboard.putNumber("perp cmd vel", w_perp_mag);
+
+        // current sideways vel is always 0 since no component of the current vel doesn't point in the direction of the current vel
+        double desiredSkidAccel = w_perp_mag/dt;
+
+        // make sure total accel doesnt exceed max accel
+        double norm = Math.pow(desiredForwardAccel/max_fwd_accel, 2)
+                    + Math.pow(desiredSkidAccel/Constants.Swerve.MAX_SKID_ACCEL, 2);
+        if(norm > 1){
+            // SmartDashboard.putBoolean("scaling acceleration", true);
+            double scale = 1 / Math.sqrt(norm);
+            desiredForwardAccel *= scale;
+            desiredSkidAccel *= scale;
+        }
+        else{
+            // SmartDashboard.putBoolean("scaling acceleration", false);
+        }
+        double newForwardVel = v_mag + desiredForwardAccel * dt;
+        // SmartDashboard.putNumber("new forward vel", newForwardVel);
+
+        double vx_forward;
+        double vy_forward;
+        if (v_mag > 1e-6) {
+            vx_forward = (v_x/v_mag) * newForwardVel;
+            vy_forward = (v_y/v_mag) * newForwardVel;
+        }
+        else{
+            // if stopped, use commanded direction for initial forward push (preserves user intent)
+            double w_mag = Math.hypot(w_x, w_y);
+            if (w_mag > 1e-6) {
+                vx_forward = (w_x / w_mag) * newForwardVel;
+                vy_forward = (w_y / w_mag) * newForwardVel;
+            } else {
+                vx_forward = 0.0;
+                vy_forward = 0.0;
+            }
+        }
+        
+        double vx_perp = 0.0;
+        double vy_perp = 0.0;
+        if(w_perp_mag > 1e-6) {
+            vx_perp = (w_perp_x / w_perp_mag) * desiredSkidAccel * dt;
+            vy_perp = (w_perp_y / w_perp_mag) * desiredSkidAccel * dt;
+        }
+
+        // vx_perp = 0;
+        // vx_perp = 0;
+        commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        //commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        //commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
+        //speeds = applyAccelerationLimit(speeds);
+
+        // SmartDashboard.putNumber("Zj", commandedSpeeds.omegaRadiansPerSecond);
+        // SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
+        // SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
+
+        this.driveRobotRelativeWithCenter(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), center.get());
+
+        //SmartDashboard.putBoolean("collision", detectCollision());
+        
+        SmartDashboard.putNumber("X mult", centerOfRotation.getX()/-0.3);
+        SmartDashboard.putNumber("Y mult", centerOfRotation.getY()/-0.3);
+
+    }
+
+
+    public Command driveWithCenter(Supplier<ChassisSpeeds> speedsSupplier, Supplier<Translation2d> center){
+        return 
+        runOnce( () -> {
+            centerOfRotation = center.get();
+        }).andThen(run(
+
+        ()-> {ChassisSpeeds commandedSpeeds = speedsSupplier.get();
+
+        ChassisSpeeds currentFieldRelSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
+
+        // I made the convention "v" means robots actual vel and "w" is robots wanted vel
+        double v_x = currentFieldRelSpeeds.vxMetersPerSecond;
+        double v_y = currentFieldRelSpeeds.vyMetersPerSecond;
+        double w_x = commandedSpeeds.vxMetersPerSecond;
+        double w_y = commandedSpeeds.vyMetersPerSecond;
+        double dt = 0.02;
+        
+        double v_mag = Math.hypot(v_x, v_y);
+        double w_along_v = 0.0;
+        
+        if (v_mag > 1e-6) {
+            // project w onto v (commanded velocity component along current velocity direction)
+            double dot = v_x * w_x + v_y * w_y; // w · v
+            w_along_v = dot / v_mag;            // signed scalar projection
+        } else {
+            // if robot is nearly stopped, just use commanded speed magnitude (all commanded vel is speeding us up)
+            w_along_v = Math.hypot(w_x, w_y);
+        }
+
+        SmartDashboard.putNumber("w along v", w_along_v);
+        SmartDashboard.putNumber("v mag", v_mag);
+        
+        // the signum signifies if we are requesting speed up/braking
+        double max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 - Math.signum(w_along_v - v_mag) * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+        SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
+        
+        double desiredForwardAccel = (w_along_v - v_mag)/dt;
+
+        // project commanded vel onto forward axis, if we aren't moving rn then all wanted vel is parallel
+        double w_parallel_x = (v_mag > 1e-6) ? (v_x / v_mag) * w_along_v : w_x;
+        double w_parallel_y = (v_mag > 1e-6) ? (v_y / v_mag) * w_along_v : w_y;
+        SmartDashboard.putNumber("parallel cmd vel", Math.hypot(w_parallel_x, w_parallel_y));
+
+        // perpendicular component = commanded - parallel
+        double w_perp_x = w_x - w_parallel_x;
+        double w_perp_y = w_y - w_parallel_y;
+        double w_perp_mag = Math.hypot(w_perp_x, w_perp_y);
+        SmartDashboard.putNumber("perp cmd vel", w_perp_mag);
+
+        // current sideways vel is always 0 since no component of the current vel doesn't point in the direction of the current vel
+        double desiredSkidAccel = w_perp_mag/dt;
+
+        // make sure total accel doesnt exceed max accel
+        double norm = Math.pow(desiredForwardAccel/max_fwd_accel, 2)
+                    + Math.pow(desiredSkidAccel/Constants.Swerve.MAX_SKID_ACCEL, 2);
+        if(norm > 1){
+            SmartDashboard.putBoolean("scaling acceleration", true);
+            double scale = 1 / Math.sqrt(norm);
+            desiredForwardAccel *= scale;
+            desiredSkidAccel *= scale;
+        }
+        else{
+            SmartDashboard.putBoolean("scaling acceleration", false);
+        }
+        double newForwardVel = v_mag + desiredForwardAccel * dt;
+        SmartDashboard.putNumber("new forward vel", newForwardVel);
+
+        double vx_forward;
+        double vy_forward;
+        if (v_mag > 1e-6) {
+            vx_forward = (v_x/v_mag) * newForwardVel;
+            vy_forward = (v_y/v_mag) * newForwardVel;
+        }
+        else{
+            // if stopped, use commanded direction for initial forward push (preserves user intent)
+            double w_mag = Math.hypot(w_x, w_y);
+            if (w_mag > 1e-6) {
+                vx_forward = (w_x / w_mag) * newForwardVel;
+                vy_forward = (w_y / w_mag) * newForwardVel;
+            } else {
+                vx_forward = 0.0;
+                vy_forward = 0.0;
+            }
+        }
+        
+        double vx_perp = 0.0;
+        double vy_perp = 0.0;
+        if(w_perp_mag > 1e-6) {
+            vx_perp = (w_perp_x / w_perp_mag) * desiredSkidAccel * dt;
+            vy_perp = (w_perp_y / w_perp_mag) * desiredSkidAccel * dt;
+        }
+
+        // vx_perp = 0;
+        // vx_perp = 0;
+        // commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        // commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        /* 
+        if (filter) {
+            commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+            commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        }
+        else {
+            commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+            commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        }*/
+        commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
+        //speeds = applyAccelerationLimit(speeds);
+
+        SmartDashboard.putNumber("Zj", commandedSpeeds.omegaRadiansPerSecond);
+        SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
+        SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
+
+        this.driveRobotRelativeWithCenter(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), centerOfRotation);
+
+
+        SmartDashboard.putNumber("X mult", centerOfRotation.getX()/-0.3);
+        SmartDashboard.putNumber("Y mult", centerOfRotation.getY()/-0.3);
+
+        //SmartDashboard.putBoolean("collision", detectCollision());
+    }));
+    }
+
+    public void driveWithCenter(Supplier<ChassisSpeeds> speedsSupplier, Translation2d center){
+        
+        ChassisSpeeds commandedSpeeds = speedsSupplier.get();
+
+        ChassisSpeeds currentFieldRelSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
+
+        // I made the convention "v" means robots actual vel and "w" is robots wanted vel
+        double v_x = currentFieldRelSpeeds.vxMetersPerSecond;
+        double v_y = currentFieldRelSpeeds.vyMetersPerSecond;
+        double w_x = commandedSpeeds.vxMetersPerSecond;
+        double w_y = commandedSpeeds.vyMetersPerSecond;
+        double dt = 0.02;
+        
+        double v_mag = Math.hypot(v_x, v_y);
+        double w_along_v = 0.0;
+        
+        if (v_mag > 1e-6) {
+            // project w onto v (commanded velocity component along current velocity direction)
+            double dot = v_x * w_x + v_y * w_y; // w · v
+            w_along_v = dot / v_mag;            // signed scalar projection
+        } else {
+            // if robot is nearly stopped, just use commanded speed magnitude (all commanded vel is speeding us up)
+            w_along_v = Math.hypot(w_x, w_y);
+        }
+
+        SmartDashboard.putNumber("w along v", w_along_v);
+        SmartDashboard.putNumber("v mag", v_mag);
+        
+        // the signum signifies if we are requesting speed up/braking
+        double max_fwd_accel = Constants.Swerve.MAX_ACCELERATION_METERS_PER_SECOND_SQ *
+                               (1 - Math.signum(w_along_v - v_mag) * v_mag / Constants.Swerve.MAX_SPEED_METERS_PER_SECONDS_TELEOP);
+        SmartDashboard.putNumber("max fwd accel", max_fwd_accel);
+        
+        double desiredForwardAccel = (w_along_v - v_mag)/dt;
+
+        // project commanded vel onto forward axis, if we aren't moving rn then all wanted vel is parallel
+        double w_parallel_x = (v_mag > 1e-6) ? (v_x / v_mag) * w_along_v : w_x;
+        double w_parallel_y = (v_mag > 1e-6) ? (v_y / v_mag) * w_along_v : w_y;
+        SmartDashboard.putNumber("parallel cmd vel", Math.hypot(w_parallel_x, w_parallel_y));
+
+        // perpendicular component = commanded - parallel
+        double w_perp_x = w_x - w_parallel_x;
+        double w_perp_y = w_y - w_parallel_y;
+        double w_perp_mag = Math.hypot(w_perp_x, w_perp_y);
+        SmartDashboard.putNumber("perp cmd vel", w_perp_mag);
+
+        // current sideways vel is always 0 since no component of the current vel doesn't point in the direction of the current vel
+        double desiredSkidAccel = w_perp_mag/dt;
+
+        // make sure total accel doesnt exceed max accel
+        double norm = Math.pow(desiredForwardAccel/max_fwd_accel, 2)
+                    + Math.pow(desiredSkidAccel/Constants.Swerve.MAX_SKID_ACCEL, 2);
+        if(norm > 1){
+            SmartDashboard.putBoolean("scaling acceleration", true);
+            double scale = 1 / Math.sqrt(norm);
+            desiredForwardAccel *= scale;
+            desiredSkidAccel *= scale;
+        }
+        else{
+            SmartDashboard.putBoolean("scaling acceleration", false);
+        }
+        double newForwardVel = v_mag + desiredForwardAccel * dt;
+        SmartDashboard.putNumber("new forward vel", newForwardVel);
+
+        double vx_forward;
+        double vy_forward;
+        if (v_mag > 1e-6) {
+            vx_forward = (v_x/v_mag) * newForwardVel;
+            vy_forward = (v_y/v_mag) * newForwardVel;
+        }
+        else{
+            // if stopped, use commanded direction for initial forward push (preserves user intent)
+            double w_mag = Math.hypot(w_x, w_y);
+            if (w_mag > 1e-6) {
+                vx_forward = (w_x / w_mag) * newForwardVel;
+                vy_forward = (w_y / w_mag) * newForwardVel;
+            } else {
+                vx_forward = 0.0;
+                vy_forward = 0.0;
+            }
+        }
+        
+        double vx_perp = 0.0;
+        double vy_perp = 0.0;
+        if(w_perp_mag > 1e-6) {
+            vx_perp = (w_perp_x / w_perp_mag) * desiredSkidAccel * dt;
+            vy_perp = (w_perp_y / w_perp_mag) * desiredSkidAccel * dt;
+        }
+
+        // vx_perp = 0;
+        // vx_perp = 0;
+        // commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+        // commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        /* 
+        if (filter) {
+            commandedSpeeds.vxMetersPerSecond = vx_forward + vx_perp;
+            commandedSpeeds.vyMetersPerSecond = vy_forward + vy_perp;
+        }
+        else {
+            commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+            commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        }*/
+        commandedSpeeds.vxMetersPerSecond = xFilter.calculate(commandedSpeeds.vxMetersPerSecond);
+        commandedSpeeds.vyMetersPerSecond = yFilter.calculate(commandedSpeeds.vyMetersPerSecond);
+        commandedSpeeds.omegaRadiansPerSecond = omegaFilter.calculate(commandedSpeeds.omegaRadiansPerSecond);
+        //speeds = applyAccelerationLimit(speeds);
+
+        SmartDashboard.putNumber("Zj", commandedSpeeds.omegaRadiansPerSecond);
+        SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
+        SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
+
+        this.driveRobotRelativeWithCenter(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), center);
+
+
+        SmartDashboard.putNumber("X mult", centerOfRotation.getX()/-0.3);
+        SmartDashboard.putNumber("Y mult", centerOfRotation.getY()/-0.3);
+
+        //SmartDashboard.putBoolean("collision", detectCollision());
+    }
+
 
     public void updateOdometryWithKinematics(){
         lastTime = currentTime;
@@ -905,6 +1429,10 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
         SmartDashboard.putString("Robot Pose", getSavedPose().toString());
         SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);
+
+
+        SmartDashboard.putNumber("COR X", centerOfRotation.getX());
+        SmartDashboard.putNumber("COR Y", centerOfRotation.getY());
 
 
         updateOdometryWithVision(false);
