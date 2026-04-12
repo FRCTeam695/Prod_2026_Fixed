@@ -55,6 +55,7 @@ public class IntakePivot extends SubsystemBase {
     public final Trigger withinTolerance;
     public final Trigger statorOverThreshold;
     public final Trigger velocityAtZero;
+    public final Trigger pastThresholdAutoRaise;
 
     private final double pivotTolerance = 10;
     private final double statorAmpLimit = 20;
@@ -85,6 +86,10 @@ public class IntakePivot extends SubsystemBase {
 
             velocityAtZero = new Trigger(
                 ()-> pivot.getVelocity().getValueAsDouble() < 0.02
+            );
+
+            pastThresholdAutoRaise = new Trigger(
+                ()-> pivot.getPosition().getValueAsDouble() > 47
             );
 
         }

@@ -408,7 +408,7 @@ public class RobotContainer {
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
             feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
-            new WaitCommand(1.5).andThen(pivot.slowRaise())
+            pivot.slowRaise()
           )
         )
       ).alongWith(
@@ -456,22 +456,29 @@ public class RobotContainer {
     );
 
 
-    driver.y().whileTrue(
-        run
-        (
-          ()-> swerve.stopModules(),
-          swerve
-        )
-    );
-
     driver.x().whileTrue(
       parallel(
         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget()),
-        tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS() * 0.3)
+        tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
       )
     );
 
+    driver.y().whileTrue(
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.setDutyCycle(()-> 1).until(pivot.pastThresholdAutoRaise).andThen(pivot.setDutyCycle(()-> 0.5)),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+          )
+    );
 
+    driver.y().onFalse(
+      pivot.goToPositionDegreesWithCondition(pivot.pivotRetractedPositionDegrees, pivot.withinTolerance)
+      .andThen(
+        pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees)
+      )
+    );
   }
 
   public Command shooterCooldown(){
@@ -504,7 +511,7 @@ public class RobotContainer {
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
             feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
-            new WaitCommand(1.5).andThen(pivot.slowRaise()),
+            pivot.slowRaise(),
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
           )
         )
