@@ -938,7 +938,7 @@ public class SwerveBase extends SubsystemBase {
         // SmartDashboard.putNumber("Xj", commandedSpeeds.vxMetersPerSecond);
         // SmartDashboard.putNumber("Yj", commandedSpeeds.vyMetersPerSecond);
 
-        this.driveRobotRelativeWithCenter(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), center.get());
+        this.driveRobotRelativeWithCenter(ChassisSpeeds.fromFieldRelativeSpeeds(commandedSpeeds, getSavedPose().getRotation()), centerOfRotation);
 
         //SmartDashboard.putBoolean("collision", detectCollision());
         
