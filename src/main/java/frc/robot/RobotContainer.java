@@ -21,11 +21,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 
-import java.util.Optional;
-
 import com.ctre.phoenix6.signals.InvertedValue;
 
-import frc.robot.Constants.Swerve;
 import frc.robot.subsystems.*;
 import frc.robot.subsystems.IndividualShooter.ShooterMiniConfig;
 
@@ -397,11 +394,11 @@ public class RobotContainer {
     //     driver::getRequestedChassisSpeeds, 
     //     ()-> shotCalculator.getCachedSetpoint().virtualTarget(),
     //     () -> new Translation2d(
-    //         -0.3 * 
+    //         -Constants.Swerve.WHEEL_BASE_METERS/2  * 
     //         -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
     //         - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
     //         , 
-    //         0.3 * 
+    //         Constants.Swerve.WHEEL_BASE_METERS/2  * 
     //         (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
     //         - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
     //       ) 
@@ -524,16 +521,16 @@ public class RobotContainer {
 
     // rotates around bottom right corner with custom center
     driver.povRight().whileTrue(
-        swerve.driveWithCenter(
+        swerve.driveWithCenterOfRotationCommand(
           driver::getRequestedChassisSpeeds,
           () -> 
            new Translation2d(
-            -0.3 * 
+            -Constants.Swerve.WHEEL_BASE_METERS/2  * 
             -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
             - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
             
             , 
-            -0.3 * 
+            -Constants.Swerve.WHEEL_BASE_METERS/2  * 
             (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
             - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
             ) 
@@ -543,15 +540,15 @@ public class RobotContainer {
 
     // rotates around bottom left corner with custom center
     driver.povLeft().whileTrue(
-      swerve.driveWithCenter(
+      swerve.driveWithCenterOfRotationCommand(
           driver::getRequestedChassisSpeeds,
           () -> 
            new Translation2d(
-            -0.3 * 
+            -Constants.Swerve.WHEEL_BASE_METERS/2 * 
             -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
             - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
             , 
-            0.3 * 
+            Constants.Swerve.WHEEL_BASE_METERS/2  * 
             (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
             - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
           ) 
