@@ -42,6 +42,9 @@ public class SOTMSetpointGenerator extends SubsystemBase{
         rpmMapStockpile = new InterpolatingDoubleTreeMap();
         angleMapStockpile = new InterpolatingDoubleTreeMap();
 
+        rpmMapStockpile.put(12., 0.9 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
+        angleMapStockpile.put(12., 52.);
+
         rpmMapStockpile.put(10.8, 0.85 * 2 * Math.PI * Units.inchesToMeters(2) * 100 );
         angleMapStockpile.put(10.8, 52.);
 
@@ -70,13 +73,13 @@ public class SOTMSetpointGenerator extends SubsystemBase{
          // this table is furthest to closest location
         addDatapointToTable(
             0.93, 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.49,
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.485,
         72.5,
             -100 * ((12/36.)*30*5)/1000, 
             1.42);
         addDatapointToTable(
             2.411, 
-            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.58,
+            2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.575,
             72,
             -100 * ((12/36.)*30*5)/1000, 
             1.42);

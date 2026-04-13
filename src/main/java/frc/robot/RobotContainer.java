@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -19,7 +20,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import static edu.wpi.first.wpilibj2.command.Commands.*;
-
 
 import com.ctre.phoenix6.signals.InvertedValue;
 
@@ -36,6 +36,7 @@ public class RobotContainer {
   private final TripleShooter tripleShooter;
   private final IntakePivot pivot;
   private final Hood hood;
+  private final LED led;
 
 
 
@@ -67,6 +68,7 @@ public class RobotContainer {
                               );
     pivot = new IntakePivot();
     hood = new Hood();
+    led = new LED();
 
     // SmartDashboard.putData("Swerve Subsystem", swerve);
     shotCalculator = new SOTMSetpointGenerator(swerve::getSavedPose, swerve::getLatestChassisSpeed);
@@ -76,16 +78,14 @@ public class RobotContainer {
     configureDefaultCommands();
 
     autoChooser.addOption("Mirror", 
-              (swerve.resetGyroWithAllianceFlip(90)
-          .andThen(
+      (
             swerve.setAllianceHubTagsValid()
-          )
           .andThen(
-            deadline( 
-              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
-              .andThen(swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
+            deadline(
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 3, 2.5)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.2, 3.0)) //find this pose, get ready for pacman
               .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 0.7) //inital centerline move
+                  swerve.driveToPoseWithSpeedLimit(()-> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 3.0, 3.0) //inital centerline move
               ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
               parallel(
@@ -96,18 +96,18 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.5, 2.5),
               pivot.setDutyCycle(()-> -0.05)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.0, 1.5),
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.5, 2.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 2.0, 0.5),
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.7, Rotation2d.fromDegrees(-60)))), 0.15, 2.0, 0.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
@@ -121,32 +121,33 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
-              .andThen(swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 3, 2.5)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 3.0)) //find this pose, get ready for pacman
               .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 2.0)
+                  swerve.driveToPoseWithSpeedLimit(()-> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 3.0, 3.0)
               ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
-                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
+                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0))),
+              feeder.openLoopSet(()-> 0)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              swerve.driveToPoseWithSpeedLimit(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.5, 2.5),
               pivot.setDutyCycle(()-> -0.05)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.5),
+              swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
             deadline(
-              swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
+              swerve.driveToPose(() -> (swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.7, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
@@ -162,16 +163,14 @@ public class RobotContainer {
     );
 
     autoChooser.addOption("Citrus Sweep Right",
-        (swerve.resetGyroWithAllianceFlip(-90)
-          .andThen(
+        (
             swerve.setAllianceHubTagsValid()
-          )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
-              .andThen(swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 3, 2.5)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.2, 3.0)) //find this pose, get ready for pacman
               .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 0.7) //inital centerline move
+                  swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 3.0, 3.0) //inital centerline move
               ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
               parallel(
@@ -182,18 +181,18 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.5, 2.5),
               pivot.setDutyCycle(()-> -0.05)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.0, 1.5),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.5, 2.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 2.0, 0.5),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.7, Rotation2d.fromDegrees(-60)))), 0.15, 2.0, 0.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
@@ -207,32 +206,33 @@ public class RobotContainer {
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
-              .andThen(swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 1.5)) //find this pose, get ready for pacman
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)))), 0.08, 3, 2.5)   //find this pose, right next to bump
+              .andThen(swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)))), 0.1, 3.0)) //find this pose, get ready for pacman
               .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 2.0, 2.0)
+                  swerve.driveToPoseWithSpeedLimit(()-> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)))), 0.15, 3.0, 3.0)
               ),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
               parallel(
                     tripleShooter.setDutyCycle(()-> -0.4),
                     kicker.setDutyCycle(()-> -1)
-                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
+                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0))),
+              feeder.openLoopSet(()-> 0)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.0, 2.0),
+              swerve.driveToPoseWithSpeedLimit(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)))), 0.08, 2.5, 2.5),
               pivot.setDutyCycle(()-> -0.05)
             )
           )
           .andThen(
             deadline(
-              swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 1.5),
+              swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)))), 0.2, 2.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
             deadline(
-              swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
+              swerve.driveToPose(() -> swerve.flipPoseToRight(swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.7, Rotation2d.fromDegrees(-60)))), 0.15, 0.5),
               pivot.setDutyCycle(()-> -0.05)
           ))
           .andThen(
@@ -247,119 +247,7 @@ public class RobotContainer {
           ).alongWith(new WaitCommand(0.5).andThen(intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)))
     );
 
-    autoChooser.addOption("Citrus Sweep Left", 
-          (swerve.resetGyroWithAllianceFlip(90)
-          .andThen(
-            swerve.setAllianceHubTagsValid()
-          )
-          .andThen(
-            deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90))), 0.08, 2.5, 2.0)   //find this pose, right next to bump
-              .andThen(swerve.driveToPose(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07))), 0.1, 1.5)) //find this pose, get ready for pacman
-              .andThen(
-                  swerve.driveToPoseWithSpeedLimit(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07))), 0.15, 2.0, 0.7) //inital centerline move
-              ),
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
-              parallel(
-                    tripleShooter.setDutyCycle(()-> -0.4),
-                    kicker.setDutyCycle(()-> -1)
-                  ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
-            )
-          )
-          .andThen(
-            deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07))), 0.08, 2.0, 2.0),
-              pivot.setDutyCycle(()-> -0.05)
-            )
-          )
-          .andThen(
-            deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0))), 0.2, 2.0, 1.5),
-              pivot.setDutyCycle(()-> -0.05)
-          ))
-          .andThen(
-            deadline(
-              swerve.driveToPoseWithSpeedLimit(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(10.68, 2.8, Rotation2d.fromDegrees(-60))), 0.15, 2.0, 0.5),
-              pivot.setDutyCycle(()-> -0.05)
-          ))
-          .andThen(
-              deadline(
-                swerve.driveToPoseWhileTurningToHub(() -> swerve.optionalFlipPoseSeededRed(new Pose2d(13.9, 2.7, Rotation2d.fromDegrees(133.53))), 0.4, 2.0),
-                new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
-              )
-          )
-          .andThen(
-            autoShoot().withTimeout(3.8)
-          )
-          .andThen(
-            deadline(
-              swerve.driveToPose(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(15.1, 0.54, Rotation2d.fromDegrees(113.3))), 0.1, 1.0), //get ready to intake from depot
-              pivot.setDutyCycle(()-> -0.05),
-              parallel(
-                    tripleShooter.setDutyCycle(()-> -0.4),
-                    kicker.setDutyCycle(()-> -1)
-                  ).withTimeout(0.8).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
-            )
-          )
-          .andThen(
-            deadline(
-              //15.936, 0.950
-              swerve.driveToPose(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(15.936, 0.845, Rotation2d.fromDegrees(71.49))), 0.1, 0.5), //traverse through depot
-              pivot.setDutyCycle(()-> -0.05)
-            )
-          )
-          .andThen(
-            deadline(
-              swerve.driveToPoseWithSpeedLimit(()-> swerve.optionalFlipPoseSeededRed(new Pose2d(15.936, 2.518, Rotation2d.fromDegrees(71.49))), 0.1, 2, 0.5), //traverse through depot
-              pivot.setDutyCycle(()-> -0.05)
-            )
-          )
-          .andThen(
-            deadline(
-              swerve.driveToPose(
-                ()-> swerve.optionalFlipPoseSeededBlue(new Pose2d(2.13 - Units.inchesToMeters(0),Constants.FieldConstants.FIELD_WIDTH  - 2.36 - 0.15, Rotation2d.fromDegrees(-34.65))), 
-                0.40,
-                2.0),
-              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS() * 0.8)
-            )
-          )
-          .andThen(autoShoot())
-          ).alongWith(new WaitCommand(0.5).andThen(intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)))
-    );
-
-    autoChooser.addOption("outpost", 
-          swerve.resetGyroWithAllianceFlip(-90)
-          .andThen
-          (
-            deadline
-            (
-              swerve.driveToPose(()-> swerve.getOutpostPose(), 0.01, 0.0),
-              pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance)
-            ).withTimeout(3) // find this pose (outpost intake pose)
-          )
-          .andThen
-          (
-            runOnce(() -> {swerve.stopModules();}).andThen(new WaitCommand(3)) // tune this number
-          ).
-          andThen(
-            swerve.driveToPose( 
-              ()-> swerve.optionalFlipPoseSeededBlue(new Pose2d(1.5, 0.64, Rotation2d.fromDegrees(180))), 
-              0.5, 
-              0.0)
-          ).andThen
-          (
-            deadline(
-              swerve.driveToPose(
-                ()-> swerve.optionalFlipPoseSeededBlue(new Pose2d(2.18,2.36, Rotation2d.fromDegrees(34.65))),
-                 0.01,
-                 0.0),
-              tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
-            )
-          ).andThen(
-            autoShoot()
-          )
-  
-    );
+ 
 
     autoChooser.addOption("depot", 
           swerve.resetGyroWithAllianceFlip(90)
@@ -444,6 +332,7 @@ public class RobotContainer {
 
   @SuppressWarnings("static-access")
   private void configureBindings() {
+    intakeRollers.isStalled.onTrue(led.breatheEffect(3, 0.1));
     driver.povLeft().and(()-> DriverStation.isDisabled()).onTrue(
        swerve.resetGyroWithAllianceFlip(90)
     );
@@ -463,6 +352,9 @@ public class RobotContainer {
               intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)
             )
           ).alongWith(swerve.pacmanDrive(driver::getRequestedChassisSpeeds, driver::getRightStickHeading))
+    );
+    driver.leftBumper().toggleOnTrue(
+      led.solidColor(2)
     );
 
     driver.leftTrigger().whileTrue(
@@ -485,31 +377,67 @@ public class RobotContainer {
           ).withName("Swerve Drive Command")
     ));
 
+    driver.leftTrigger().whileTrue(led.solidColor(5));
+
     /*
      * Auto shoot while held
      */
+
     driver.rightTrigger().whileTrue(
       autoShoot()
     );
 
+    /*
+     * turn towards hub with custom center - need to change custom center
+     */
+    // driver.rightTrigger().whileTrue(
+    //   swerve.rotateTowardsVirtualHubCustomCenter(
+    //     driver::getRequestedChassisSpeeds, 
+    //     ()-> shotCalculator.getCachedSetpoint().virtualTarget(),
+    //     () -> new Translation2d(
+    //         -Constants.Swerve.WHEEL_BASE_METERS/2  * 
+    //         -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
+    //         - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
+    //         , 
+    //         Constants.Swerve.WHEEL_BASE_METERS/2  * 
+    //         (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
+    //         - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
+    //       ) 
+    //     )
+    // );
+
     driver.rightTrigger().onFalse(
-      (runOnce(() -> swerve.setValidTagIDs("allTags"))
-      .andThen(
-        parallel(
-          tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
-          kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
-        )
-        .andThen(
-          parallel(
-            tripleShooter.setDutyCycle(()-> -0.4),
-            kicker.setDutyCycle(()-> -1)
-          ).withTimeout(0.5)
-        )
-      )).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees))
+      shooterCooldown()
     );
 
+    // /*
+    //  * stockpile while held (raises intake)
+    //  */
+    // driver.rightBumper().whileTrue(
+    //   (
+    //     parallel(
+    //       tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //       swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
+    //     ).until(tripleShooter.allShootersWithinTolerance)
+    //     .andThen(
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+    //     )
+    //     .andThen(
+    //       parallel(
+    //         swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //         feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
+    //         pivot.slowRaise()
+    //       )
+    //     )
+    //   ).alongWith(
+    //     hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
+    //   )
+    // );
+
     /*
-     * stockpile while held
+     * stockpile while held (does not raise intake)
      */
     driver.rightBumper().whileTrue(
       (
@@ -525,8 +453,7 @@ public class RobotContainer {
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget()),
             kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
             tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
-            feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100),
-            pivot.slowRaise()
+            feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100)
           )
         )
       ).alongWith(
@@ -534,17 +461,10 @@ public class RobotContainer {
       )
     );
 
+
+
     driver.rightBumper().onFalse(
-      (parallel(
-        tripleShooter.setVelocityMPSWithCondition(()-> 0, tripleShooter.allShootersWithinTolerance),
-        kicker.setVelocityMPS(()-> 0).until(kicker.isStopped)
-      )
-      .andThen(
-        parallel(
-          tripleShooter.setDutyCycle(()-> -0.4),
-          kicker.setDutyCycle(()-> -1)
-        ).withTimeout(1.0)
-      )).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees))
+      shooterCooldown()
     );
 
     /*
@@ -571,44 +491,93 @@ public class RobotContainer {
       )
     );
 
-    // /*
-    //  * retract pivot
-    //  */
-    // driver.b().onTrue(
+    /*
+     * retract pivot
+     */
+    driver.b().whileTrue(
+      cornerShot()
+    );
+
+    // driver.povLeft().onTrue(
     //   pivot.setPositionDegrees(()-> pivot.pivotRetractedPositionDegrees)
     // );
 
-    // spin up shooter and turn to hub
-    driver.b().whileTrue(
+
+    driver.x().whileTrue(
       parallel(
-        tripleShooter.setDutyCycle(() -> 0.6),
-        swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, () -> shotCalculator.getCachedSetpoint().virtualTarget())
+        swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget()),
+        tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
       )
     );
 
-    driver.povLeft().onTrue(
-      //pivot.slowRaise()
-      hood.setActuatorDeg(() -> 72)
-    );
-
-    driver.povRight().onTrue(
-      hood.setActuatorDeg(()-> 52)
-    );
-
     driver.y().whileTrue(
-        run
-        (
-          ()-> swerve.stopModules(),
-          swerve
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.setDutyCycle(()-> 0.3).until(pivot.pastThresholdAutoRaise).andThen(pivot.setDutyCycle(()-> 0.1)),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+          )
+    );
+
+    // rotates around bottom right corner with custom center
+    driver.povRight().whileTrue(
+        swerve.driveWithCenterOfRotationCommand(
+          driver::getRequestedChassisSpeeds,
+          () -> 
+           new Translation2d(
+            -Constants.Swerve.WHEEL_BASE_METERS/2  * 
+            -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
+            - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
+            
+            , 
+            -Constants.Swerve.WHEEL_BASE_METERS/2  * 
+            (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
+            - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
+            ) 
+           // update with center of rotation
+      )
+    );
+
+    // rotates around bottom left corner with custom center
+    driver.povLeft().whileTrue(
+      swerve.driveWithCenterOfRotationCommand(
+          driver::getRequestedChassisSpeeds,
+          () -> 
+           new Translation2d(
+            -Constants.Swerve.WHEEL_BASE_METERS/2 * 
+            -(Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getCos(), 3) 
+            - Math.pow((swerve.getSavedPose().getRotation().plus(Rotation2d.fromDegrees(90))).getSin(), 3))
+            , 
+            Constants.Swerve.WHEEL_BASE_METERS/2  * 
+            (Math.pow(swerve.getSavedPose().getRotation().getCos(), 3) 
+            - Math.pow(swerve.getSavedPose().getRotation().getSin(), 3))
+          ) 
+           // update with center of rotation
         )
     );
+    
 
-    // unjam feeder
-    driver.x().whileTrue(
-      parallel(
-      feeder.runFeederOneRotation(),
-      intakeRollers.setVelocityRPS(()-> -Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))
+
+    driver.y().onFalse(
+      pivot.goToPositionDegreesWithCondition(pivot.pivotRetractedPositionDegrees, pivot.withinTolerance)
+      .andThen(
+        pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees)
+      )
     );
+  }
+
+  public Command shooterCooldown(){
+   return  (
+        parallel(
+          tripleShooter.setDutyCycle(()-> -0.4),
+          kicker.setDutyCycle(()-> -1)
+        ).withTimeout(0.5)
+        .andThen(
+          tripleShooter.setDutyCycle(()-> 0)
+            .alongWith(kicker.setDutyCycle(()-> 0))
+        )
+      ).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees));
   }
 
    public Command autoShoot(){
@@ -635,6 +604,47 @@ public class RobotContainer {
       );
     }
 
+    public Command cornerShot(){
+      return (
+        swerve.setAllianceHubTagsValid()
+        .andThen(
+          parallel(
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7),
+            swerve.rotateToAngle(()-> 
+                {
+                  if(!swerve.isRedAlliance()){
+                    if(swerve.getSavedPose().getY() > Constants.FieldConstants.FIELD_WIDTH/2) return -41;
+                    else return 41;
+                  }
+                  if(swerve.getSavedPose().getY() < Constants.FieldConstants.FIELD_WIDTH/2) return -41;
+                  else return 41 + 180;
+                }, 
+            driver::getRequestedChassisSpeeds)
+        ).until(tripleShooter.allShootersWithinTolerance)
+        )
+        .andThen(
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+        )
+        .andThen(
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.slowRaise(),
+            // swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+            swerve.rotateToAngle(()->                 {
+                  if(!swerve.isRedAlliance()){
+                    if(swerve.getSavedPose().getY() > Constants.FieldConstants.FIELD_WIDTH/2) return -43.18;
+                    else return 43.18;
+                  }
+                  if(swerve.getSavedPose().getY() < Constants.FieldConstants.FIELD_WIDTH/2) return -43.18 + 180;
+                  else return 43.18 + 180;
+                }, driver::getRequestedChassisSpeeds)
+          )
+        )
+      ).alongWith(hood.setActuatorDeg(()-> 63));
+    }
+
   public void configureDefaultCommands(){
     swerve.setDefaultCommand
       (
@@ -657,10 +667,13 @@ public class RobotContainer {
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
     hood.setDefaultCommand(
       hood.setActuatorDeg(
-        () -> 
+        () -> //52
+        // 72.5
+
         shotCalculator.getCachedSetpoint().angle()
       )
     );
+    led.setDefaultCommand(led.solidColor(()-> swerve.isRedAlliance() ? 0 : 4).ignoringDisable(true));
   }
 
   public Command getAutonomousCommand() {
