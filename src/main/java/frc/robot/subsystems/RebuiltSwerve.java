@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import edu.wpi.first.math.MathUtil;
@@ -201,11 +202,76 @@ public class RebuiltSwerve extends SwerveBase{
 
                 drive(speeds);
             }
-            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
-            .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
-                this.stopModules();
-            }));
+            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd);
+    }
+
+    public Command purePursuit(List<Supplier<Pose2d>> poses, double lookAheadDist, double speedLimit) {
+        var state = new Object() { int index = 0; };
+
+        return run(() -> {
+            Pose2d start = poses.get(state.index).get();
+            Pose2d end = poses.get(state.index + 1).get();
+            Pose2d robotPose = getSavedPose();
+
+            m_field.getObject("start").setPose(start);
+            m_field.getObject("end").setPose(end);
+
+            // find how far we are along the current line segment
+            Translation2d lineVec = end.getTranslation().minus(start.getTranslation());
+            Translation2d robotVec = robotPose.getTranslation().minus(start.getTranslation());
+            
+            double lineVecDist = lineVec.getDistance(new Translation2d());
+            if (lineVecDist < 0.001){
+                lineVecDist = 0.001;
+            }
+            double dot = robotVec.getX() * lineVec.getX() + robotVec.getY() * lineVec.getY();
+            double t = dot / (lineVecDist * lineVecDist);
+            t = MathUtil.clamp(t, 0, 1);
+
+            // find lookahead percent
+            double lookAheadT = t + (lookAheadDist / lineVecDist);
+            
+            // if finished with this movement, go to next segment
+            if (lookAheadT >= 1.0 && state.index < poses.size() - 2) {
+                state.index++;
+                return;
+            }
+
+            Translation2d targetPoint = start.getTranslation().plus(lineVec.times(MathUtil.clamp(lookAheadT, 0, 1)));
+            double dx = targetPoint.getX() - robotPose.getX();
+            double dy = targetPoint.getY() - robotPose.getY();
+            double dist = Math.hypot(dx, dy);
+
+            double rotationThreshold = 0.0; 
+            double rotationT = 0;
+
+            if (t > rotationThreshold) {
+                rotationT = (t - rotationThreshold) / (1.0 - rotationThreshold);
+            }
+
+            Rotation2d targetRotation = start.getRotation().interpolate(end.getRotation(), rotationT);
+            m_field.getObject("carrot").setPose(new Pose2d(targetPoint, targetRotation));
+
+            double speed;
+            if (state.index < poses.size() - 2) {
+                speed = speedLimit; // stay fast to maintain momentum
+            } else {
+                // proportional braking only for the final approach
+                double finalDist = getDistanceToTranslation(end.getTranslation());
+                speed = MathUtil.clamp(kp_attract * finalDist, -speedLimit, speedLimit) + 0.6;
+            }
+                    
+            drive(new ChassisSpeeds(
+                (dx / dist) * speed,
+                (dy / dist) * speed,
+                getAngularComponentFromRotationOverride(end.getRotation().getDegrees())
+            ));
+
+        }).until(() -> 
+            // Finish when on the last segment AND close to the final pose
+            state.index >= poses.size() - 2 && 
+            getDistanceToTranslation(poses.get(poses.size() - 1).get().getTranslation()) < 0.05
+        ).finallyDo(() -> this.stopModules());
     }
 
     public Command driveToPoseWithSpeedLimit(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double speedlimit, double feedforward){
@@ -254,11 +320,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 drive(speeds);
             }
-            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
-            .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
-                this.stopModules();
-            }));
+            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd);
     }
 
     public Command pacmanDriveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedForward){
@@ -277,11 +339,7 @@ public class RebuiltSwerve extends SwerveBase{
 
                 drive(speeds);
             }
-            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd)
-            .andThen(runOnce(()-> {
-                SmartDashboard.putBoolean("reached destination", true);
-                this.stopModules();
-            }));
+            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd);
     }
 
     public Command driveToPoseWhileTurningToHub(Supplier<Pose2d> drivePoseSupplier, double distanceEnd, double ff){
