@@ -103,7 +103,7 @@ public class RobotContainer {
               )
           )
           .andThen(
-            autoShoot().withTimeout(3.8)
+            autoShootTurnToHub().withTimeout(3.8)
           )
           .andThen(
             deadline(
@@ -128,7 +128,7 @@ public class RobotContainer {
               )
           )
           .andThen(
-            autoShoot().withTimeout(3.8)
+            autoShootTurnToHub().withTimeout(3.8)
           )
           ).alongWith(new WaitCommand(0.5).andThen(intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)))
     );
@@ -158,7 +158,7 @@ public class RobotContainer {
               )
           )
           .andThen(
-            autoShoot().withTimeout(3.8)
+            autoShootTurnToHub().withTimeout(3.8)
           )
           .andThen(
             deadline(
@@ -183,7 +183,7 @@ public class RobotContainer {
               )
           )
           .andThen(
-            autoShoot().withTimeout(3.8)
+            autoShootTurnToHub().withTimeout(3.8)
           )
           ).alongWith(new WaitCommand(0.5).andThen(intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity)))
     );
@@ -258,7 +258,7 @@ public class RobotContainer {
               tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
             )
           ).andThen(
-            autoShoot()
+            autoShootTurnToHub()
           ));
 
 
@@ -320,12 +320,20 @@ public class RobotContainer {
     driver.leftTrigger().whileTrue(led.solidColor(5));
 
     /*
-     * Auto shoot while held
+     * Auto shoot while held (turns to hub)
      */
 
     driver.rightTrigger().whileTrue(
-      autoShoot()
+      autoShootTurnToHub()
     );
+
+    // /*
+    //  * Auto shoot while held (x wheels)
+    //  */
+
+    // driver.rightTrigger().whileTrue(
+    //   autoShootXWheels()
+    // );
 
     /*
      * turn towards hub with custom center - need to change custom center
@@ -379,6 +387,7 @@ public class RobotContainer {
     /*
      * stockpile while held (does not raise intake)
      */
+
     driver.rightBumper().whileTrue(
       (
         parallel(
@@ -400,7 +409,6 @@ public class RobotContainer {
         hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
       )
     );
-
 
 
     driver.rightBumper().onFalse(
@@ -497,7 +505,7 @@ public class RobotContainer {
       ).alongWith(pivot.setPositionDegrees(()-> pivot.pivotExtendedPositionDegrees));
   }
 
-   public Command autoShoot(){
+   public Command autoShootTurnToHub(){
       return (
         swerve.setAllianceHubTagsValid()
         .andThen(
@@ -516,6 +524,30 @@ public class RobotContainer {
             feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
             pivot.slowRaise(),
             swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+          )
+        )
+      );
+    }
+
+    public Command autoShootXWheels(){
+      return (
+        swerve.setAllianceHubTagsValid()
+        .andThen(
+          parallel(
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+        )
+        .andThen(
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+        )
+        .andThen(
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.slowRaise(),
+            swerve.xLockWheels()
           )
         )
       );

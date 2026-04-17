@@ -143,7 +143,7 @@ public class IntakePivot extends SubsystemBase {
             return 
             (
                 run(()->{
-                pivot.setControl(dutyCycleSetter.withOutput(0.4));
+                pivot.setControl(dutyCycleSetter.withOutput(0.85));
             })
             .until(
                 () -> (Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble()) > 40)
