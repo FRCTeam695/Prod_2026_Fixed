@@ -410,6 +410,32 @@ public class RobotContainer {
       )
     );
 
+    /*
+     * stockpile while intaking (right bumper and left trigger should be able to be held together)
+     */
+
+    // driver.rightBumper().whileTrue(
+    //   (
+    //     parallel(
+    //       tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //       swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getClosestStockpileTarget())
+    //     ).until(tripleShooter.allShootersWithinTolerance)
+    //     .andThen(
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+    //     )
+    //     .andThen(
+    //       parallel(
+    //         kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+    //         tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getStockpileSetpoint().shotVelocityMPS()),
+    //         feeder.setVelocityMPS(()-> -feeder.metersPerRotationOfMotor * 100)
+    //       )
+    //     )
+    //   ).alongWith(
+    //     hood.setActuatorDeg(()-> shotCalculator.getStockpileSetpoint().angle())
+    //   )
+    // );
+
+    
 
     driver.rightBumper().onFalse(
       shooterCooldown()
@@ -451,10 +477,42 @@ public class RobotContainer {
     );
 
 
+    // COMMENT THIS BACK IN FOR DRIVE PRACTICE!!!!!
+    // driver.x().whileTrue(
+    //   parallel(
+    //     swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget()),
+    //     tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
+    //   )
+    // );
+
+    // COMMENT THIS OUT ONCE UR DONE TUNING AND REPLACE IT WITH THE ABOVE BINDING 
     driver.x().whileTrue(
-      parallel(
-        swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget()),
-        tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS())
+      (
+        swerve.setAllianceHubTagsValid()
+        .andThen(
+          parallel(
+            tripleShooter.setVelocityTorqueCurrentMPS(
+              // CHANGE THE PERCENT FOR THIS (rn its at 0.7)
+              ()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7
+            ),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+        ).until(tripleShooter.allShootersWithinTolerance.and(swerve.atRotationSetpoint))
+        )
+        .andThen(
+          kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation).until(kicker.velAboveThreshold)
+        )
+        .andThen(
+          parallel(
+            kicker.setVelocityMPS(()-> kicker.maxSpeedRPS * kicker.surfaceMetersPerMotorRotation),
+            tripleShooter.setVelocityTorqueCurrentMPS(
+              // CHANGE THE PERCENT FOR THIS (rn its at 0.7)
+              ()-> 2 * Math.PI * Units.inchesToMeters(2) * 100 * 0.7
+            ),
+            feeder.setVelocityMPS(()-> shotCalculator.getCachedSetpoint().feedSpeed()),
+            pivot.slowRaise(),
+            swerve.rotateTowardsVirtualHub(driver::getRequestedChassisSpeeds, ()-> shotCalculator.getCachedSetpoint().virtualTarget())
+          )
+        )
       )
     );
 
@@ -616,9 +674,11 @@ public class RobotContainer {
     pivot.setDefaultCommand(pivot.setDutyCycle(()-> 0));
     hood.setDefaultCommand(
       hood.setActuatorDeg(
-        () -> //52
-        // 72.5
+        () -> 
+        
+        //63
 
+        //
         shotCalculator.getCachedSetpoint().angle()
       )
     );
