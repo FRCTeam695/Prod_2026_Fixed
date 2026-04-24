@@ -89,7 +89,7 @@ public class IntakePivot extends SubsystemBase {
             );
 
             pastThresholdAutoRaise = new Trigger(
-                ()-> pivot.getPosition().getValueAsDouble() > 47
+                ()-> Math.abs(Units.rotationsToDegrees(pivot.getPosition().getValueAsDouble())) > 70
             );
 
         }
@@ -181,6 +181,14 @@ public class IntakePivot extends SubsystemBase {
             );
         }
 
+        public Command holdPositionVertical(){
+            return run(
+                () -> {
+                    pivot.setControl(motionMagicSetter.withPosition(Units.degreesToRotations(95)));
+                }
+            );
+        }
+
         public Command setDutyCycle(DoubleSupplier velocity) {
             return run(
                 () -> {
@@ -240,5 +248,6 @@ public class IntakePivot extends SubsystemBase {
         atSetpointPub.set(withinTolerance.getAsBoolean());
 
         SmartDashboard.putBoolean("Stator Current Trigger", statorOverThreshold.getAsBoolean());
+        SmartDashboard.putBoolean("Pivot Past Threshold", pastThresholdAutoRaise.getAsBoolean());
     }
 }

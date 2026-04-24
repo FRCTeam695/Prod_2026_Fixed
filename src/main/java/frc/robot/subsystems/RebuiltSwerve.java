@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 import edu.wpi.first.math.MathUtil;
@@ -30,6 +29,7 @@ public class RebuiltSwerve extends SwerveBase{
 
     private Translation2d robotRelativeCenterOfRotationAtHub;
 
+    private boolean autonStartOnRightSide = true;
 
     public RebuiltSwerve(String[] camNames, TalonFXModule[] modules, int[] reefTags) {
         super(camNames, modules, reefTags);
@@ -191,6 +191,22 @@ public class RebuiltSwerve extends SwerveBase{
         );
     }
 
+    public Pose2d transformPoseByAllianceAndSide(Pose2d p){
+        return autonStartOnRightSide ? flipPoseToRight(optionalFlipPoseSeededRed(p)) : optionalFlipPoseSeededRed(p);
+    }
+
+    public Command registerLeft(){
+        return runOnce(()-> {
+            autonStartOnRightSide = false;
+        });
+    }
+
+    public Command registerRight(){
+        return runOnce(()-> {
+            autonStartOnRightSide = true;
+        });
+    }
+
 
     public Command driveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedforward){
 
@@ -198,87 +214,19 @@ public class RebuiltSwerve extends SwerveBase{
             
             run(
             ()->{
-                ChassisSpeeds speeds = getNextSpeedsOutput(targetPoseSupplier.get(), getSavedPose(), feedforward);
+                ChassisSpeeds speeds = getNextSpeedsOutput(transformPoseByAllianceAndSide(targetPoseSupplier.get()), getSavedPose(), feedforward);
 
                 drive(speeds);
             }
-            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd);
+            ).until(() -> getDistanceToTranslation(transformPoseByAllianceAndSide(targetPoseSupplier.get()).getTranslation()) < distanceEnd);
     }
 
-    public Command purePursuit(List<Supplier<Pose2d>> poses, double lookAheadDist, double speedLimit) {
-        var state = new Object() { int index = 0; };
-
-        return run(() -> {
-            Pose2d start = poses.get(state.index).get();
-            Pose2d end = poses.get(state.index + 1).get();
-            Pose2d robotPose = getSavedPose();
-
-            m_field.getObject("start").setPose(start);
-            m_field.getObject("end").setPose(end);
-
-            // find how far we are along the current line segment
-            Translation2d lineVec = end.getTranslation().minus(start.getTranslation());
-            Translation2d robotVec = robotPose.getTranslation().minus(start.getTranslation());
-            
-            double lineVecDist = lineVec.getDistance(new Translation2d());
-            if (lineVecDist < 0.001){
-                lineVecDist = 0.001;
-            }
-            double dot = robotVec.getX() * lineVec.getX() + robotVec.getY() * lineVec.getY();
-            double t = dot / (lineVecDist * lineVecDist);
-            t = MathUtil.clamp(t, 0, 1);
-
-            // find lookahead percent
-            double lookAheadT = t + (lookAheadDist / lineVecDist);
-            
-            // if finished with this movement, go to next segment
-            if (lookAheadT >= 1.0 && state.index < poses.size() - 2) {
-                state.index++;
-                return;
-            }
-
-            Translation2d targetPoint = start.getTranslation().plus(lineVec.times(MathUtil.clamp(lookAheadT, 0, 1)));
-            double dx = targetPoint.getX() - robotPose.getX();
-            double dy = targetPoint.getY() - robotPose.getY();
-            double dist = Math.hypot(dx, dy);
-
-            double rotationThreshold = 0.0; 
-            double rotationT = 0;
-
-            if (t > rotationThreshold) {
-                rotationT = (t - rotationThreshold) / (1.0 - rotationThreshold);
-            }
-
-            Rotation2d targetRotation = start.getRotation().interpolate(end.getRotation(), rotationT);
-            m_field.getObject("carrot").setPose(new Pose2d(targetPoint, targetRotation));
-
-            double speed;
-            if (state.index < poses.size() - 2) {
-                speed = speedLimit; // stay fast to maintain momentum
-            } else {
-                // proportional braking only for the final approach
-                double finalDist = getDistanceToTranslation(end.getTranslation());
-                speed = MathUtil.clamp(kp_attract * finalDist, -speedLimit, speedLimit) + 0.6;
-            }
-                    
-            drive(new ChassisSpeeds(
-                (dx / dist) * speed,
-                (dy / dist) * speed,
-                getAngularComponentFromRotationOverride(end.getRotation().getDegrees())
-            ));
-
-        }).until(() -> 
-            // Finish when on the last segment AND close to the final pose
-            state.index >= poses.size() - 2 && 
-            getDistanceToTranslation(poses.get(poses.size() - 1).get().getTranslation()) < 0.05
-        ).finallyDo(() -> this.stopModules());
-    }
 
     public Command driveToPoseWithSpeedLimit(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double speedlimit, double feedforward){
         return
             run(
             ()->{
-                Pose2d targetPose = targetPoseSupplier.get();
+                Pose2d targetPose = transformPoseByAllianceAndSide(targetPoseSupplier.get());
                 SmartDashboard.putBoolean("reached destination", false);
  
                 m_field.getObject("targetPose").setPose(targetPose);
@@ -320,27 +268,9 @@ public class RebuiltSwerve extends SwerveBase{
 
                 drive(speeds);
             }
-            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd);
+            ).until(() -> getDistanceToTranslation(transformPoseByAllianceAndSide(targetPoseSupplier.get()).getTranslation()) < distanceEnd);
     }
 
-    public Command pacmanDriveToPose(Supplier<Pose2d> targetPoseSupplier, double distanceEnd, double feedForward){
-        return
-            
-            run(
-            ()->{
-                Pose2d targetPose = targetPoseSupplier.get();
-                Pose2d currentPose = getSavedPose();
-                double dx = targetPose.getX() - currentPose.getX();
-                double dy = targetPose.getY() - currentPose.getY();
-                ChassisSpeeds speeds = getNextSpeedsOutput(targetPose, currentPose, feedForward);
-                    
-                speeds.omegaRadiansPerSecond = getAngularComponentFromRotationOverride(Math.toDegrees(Math.atan2(dy, dx)));
-                SmartDashboard.putString("align speeds", speeds.toString());
-
-                drive(speeds);
-            }
-            ).until(() -> getDistanceToTranslation(targetPoseSupplier.get().getTranslation()) < distanceEnd);
-    }
 
     public Command driveToPoseWhileTurningToHub(Supplier<Pose2d> drivePoseSupplier, double distanceEnd, double ff){
 
@@ -363,14 +293,14 @@ public class RebuiltSwerve extends SwerveBase{
                 double feedForward = (currentSpeeds.vyMetersPerSecond * dx_turn - currentSpeeds.vxMetersPerSecond * dy_turn)
                     / (norm * norm);
                 
-                ChassisSpeeds speeds = getNextSpeedsOutput(drivePoseSupplier.get(), robotPose, ff);
+                ChassisSpeeds speeds = getNextSpeedsOutput(transformPoseByAllianceAndSide(drivePoseSupplier.get()), robotPose, ff);
 
                 speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta);
 
                 drive(speeds);
                 
             }
-            ).until(() -> getDistanceToTranslation(drivePoseSupplier.get().getTranslation()) < distanceEnd)
+            ).until(() -> getDistanceToTranslation(transformPoseByAllianceAndSide(drivePoseSupplier.get()).getTranslation()) < distanceEnd)
             .andThen(runOnce(()-> {
                 SmartDashboard.putBoolean("reached destination", true);
                 this.stopModules();
@@ -429,5 +359,6 @@ public class RebuiltSwerve extends SwerveBase{
         SmartDashboard.putString("robot pose", getSavedPose().toString());
 
         SmartDashboard.putNumber("robot rotation", getSavedPose().getRotation().getDegrees());
+        SmartDashboard.putBoolean("Auton Start on Right Side", autonStartOnRightSide);
     }
 }
