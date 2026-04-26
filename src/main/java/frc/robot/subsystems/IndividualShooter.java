@@ -35,6 +35,7 @@ public class IndividualShooter {
     private final DoublePublisher velocityPub;
     private final BooleanPublisher atSetpointPub;
     public final Trigger withinTolerance;
+    public final Trigger withinLargeTolerance;
     private final double unitConversionFactor;
     private final ShooterMiniConfig myConfig;
     private double setpoint;
@@ -52,6 +53,7 @@ public class IndividualShooter {
 
         // within 5% tolerance
         withinTolerance = new Trigger(()-> Math.abs(setpoint - motor.getVelocity().getValueAsDouble()) < 5);
+        withinLargeTolerance = new Trigger(()-> Math.abs(setpoint - motor.getVelocity().getValueAsDouble()) < 15);
 
 
         table = inst.getTable("Shooter " + miniConfig.name);

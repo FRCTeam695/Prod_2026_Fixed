@@ -238,7 +238,11 @@ public class SwerveBase extends SubsystemBase {
                     setValidTagIDs("blueHubTags");
                 }
             }
-        );
+        ).ignoringDisable(true);
+    }
+
+    public void setAllTagsValidVoid(){
+        setValidTagIDs("allTags");
     }
 
     public void playSong(){
@@ -1181,6 +1185,9 @@ public class SwerveBase extends SubsystemBase {
         SmartDashboard.putNumber("sucessful odometry updates", successfulOdometryUpdates);
         SmartDashboard.putString("Robot Pose", getSavedPose().toString());
         SmartDashboard.putNumber("Robot Rotation Error", robotRotationError);
+
+        SmartDashboard.putNumber("Gyro roll", Math.abs(pigeon.getRoll().getValueAsDouble()));
+        SmartDashboard.putNumber("Gyro pitch", Math.abs(pigeon.getPitch().getValueAsDouble()));
 
 
         SmartDashboard.putNumber("COR X", centerOfRotation.getX());

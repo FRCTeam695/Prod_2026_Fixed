@@ -60,7 +60,7 @@ public class RebuiltSwerve extends SwerveBase{
         return new Pose2d(0.655 - 0.075 ,0.64, Rotation2d.fromDegrees(180));
     }
     
-    public Command rotateTowardsVirtualHub(Supplier<ChassisSpeeds> wantedSpeeds, Supplier<Translation2d> hubPose){
+    public Command rotateTowardsVirtualTarget(Supplier<ChassisSpeeds> wantedSpeeds, Supplier<Translation2d> hubPose){
         return 
         run(()->{
             Pose2d virtualPose = new Pose2d(hubPose.get(), new Rotation2d());
@@ -306,6 +306,62 @@ public class RebuiltSwerve extends SwerveBase{
                 this.stopModules();
             }));
     }
+
+        public Command driveToPoseWhileTurningToHubGyroSafety(Supplier<Pose2d> drivePoseSupplier, double ff){
+
+        return 
+            
+            run(()->{
+                Pose2d robotPose = getSavedPose();
+                ChassisSpeeds currentSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(getLatestChassisSpeed(), getSavedPose().getRotation());
+                Pose2d targetTurnPose = isRedAlliance() ? Constants.FieldConstants.Red.HUB : Constants.FieldConstants.Blue.HUB;
+
+                double dx_turn = targetTurnPose.getX() - robotPose.getX();
+                double dy_turn = targetTurnPose.getY() - robotPose.getY();
+
+                double norm = Math.hypot(dx_turn, dy_turn);
+
+                SmartDashboard.putNumber("distance to hub", norm);
+
+                double theta = Math.toDegrees(Math.atan2(dy_turn, dx_turn));
+
+                double feedForward = (currentSpeeds.vyMetersPerSecond * dx_turn - currentSpeeds.vxMetersPerSecond * dy_turn)
+                    / (norm * norm);
+                
+                ChassisSpeeds speeds;
+
+                if(getDistanceToTranslation(transformPoseByAllianceAndSide(drivePoseSupplier.get()).getTranslation()) < 0.1
+                    &&  (Math.abs(pigeon.getAccumGyroX().getValueAsDouble()) > 5 || 
+                        Math.abs(pigeon.getAccumGyroY().getValueAsDouble()) > 5)){
+                    speeds = getNextSpeedsOutput(
+                            transformPoseByAllianceAndSide(
+                                isRedAlliance() ? new Pose2d(drivePoseSupplier.get().getX() + 0.5, drivePoseSupplier.get().getY(), drivePoseSupplier.get().getRotation()) : new Pose2d(drivePoseSupplier.get().getX() - 0.5, drivePoseSupplier.get().getY(), drivePoseSupplier.get().getRotation())
+                            ), robotPose, ff);
+                    
+                }
+                else{
+                    speeds = getNextSpeedsOutput(transformPoseByAllianceAndSide(drivePoseSupplier.get()), robotPose, ff);
+                }
+
+                speeds.omegaRadiansPerSecond = -feedForward + getAngularComponentFromRotationOverride(theta);
+
+                drive(speeds);
+                
+            }
+            ).until(() -> isRedAlliance() ? getSavedPose().getX() > 12.8 : getSavedPose().getX() < (Constants.FieldConstants.FIELD_LENGTH-12.8) && 
+                        Math.abs(pigeon.getPitch().getValueAsDouble()) < 5 && 
+                        Math.abs(pigeon.getRoll().getValueAsDouble()) < 5)
+            .andThen(runOnce(()-> {
+                SmartDashboard.putBoolean("reached destination", true);
+                this.stopModules();
+            }));
+    }
+
+
+    public Command rotateTowardsDriverStationWall(Supplier<ChassisSpeeds> speedsSupplier){
+        return rotateToAngle(()-> isRedAlliance() ? 0 : 180, speedsSupplier);
+    }
+
 
     public ChassisSpeeds getNextSpeedsOutput(Pose2d targetPose, Pose2d currentPose, double feedforward){
                 SmartDashboard.putBoolean("reached destination", false);

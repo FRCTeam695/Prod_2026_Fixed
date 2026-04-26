@@ -18,13 +18,13 @@ public class TripleShooter extends SubsystemBase{
     public final double kShooterRotationsToMeters = 2 * Math.PI * Units.inchesToMeters(2);
     public final double kMaxSpeedMPS = kShooterRotationsToMeters * 100;
     public final Trigger allShootersWithinTolerance;
+    public final Trigger allShootersWithinLargeTolerance;
     public TripleShooter(ShooterMiniConfig configLeft, ShooterMiniConfig configMiddle, ShooterMiniConfig configRight){
         shooterLeft = new IndividualShooter(configLeft, kShooterRotationsToMeters);
         shooterMiddle = new IndividualShooter(configMiddle, kShooterRotationsToMeters);
         shooterRight = new IndividualShooter(configRight, kShooterRotationsToMeters);
         allShootersWithinTolerance = shooterLeft.withinTolerance.and(shooterMiddle.withinTolerance).and(shooterRight.withinTolerance);
-
-
+        allShootersWithinLargeTolerance = shooterLeft.withinLargeTolerance.and(shooterMiddle.withinLargeTolerance).and(shooterRight.withinLargeTolerance);
     }
 
 
