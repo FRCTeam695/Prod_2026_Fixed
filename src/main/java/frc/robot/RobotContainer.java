@@ -399,7 +399,7 @@ public class RobotContainer {
           
           .andThen(
               deadline(
-                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
+                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.5, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
                 new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
               )
           )
@@ -425,7 +425,7 @@ public class RobotContainer {
           
           .andThen(
               deadline(
-                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
+                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.5, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
                 new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
               )
           )
@@ -451,7 +451,7 @@ public class RobotContainer {
           
           .andThen(
               deadline(
-                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
+                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.5, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
                 new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
               )
           )
@@ -477,7 +477,7 @@ public class RobotContainer {
           
           .andThen(
               deadline(
-                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
+                swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.5, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
                 new WaitCommand(0.5).andThen(tripleShooter.setVelocityTorqueCurrentMPS(()-> shotCalculator.getCachedSetpoint().shotVelocityMPS()))
               )
           )
@@ -622,6 +622,7 @@ public class RobotContainer {
     return pivot.setDutyCycle(()-> 0.5).until(pivot.pastThresholdAutoRaise).andThen(pivot.holdPositionVertical());
   }
   public Command getAutonomousCommand() {
+    // the auto choosers don't create a new command each time you get them, so if you run auto twice it will throw an error bcs of parallel command compositions
     return swerve.setAllianceHubTagsValid().andThen(sideChooser.getSelected())
                   .andThen((firstPassChooser.getSelected().andThen(secondPassChooser.getSelected())))
                   .alongWith(new WaitCommand(0.5).andThen(intakeRollers.setVelocityRPS(()-> Constants.Intake.INTAKE_SPEED * intakeRollers.kMaxVelocity))).handleInterrupt(
