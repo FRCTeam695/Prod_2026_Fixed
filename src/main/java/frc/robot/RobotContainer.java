@@ -439,11 +439,11 @@ public class RobotContainer {
 
     public Command halfHubSweep(){
       return  deadline(
-                swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)), 0.15, 3, 2.5)   //find this pose, right next to bump
+                swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)), 0.15, 3, 1.25)   //find this pose, right next to bump
                 .andThen(swerve.driveToPose(() -> new Pose2d(10.642, 3.859, Rotation2d.fromDegrees(90)), 0.2, 3.0)) //find this pose, get ready for pacman
                 .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(9.25, 3.859, Rotation2d.fromDegrees(-180)), 0.08, 2.5, 2.5))
                 .andThen(swerve.driveToPoseWithSpeedLimit(()-> new Pose2d(9.1, 2.6, Rotation2d.fromDegrees(-90)), 0.15, 3.0, 3.0))
-                .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.44, 2.5, Rotation2d.fromDegrees(12)), 0.15, 3.0, 3))   //find this pose, right next to bump
+                .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.7, 2.5, Rotation2d.fromDegrees(20)), 0.3, 3.0, 3))   //find this pose, right next to bump
                 ,
                 pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
                 parallel(
@@ -451,7 +451,7 @@ public class RobotContainer {
                       kicker.setDutyCycle(()-> -1)
                     ).withTimeout(3).andThen(parallel(tripleShooter.setDutyCycle(()-> 0.0), kicker.setDutyCycle(()-> 0)))
               )
-            
+
             .andThen(
                 deadline(
                   swerve.driveToPoseWhileTurningToHub(() -> new Pose2d(13.5, 2.7, Rotation2d.fromDegrees(133.53)), 0.4, 1.0),
