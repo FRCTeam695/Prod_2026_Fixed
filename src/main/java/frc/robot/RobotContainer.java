@@ -490,11 +490,14 @@ public class RobotContainer {
   }
   
   public Command oldPass(){
+
+    // 8.65, 3.5
+
     return  deadline(
               swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.84, 2.3, Rotation2d.fromDegrees(90)), 0.15, 3, 2.5)   //find this pose, right next to bump
               .andThen(swerve.driveToPose(() -> new Pose2d(9.87, 1.9, Rotation2d.fromDegrees(167.07)), 0.3, 3.0)) //find this pose, get ready for pacman
               .andThen(swerve.driveToPoseWithSpeedLimit(()-> new Pose2d(9.3, 1.9, Rotation2d.fromDegrees(167.07)), 0.15, 3.0, 3.0))
-              .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(8.15, 3.5, Rotation2d.fromDegrees(77.07)), 0.08, 2.5, 2.5))
+              .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(9.3, 3, Rotation2d.fromDegrees(77.07)), 0.08, 2.5, 2.5))
               .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(9.4, 3.64, Rotation2d.fromDegrees(0)), 0.2, 2.5, 2.5))
               .andThen(swerve.driveToPoseWithSpeedLimit(() -> new Pose2d(10.68, 2.7, Rotation2d.fromDegrees(-60)), 0.15, 2.0, 0.25)),
               pivot.goToPositionDegreesWithCondition(pivot.pivotExtendedPositionDegrees, pivot.withinTolerance).andThen(pivot.setDutyCycle(()-> -0.05)),             
